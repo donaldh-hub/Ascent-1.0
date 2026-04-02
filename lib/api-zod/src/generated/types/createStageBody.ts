@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface CreateStageBody {
+  name: string;
+  order: number;
+  owner?: string | null;
+  dueDate?: string | null;
+  notes?: string | null;
 }

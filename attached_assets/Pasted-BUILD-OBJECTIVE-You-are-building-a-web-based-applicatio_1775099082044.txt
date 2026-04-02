@@ -1,0 +1,362 @@
+BUILD OBJECTIVE:
+
+You are building a web-based application called **Ascent 1.0**.
+
+Ascent 1.0 is NOT a simple task tracker.
+
+It is a **continuous improvement operating system** designed to give users real-time visibility into workflows, risks, bottlenecks, assets, and execution performance.
+
+The system must show:
+
+* What is happening
+* Why it is happening
+* What it is costing
+* What needs to happen next
+
+This is a **cause → effect → action platform**, not a static database.
+
+---
+
+CORE PURPOSE:
+
+The purpose of Ascent 1.0 is to help teams:
+
+1. See operational health instantly using a RED / YELLOW / GREEN system
+2. Track workflows step-by-step and identify bottlenecks
+3. Capture real-world evidence (photos, documents, voice) inside workflows
+4. Recalculate impact when changes occur (delays, approvals, change orders)
+5. Track assets, warranties, and maintenance lifecycle
+6. Surface risks, delays, and failures BEFORE they become critical
+7. Drive users toward the NEXT BEST ACTION
+
+This system is an **operational control tower**, not just a tracker. 
+
+---
+
+SYSTEM ARCHITECTURE (MANDATORY):
+
+The platform must be built in THREE LAYERS:
+
+1. INPUT LAYER
+   This is how users feed the system:
+
+   * Workflow updates
+   * Status changes
+   * Photo capture
+   * Document uploads
+   * Voice notes / voice-to-text
+   * Asset installs and warranty inputs
+   * Dates, reminders, follow-ups
+
+2. LOGIC LAYER
+   This is the intelligence engine:
+
+   * Stoplight scoring engine
+   * Flow calculator
+   * Risk calculator
+   * Improvement calculator
+   * Execution calculator
+   * Workflow health scoring
+   * Operational health scoring
+   * Alert & warning engine
+   * Impact recalculation engine
+   * Asset & warranty intelligence
+
+3. OUTPUT LAYER
+   This is what users SEE:
+
+   * Main dashboard
+   * Workflow dashboards
+   * Alerts and notifications
+   * Bottleneck visuals
+   * Reports and trends
+   * Asset & warranty views
+
+RULE:
+Input feeds Logic.
+Logic feeds Visibility.
+Visibility drives Action. 
+
+---
+
+CORE PRINCIPLE:
+
+This system must ALWAYS answer:
+
+* Are we on track?
+* Where is the bottleneck?
+* What is at risk?
+* What changed?
+* What should we do next?
+
+If the UI cannot answer those in seconds, it is wrong.
+
+---
+
+CORE MODULES (FOUNDATION MVP):
+
+You must build the system with the following core modules:
+
+1. Authentication + Roles
+
+   * Users, teams, permissions (Admin, Supervisor, Technician, Manager, Viewer)
+
+2. Workflow Engine (CORE BACKBONE)
+
+   * Create workflows
+   * Break into stages
+   * Track movement through stages
+   * Track time, delays, dependencies
+   * Assign owners
+   * Link to assets, vendors, properties
+
+3. Dashboard Engine
+
+   * Main operational dashboard
+   * Workflow dashboards
+   * Bottleneck highlights
+   * Critical items
+   * Trend views
+   * Stoplight indicators
+
+4. Stoplight Scoring Engine
+
+   * Red / Yellow / Green system
+   * Local + workflow + global scoring
+
+5. Alert & Warning Engine
+
+   * Status changes
+   * Due dates
+   * Bottlenecks
+   * Warranty expiration
+   * Risk escalation
+
+6. Document & Evidence Engine
+
+   * Photo capture
+   * Document upload
+   * OCR support
+   * Voice notes
+   * Attach evidence to workflows
+
+7. Asset & Warranty Engine
+
+   * Asset records
+   * Install tracking
+   * Warranty tracking
+   * Maintenance scheduling
+   * Asset health
+
+8. Reporting Engine
+
+   * Workflow reports
+   * Asset reports
+   * Bottleneck analysis
+   * Trend analysis
+
+---
+
+SHARED CALCULATION ENGINE (CRITICAL):
+
+ALL modules must feed into FOUR CORE SCORES:
+
+1. FLOW SCORE
+   Measures movement, delays, bottlenecks
+
+2. RISK SCORE
+   Measures severity, frequency, exposure
+
+3. IMPROVEMENT SCORE
+   Measures progress (Kaizen, DMAIC, fixes)
+
+4. EXECUTION SCORE
+   Measures follow-through and completion
+
+These four scores combine into:
+
+→ OPERATIONAL HEALTH SCORE (MAIN DASHBOARD)
+
+Each score must output:
+
+* Numeric value
+* Stoplight color (Red / Yellow / Green)
+
+---
+
+DASHBOARD REQUIREMENTS:
+
+The dashboard is the CONTROL CENTER.
+
+It must include:
+
+1. Executive Snapshot
+
+   * Operational Health Score
+   * Stoplight status
+   * Critical items
+   * Biggest bottleneck
+   * Throughput
+   * Improvement summary
+
+2. Core Health Cards
+
+   * Flow
+   * Risk
+   * Improvement
+   * Execution
+     Each must show:
+   * Score
+   * Color
+   * Trend
+   * Insight
+
+3. Action Panel
+
+   * Top 3 actions
+   * Urgent workflows
+   * Overdue items
+
+4. Visual Flow Section
+
+   * Bottlenecks
+   * Queue status
+   * Aging
+
+5. Workflow Spotlight
+
+   * Problem workflows
+   * Alerts
+   * Status changes
+
+RULE:
+The dashboard must function like an AIR TRAFFIC CONTROL TOWER. 
+
+---
+
+DOCUMENT INTELLIGENCE (DIFFERENTIATOR):
+
+Documents must NOT be stored blindly.
+
+The system must:
+
+* Detect document type
+* Suggest where it belongs
+* Link it to workflow / asset / step
+* Allow manual correction
+* Display documents INSIDE workflows
+
+RULE:
+Documents must live in CONTEXT, not folders. 
+
+---
+
+IMPACT RECALCULATION ENGINE (CRITICAL FEATURE):
+
+When something changes (example: delay, approval, change order):
+
+The system must:
+
+1. Capture the event
+2. Identify what changed
+3. Recalculate timeline
+4. Recalculate workflow score
+5. Recalculate dashboard impact
+6. Show what caused the change
+7. Show cost of the change
+
+RULE:
+The system must show IMPACT, not just activity.
+
+---
+
+ASSET + WARRANTY INTELLIGENCE:
+
+Each asset must track:
+
+* Install date
+* Warranty start & expiration
+* Model & serial
+* Maintenance schedule
+* Life expectancy
+* Service history
+
+System must calculate:
+
+* Days remaining on warranty
+* Maintenance due
+* Asset health
+
+RULE:
+Every asset becomes a TRACKED LIFECYCLE. 
+
+---
+
+UX RULES (NON-NEGOTIABLE):
+
+The app must feel:
+
+* FAST
+* VISUAL
+* INTUITIVE
+* ACTION-DRIVEN
+
+Key UX principles:
+
+* Dashboard tells the truth instantly
+* Users move from overview → detail quickly
+* Alerts must drive action (not noise)
+* Evidence must be visible inside workflows
+* Mobile must support field capture (photos, voice)
+
+RULE:
+The screen must DIRECT ATTENTION, not just display data. 
+
+---
+
+BUILD STRATEGY:
+
+* Build as a responsive WEB APP first
+* Must work on desktop + mobile browser
+* Use a single backend
+* Native mobile comes later
+
+RULE:
+Build the brain first. Add mobility later. 
+
+---
+
+FINAL PRODUCT DEFINITION:
+
+Ascent 1.0 is:
+
+* A workflow engine
+* A bottleneck detection system
+* A stoplight-based decision system
+* A document-aware operational system
+* A risk and alert engine
+* An asset and warranty intelligence platform
+* A field-ready evidence capture tool
+
+In simple terms:
+
+It helps users:
+
+* See what is broken
+* Understand why
+* Measure impact
+* Take the right next step
+
+---
+
+FINAL RULE:
+
+This is NOT a CRUD app.
+
+This is an **INTELLIGENCE SYSTEM that drives behavior**.
+
+Every feature must answer:
+
+→ Does this help the user SEE, UNDERSTAND, or ACT?
+
+If not, it does not belong.

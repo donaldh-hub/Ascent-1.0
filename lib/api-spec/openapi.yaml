@@ -1,22 +1,34 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Ascent 1.0 - Operational Intelligence Platform
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard and operational health
+  - name: workflows
+    description: Workflow management
+  - name: stages
+    description: Workflow stages
+  - name: assets
+    description: Asset and warranty management
+  - name: documents
+    description: Document and evidence management
+  - name: alerts
+    description: Alerts and notifications
+  - name: analytics
+    description: Analytics and trends
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +36,486 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get operational health summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/bottlenecks:
+    get:
+      operationId: getDashboardBottlenecks
+      tags: [dashboard]
+      summary: Get current bottleneck workflows and stages
+      responses:
+        "200":
+          description: Bottleneck data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bottleneck"
+
+  /dashboard/actions:
+    get:
+      operationId: getDashboardActions
+      tags: [dashboard]
+      summary: Get top priority actions
+      responses:
+        "200":
+          description: Priority actions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PriorityAction"
+
+  /workflows:
+    get:
+      operationId: listWorkflows
+      tags: [workflows]
+      summary: List all workflows
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, completed, paused, at_risk]
+        - name: stoplight
+          in: query
+          schema:
+            type: string
+            enum: [red, yellow, green]
+      responses:
+        "200":
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workflow"
+    post:
+      operationId: createWorkflow
+      tags: [workflows]
+      summary: Create a new workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowBody"
+      responses:
+        "201":
+          description: Created workflow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+
+  /workflows/{id}:
+    get:
+      operationId: getWorkflow
+      tags: [workflows]
+      summary: Get workflow by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDetail"
+    put:
+      operationId: updateWorkflow
+      tags: [workflows]
+      summary: Update a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkflowBody"
+      responses:
+        "200":
+          description: Updated workflow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+    delete:
+      operationId: deleteWorkflow
+      tags: [workflows]
+      summary: Delete a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /workflows/{id}/health:
+    get:
+      operationId: getWorkflowHealth
+      tags: [workflows]
+      summary: Get recalculated health and impact for a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowHealth"
+
+  /workflows/{id}/stages:
+    get:
+      operationId: listStages
+      tags: [stages]
+      summary: List stages for a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Stages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stage"
+    post:
+      operationId: createStage
+      tags: [stages]
+      summary: Create a stage for a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStageBody"
+      responses:
+        "201":
+          description: Created stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stage"
+
+  /workflows/{id}/stages/{stageId}:
+    put:
+      operationId: updateStage
+      tags: [stages]
+      summary: Update a workflow stage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: stageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStageBody"
+      responses:
+        "200":
+          description: Updated stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stage"
+    delete:
+      operationId: deleteStage
+      tags: [stages]
+      summary: Delete a workflow stage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: stageId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List all assets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, maintenance, retired, critical]
+      responses:
+        "200":
+          description: Assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Create an asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssetBody"
+      responses:
+        "201":
+          description: Created asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+
+  /assets/{id}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get asset by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    put:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssetBody"
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+    delete:
+      operationId: deleteAsset
+      tags: [assets]
+      summary: Delete asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /assets/warranties:
+    get:
+      operationId: getWarrantyStatus
+      tags: [assets]
+      summary: Get warranty status overview for all assets
+      responses:
+        "200":
+          description: Warranty status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WarrantyStatus"
+
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents
+      parameters:
+        - name: workflowId
+          in: query
+          schema:
+            type: integer
+        - name: assetId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: Create/link a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDocumentBody"
+      responses:
+        "201":
+          description: Created document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [alerts]
+      summary: List alerts
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [critical, warning, info]
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/read:
+    patch:
+      operationId: markAlertRead
+      tags: [alerts]
+      summary: Mark an alert as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /analytics/trends:
+    get:
+      operationId: getAnalyticsTrends
+      tags: [analytics]
+      summary: Get score trends over time
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendData"
+
+  /analytics/workflow-performance:
+    get:
+      operationId: getWorkflowPerformance
+      tags: [analytics]
+      summary: Get workflow performance breakdown
+      responses:
+        "200":
+          description: Performance data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowPerformance"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +523,655 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    Stoplight:
+      type: string
+      enum: [red, yellow, green]
+
+    DashboardSummary:
+      type: object
+      properties:
+        operationalHealthScore:
+          type: number
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+        flowScore:
+          type: number
+        flowStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        riskScore:
+          type: number
+        riskStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        improvementScore:
+          type: number
+        improvementStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        executionScore:
+          type: number
+        executionStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        criticalItemsCount:
+          type: integer
+        activeWorkflowsCount:
+          type: integer
+        overdueItemsCount:
+          type: integer
+        biggestBottleneck:
+          type: string
+          nullable: true
+        throughput:
+          type: number
+        improvementSummary:
+          type: string
+      required:
+        - operationalHealthScore
+        - stoplight
+        - flowScore
+        - flowStoplight
+        - riskScore
+        - riskStoplight
+        - improvementScore
+        - improvementStoplight
+        - executionScore
+        - executionStoplight
+        - criticalItemsCount
+        - activeWorkflowsCount
+        - overdueItemsCount
+        - throughput
+        - improvementSummary
+
+    Bottleneck:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        workflowTitle:
+          type: string
+        stageId:
+          type: integer
+          nullable: true
+        stageName:
+          type: string
+          nullable: true
+        daysStuck:
+          type: number
+        impact:
+          type: string
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+      required:
+        - workflowId
+        - workflowTitle
+        - daysStuck
+        - impact
+        - stoplight
+
+    PriorityAction:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [workflow, asset, alert, stage]
+        title:
+          type: string
+        description:
+          type: string
+        urgency:
+          $ref: "#/components/schemas/Stoplight"
+        relatedId:
+          type: integer
+        dueDate:
+          type: string
+          nullable: true
+      required: [id, type, title, description, urgency, relatedId]
+
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, completed, paused, at_risk]
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+        flowScore:
+          type: number
+        riskScore:
+          type: number
+        improvementScore:
+          type: number
+        executionScore:
+          type: number
+        healthScore:
+          type: number
+        owner:
+          type: string
+          nullable: true
+        stagesCount:
+          type: integer
+        completedStagesCount:
+          type: integer
+        dueDate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - title
+        - status
+        - stoplight
+        - flowScore
+        - riskScore
+        - improvementScore
+        - executionScore
+        - healthScore
+        - stagesCount
+        - completedStagesCount
+        - createdAt
+        - updatedAt
+
+    WorkflowDetail:
+      allOf:
+        - $ref: "#/components/schemas/Workflow"
+        - type: object
+          properties:
+            stages:
+              type: array
+              items:
+                $ref: "#/components/schemas/Stage"
+            documents:
+              type: array
+              items:
+                $ref: "#/components/schemas/Document"
+            alerts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Alert"
+            impactEvents:
+              type: array
+              items:
+                $ref: "#/components/schemas/ImpactEvent"
+          required: [stages, documents, alerts, impactEvents]
+
+    WorkflowHealth:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        healthScore:
+          type: number
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+        flowScore:
+          type: number
+        riskScore:
+          type: number
+        improvementScore:
+          type: number
+        executionScore:
+          type: number
+        totalDelayDays:
+          type: number
+        estimatedCostImpact:
+          type: number
+        bottleneckStageId:
+          type: integer
+          nullable: true
+        bottleneckStageName:
+          type: string
+          nullable: true
+        recommendation:
+          type: string
+      required:
+        - workflowId
+        - healthScore
+        - stoplight
+        - flowScore
+        - riskScore
+        - improvementScore
+        - executionScore
+        - totalDelayDays
+        - estimatedCostImpact
+        - recommendation
+
+    CreateWorkflowBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+      required: [title]
+
+    UpdateWorkflowBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, completed, paused, at_risk]
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+
+    Stage:
+      type: object
+      properties:
+        id:
+          type: integer
+        workflowId:
+          type: integer
+        name:
+          type: string
+        order:
+          type: integer
+        status:
+          type: string
+          enum: [pending, in_progress, completed, blocked, overdue]
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          nullable: true
+        completedAt:
+          type: string
+          nullable: true
+        isBottleneck:
+          type: boolean
+        daysInStage:
+          type: number
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required:
+        - id
+        - workflowId
+        - name
+        - order
+        - status
+        - stoplight
+        - isBottleneck
+
+    CreateStageBody:
+      type: object
+      properties:
+        name:
+          type: string
+        order:
+          type: integer
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [name, order]
+
+    UpdateStageBody:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, in_progress, completed, blocked, overdue]
+        owner:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        isBottleneck:
+          type: boolean
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        model:
+          type: string
+          nullable: true
+        serial:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, maintenance, retired, critical]
+        installDate:
+          type: string
+          nullable: true
+        warrantyStart:
+          type: string
+          nullable: true
+        warrantyExpiration:
+          type: string
+          nullable: true
+        warrantyDaysRemaining:
+          type: integer
+          nullable: true
+        lifeExpectancyYears:
+          type: number
+          nullable: true
+        maintenanceSchedule:
+          type: string
+          nullable: true
+        healthScore:
+          type: number
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+        location:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - status
+        - healthScore
+        - stoplight
+        - createdAt
+
+    WarrantyStatus:
+      type: object
+      properties:
+        assetId:
+          type: integer
+        assetName:
+          type: string
+        warrantyExpiration:
+          type: string
+          nullable: true
+        daysRemaining:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [active, expiring_soon, expired, unknown]
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+      required: [assetId, assetName, status, stoplight]
+
+    CreateAssetBody:
+      type: object
+      properties:
+        name:
+          type: string
+        model:
+          type: string
+          nullable: true
+        serial:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, maintenance, retired, critical]
+        installDate:
+          type: string
+          nullable: true
+        warrantyStart:
+          type: string
+          nullable: true
+        warrantyExpiration:
+          type: string
+          nullable: true
+        lifeExpectancyYears:
+          type: number
+          nullable: true
+        maintenanceSchedule:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+      required: [name]
+
+    UpdateAssetBody:
+      type: object
+      properties:
+        name:
+          type: string
+        model:
+          type: string
+          nullable: true
+        serial:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, maintenance, retired, critical]
+        installDate:
+          type: string
+          nullable: true
+        warrantyStart:
+          type: string
+          nullable: true
+        warrantyExpiration:
+          type: string
+          nullable: true
+        lifeExpectancyYears:
+          type: number
+          nullable: true
+        maintenanceSchedule:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+        url:
+          type: string
+          nullable: true
+        detectedType:
+          type: string
+          nullable: true
+        workflowId:
+          type: integer
+          nullable: true
+        stageId:
+          type: integer
+          nullable: true
+        assetId:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, filename, createdAt]
+
+    CreateDocumentBody:
+      type: object
+      properties:
+        filename:
+          type: string
+        url:
+          type: string
+          nullable: true
+        detectedType:
+          type: string
+          nullable: true
+        workflowId:
+          type: integer
+          nullable: true
+        stageId:
+          type: integer
+          nullable: true
+        assetId:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [filename]
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [status_change, due_date, bottleneck, warranty_expiration, risk_escalation, overdue]
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        title:
+          type: string
+        message:
+          type: string
+        workflowId:
+          type: integer
+          nullable: true
+        assetId:
+          type: integer
+          nullable: true
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - severity
+        - title
+        - message
+        - isRead
+        - createdAt
+
+    ImpactEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        workflowId:
+          type: integer
+        eventType:
+          type: string
+          enum: [delay, approval, change_order, risk_escalation, completion]
+        description:
+          type: string
+        costImpact:
+          type: number
+          nullable: true
+        timeImpactDays:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, workflowId, eventType, description, createdAt]
+
+    TrendData:
+      type: object
+      properties:
+        dates:
+          type: array
+          items:
+            type: string
+        operationalHealth:
+          type: array
+          items:
+            type: number
+        flowScore:
+          type: array
+          items:
+            type: number
+        riskScore:
+          type: array
+          items:
+            type: number
+        improvementScore:
+          type: array
+          items:
+            type: number
+        executionScore:
+          type: array
+          items:
+            type: number
+      required:
+        - dates
+        - operationalHealth
+        - flowScore
+        - riskScore
+        - improvementScore
+        - executionScore
+
+    WorkflowPerformance:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        title:
+          type: string
+        healthScore:
+          type: number
+        stoplight:
+          $ref: "#/components/schemas/Stoplight"
+        completionRate:
+          type: number
+        avgStageDurationDays:
+          type: number
+        bottleneckCount:
+          type: integer
+        alertCount:
+          type: integer
+      required:
+        - workflowId
+        - title
+        - healthScore
+        - stoplight
+        - completionRate
+        - avgStageDurationDays
+        - bottleneckCount
+        - alertCount

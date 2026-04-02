@@ -5,7 +5,8 @@
  * Ascent 1.0 - Operational Intelligence Platform
  * OpenAPI spec version: 0.1.0
  */
+import type { ListAssetsStatus } from "./listAssetsStatus";
 
-export interface HealthStatus {
-  status: string;
-}
+export type ListAssetsParams = {
+  status?: ListAssetsStatus;
+};
