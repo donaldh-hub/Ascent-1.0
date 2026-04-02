@@ -613,17 +613,40 @@ paths:
                 items:
                   $ref: "#/components/schemas/WarrantyStatus"
 
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
   /documents:
     get:
       operationId: listDocuments
       tags: [documents]
-      summary: List documents
+      summary: List documents by entity
       parameters:
-        - name: workflowId
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: entityId
           in: query
           schema:
             type: integer
-        - name: assetId
+        - name: workflowId
           in: query
           schema:
             type: integer
@@ -639,7 +662,7 @@ paths:
     post:
       operationId: createDocument
       tags: [documents]
-      summary: Create/link a document
+      summary: Create a document record
       requestBody:
         required: true
         content:
@@ -653,6 +676,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Document"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      tags: [documents]
+      summary: Get a single document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   /alerts:
     get:
@@ -1615,54 +1670,102 @@ components:
       properties:
         id:
           type: integer
-        filename:
+        uploadedBy:
           type: string
-        url:
+        objectPath:
           type: string
-          nullable: true
-        detectedType:
+        fileName:
           type: string
-          nullable: true
-        workflowId:
+        fileType:
+          type: string
+        fileSizeBytes:
+          type: integer
+        documentType:
+          type: string
+        linkedEntityType:
+          type: string
+        linkedEntityId:
+          type: integer
+        linkedWorkflowId:
           type: integer
           nullable: true
-        stageId:
-          type: integer
-          nullable: true
-        assetId:
+        linkedStageId:
           type: integer
           nullable: true
         notes:
           type: string
           nullable: true
-        createdAt:
+        metadata:
+          type: object
+        uploadedAt:
           type: string
-      required: [id, filename, createdAt]
+      required:
+        - id
+        - uploadedBy
+        - objectPath
+        - fileName
+        - fileType
+        - documentType
+        - linkedEntityType
+        - linkedEntityId
+        - uploadedAt
 
     CreateDocumentBody:
       type: object
       properties:
-        filename:
+        uploadedBy:
           type: string
-        url:
+        objectPath:
           type: string
-          nullable: true
-        detectedType:
+        fileName:
           type: string
-          nullable: true
-        workflowId:
+        fileType:
+          type: string
+        fileSizeBytes:
+          type: integer
+        documentType:
+          type: string
+        linkedEntityType:
+          type: string
+        linkedEntityId:
+          type: integer
+        linkedWorkflowId:
           type: integer
           nullable: true
-        stageId:
-          type: integer
-          nullable: true
-        assetId:
+        linkedStageId:
           type: integer
           nullable: true
         notes:
           type: string
           nullable: true
-      required: [filename]
+        metadata:
+          type: object
+      required:
+        - objectPath
+        - fileName
+        - fileType
+        - linkedEntityType
+        - linkedEntityId
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required: [name, contentType]
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+      required: [uploadURL, objectPath]
 
     Alert:
       type: object

@@ -1,0 +1,300 @@
+Ascent 1.0 — Phase 1 Build 6 (Document + Evidence Engine Prompt)
+
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 6.
+
+The system already has:
+
+* authentication
+* role-based access
+* app shell
+* workflow engine
+* workflow item movement
+* timing + bottleneck foundation
+* scoring + stoplight engine
+* alert and warning engine
+* dashboard intelligence layer
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT duplicate scoring or alert logic.
+Do NOT create fake document behavior.
+
+This build is the DOCUMENT + EVIDENCE ENGINE.
+
+PROJECT NAME:
+
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Create a real document and evidence system that allows users to capture, upload, attach, view, and manage documents directly inside workflows, workflow items, and assets.
+
+This system must NOT behave like a generic file storage system.
+
+Documents must live IN CONTEXT of the work.
+
+==================================================
+
+BUILD REQUIREMENTS
+
+==================================================
+
+1. DOCUMENT ENGINE ARCHITECTURE
+
+Build a document/evidence service layer that:
+
+* accepts uploads (images, PDFs)
+* supports camera/photo capture (mobile-friendly)
+* links documents to:
+
+  * workflows
+  * workflow items
+  * workflow stages
+  * assets (future-ready)
+* stores metadata
+* supports preview
+* supports retrieval inside context
+
+Keep logic separate from UI.
+
+==================================================
+
+2. DOCUMENT DATA MODEL
+
+Create a document table with required fields:
+
+* id
+* organization_id
+* uploaded_by
+* file_url or storage reference
+* file_type
+* file_name
+* document_type (manual or suggested)
+* linked_entity_type (workflow / item / asset / etc)
+* linked_entity_id
+* linked_workflow_id
+* linked_stage_id (optional)
+* uploaded_at
+* notes (optional)
+* metadata (JSON)
+
+==================================================
+
+3. DOCUMENT UPLOAD SYSTEM
+
+Support:
+
+* file upload (PDF, image)
+* mobile camera capture
+* drag-and-drop upload (desktop if stable)
+
+Requirements:
+
+* upload must NOT block workflow actions
+* upload must show progress state
+* upload must succeed reliably
+
+==================================================
+
+4. DOCUMENT ATTACHMENT FLOW
+
+Users must be able to attach documents to:
+
+* workflow item
+* workflow stage (optional)
+* entire workflow
+
+Required behaviors:
+
+* attach during item creation OR after
+* attach from item detail panel
+* show attachment count immediately
+* allow multiple documents per item
+
+==================================================
+
+5. IN-FLOW DOCUMENT UX (CRITICAL)
+
+Each workflow item must display:
+
+* paperclip icon
+* attachment count
+
+When clicked:
+
+* open side panel or modal
+* show list of attached documents
+
+User must be able to:
+
+* preview document without leaving workflow
+* scroll through documents
+* open full view if needed
+
+DO NOT redirect users away from workflow view.
+
+==================================================
+
+6. DOCUMENT PREVIEW SYSTEM
+
+Support preview for:
+
+* images
+* PDFs
+
+Requirements:
+
+* fast loading
+* modal or side panel view
+* zoom if possible (optional)
+
+==================================================
+
+7. DOCUMENT TYPE TAGGING
+
+Allow document type tagging:
+
+Examples:
+
+* warranty
+* invoice
+* approval
+* inspection
+* contract
+* estimate
+
+Requirements:
+
+* manual selection required
+* optional auto-suggestion placeholder (no AI yet)
+
+==================================================
+
+8. DOCUMENT HISTORY + TIMESTAMPING
+
+Each document must:
+
+* be timestamped
+* show uploader
+* be traceable in history
+
+Extend audit log:
+
+* document uploaded
+* document attached
+* document viewed
+
+==================================================
+
+9. WORKFLOW INTEGRATION
+
+Update workflow item panel to include:
+
+* attachments section
+* upload button
+* preview list
+
+Update workflow detail page:
+
+* show attachment indicators per item
+
+==================================================
+
+10. DASHBOARD + ALERT INTEGRATION (LIGHT)
+
+If applicable:
+
+* surface missing required documents (basic rule only)
+
+Example:
+
+* “Critical item has no supporting document”
+
+Do NOT overbuild automation yet.
+
+==================================================
+
+11. ROLE-BASED ACCESS
+
+Admin / Supervisor:
+
+* upload, view, delete
+
+Manager:
+
+* upload, view
+
+Technician:
+
+* upload, view (assigned scope)
+
+Viewer:
+
+* view only
+
+==================================================
+
+12. EMPTY STATES
+
+Handle:
+
+* no documents attached
+* no preview available
+* upload failure
+
+Use clear messaging:
+
+* “No documents attached yet”
+
+==================================================
+
+13. CODE QUALITY RULES
+
+DO:
+
+* keep document logic modular
+* support future OCR and intelligence layer
+* ensure stable linking to entities
+
+DO NOT:
+
+* build full OCR yet
+* build AI classification yet
+* create detached file storage UI
+
+==================================================
+
+14. SUCCESS STATE
+
+This build is complete when:
+
+1. I can upload a document to a workflow item
+2. I can see attachment count immediately
+3. I can click and preview the document
+4. I never leave the workflow context
+5. Documents are stored and retrievable
+6. Documents are tied to real workflow data
+7. Audit log reflects document activity
+
+==================================================
+
+15. IMPORTANT LIMITS
+
+This build is NOT for:
+
+* OCR intelligence
+* document auto-matching AI
+* contract parsing
+* advanced compliance automation
+
+Those come later.
+
+==================================================
+
+16. INTERNAL LABEL
+
+“Phase 1 – Build 6: Document and Evidence Engine”

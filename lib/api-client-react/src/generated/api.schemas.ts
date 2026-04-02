@@ -266,16 +266,23 @@ export interface Stage {
   notes?: string | null;
 }
 
+export type DocumentMetadata = { [key: string]: unknown };
+
 export interface Document {
   id: number;
-  filename: string;
-  url?: string | null;
-  detectedType?: string | null;
-  workflowId?: number | null;
-  stageId?: number | null;
-  assetId?: number | null;
+  uploadedBy: string;
+  objectPath: string;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes?: number;
+  documentType: string;
+  linkedEntityType: string;
+  linkedEntityId: number;
+  linkedWorkflowId?: number | null;
+  linkedStageId?: number | null;
   notes?: string | null;
-  createdAt: string;
+  metadata?: DocumentMetadata;
+  uploadedAt: string;
 }
 
 export type AlertCategory = (typeof AlertCategory)[keyof typeof AlertCategory];
@@ -534,14 +541,32 @@ export interface UpdateAssetBody {
   location?: string | null;
 }
 
+export type CreateDocumentBodyMetadata = { [key: string]: unknown };
+
 export interface CreateDocumentBody {
-  filename: string;
-  url?: string | null;
-  detectedType?: string | null;
-  workflowId?: number | null;
-  stageId?: number | null;
-  assetId?: number | null;
+  uploadedBy?: string;
+  objectPath: string;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes?: number;
+  documentType?: string;
+  linkedEntityType: string;
+  linkedEntityId: number;
+  linkedWorkflowId?: number | null;
+  linkedStageId?: number | null;
   notes?: string | null;
+  metadata?: CreateDocumentBodyMetadata;
+}
+
+export interface RequestUploadUrlBody {
+  name: string;
+  size?: number;
+  contentType: string;
+}
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
 }
 
 export interface AlertSummary {
@@ -751,8 +776,9 @@ export const ListAssetsStatus = {
 } as const;
 
 export type ListDocumentsParams = {
+  entityType?: string;
+  entityId?: number;
   workflowId?: number;
-  assetId?: number;
 };
 
 export type ListAlertsParams = {

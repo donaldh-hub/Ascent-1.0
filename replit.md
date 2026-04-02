@@ -110,11 +110,31 @@ Lives in `artifacts/api-server/src/engine/alerts.ts`:
 - Workflow list: alert badge (critical/warning count) per workflow card
 - Workflow detail: "Active Alerts" panel in the right column with inline acknowledge/resolve
 
+## Document Engine (Phase 1 – Build 6)
+
+GCS object storage with a full document management pipeline:
+
+**Storage:** Google Cloud Storage bucket via `lib/object-storage-web` client + `ObjectStorageService` (server)
+
+**Two-step upload flow:**
+1. Frontend requests a presigned upload URL: `POST /api/documents/upload-url`
+2. Browser uploads directly to GCS via presigned URL (no proxy through API server)
+3. Frontend registers the document: `POST /api/documents`
+
+**Documents table schema:** `linkedEntityType` (workflow/workflow_item/workflow_stage/asset), `linkedEntityId`, `linkedWorkflowId`, `linkedStageId`, `objectPath`, `fileName`, `fileType`, `fileSizeBytes`, `documentType`, `uploadedAt`
+
+**Frontend integration (`document-panel.tsx`):**
+- `DocumentPanel` — full panel with upload form (drag-drop + camera), document list, preview modal
+- `DocumentCountBadge` — small badge for item cards showing document count
+- Upload via Uppy with AWS S3 presigned URL flow
+- Integrated into `ItemDetailSheet` in workflow-detail.tsx
+- ItemCard footer shows document count badge when docs exist
+
 ## API Endpoints
 
 | Module | Routes |
 |---|---|
-| Dashboard | `GET /api/dashboard/summary`, `/bottlenecks`, `/actions` |
+| Dashboard | `GET /api/dashboard/summary`, `/bottlenecks`, `/actions`, `/intelligence` |
 | Workflows | `GET/POST /api/workflows`, `GET/PUT/DELETE /api/workflows/:id`, `GET /api/workflows/:id/health` |
 | Stages | `GET/POST /api/workflows/:id/stages`, `PUT/DELETE /api/workflows/:id/stages/:stageId` |
 | Workflow Items | `GET/POST /api/workflows/:id/items`, `GET/PUT/DELETE /api/workflows/:id/items/:itemId` |
@@ -122,7 +142,7 @@ Lives in `artifacts/api-server/src/engine/alerts.ts`:
 | Bottleneck | `GET /api/workflows/:id/bottleneck` |
 | Assets | `GET/POST /api/assets`, `GET/PUT/DELETE /api/assets/:id`, `GET /api/assets/warranties` |
 | Alerts | `GET /api/alerts` (with filters: level/category/status/isActive/workflowId), `GET /api/alerts/summary`, `POST /api/alerts/evaluate`, `PATCH /api/alerts/:id/read`, `PATCH /api/alerts/:id/acknowledge`, `PATCH /api/alerts/:id/resolve` |
-| Documents | `GET/POST /api/documents` |
+| Documents | `GET /api/documents` (with filters: entityType/entityId/workflowId), `POST /api/documents`, `DELETE /api/documents/:id`, `POST /api/documents/upload-url`, `GET /api/storage/objects/{*objectPath}` |
 | Analytics | `GET /api/analytics/trends`, `/workflow-performance` |
 
 ## Development Commands

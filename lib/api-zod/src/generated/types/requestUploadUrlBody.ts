@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListDocumentsParams = {
-  entityType?: string;
-  entityId?: number;
-  workflowId?: number;
-};
+export interface RequestUploadUrlBody {
+  name: string;
+  size?: number;
+  contentType: string;
+}

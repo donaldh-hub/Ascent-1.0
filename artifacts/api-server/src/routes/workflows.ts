@@ -119,7 +119,7 @@ router.get("/workflows/:id", async (req, res) => {
     if (!workflow) return res.status(404).json({ error: "Not found" });
 
     const stages = await db.select().from(stagesTable).where(eq(stagesTable.workflowId, id));
-    const documents = await db.select().from(documentsTable).where(eq(documentsTable.workflowId, id));
+    const documents = await db.select().from(documentsTable).where(eq(documentsTable.linkedWorkflowId, id));
     const alerts = await db.select().from(alertsTable).where(eq(alertsTable.workflowId, id));
     const impactEvents = await db.select().from(impactEventsTable).where(eq(impactEventsTable.workflowId, id));
 

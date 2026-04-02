@@ -271,14 +271,19 @@ export const GetWorkflowResponse = zod
       documents: zod.array(
         zod.object({
           id: zod.number(),
-          filename: zod.string(),
-          url: zod.string().nullish(),
-          detectedType: zod.string().nullish(),
-          workflowId: zod.number().nullish(),
-          stageId: zod.number().nullish(),
-          assetId: zod.number().nullish(),
+          uploadedBy: zod.string(),
+          objectPath: zod.string(),
+          fileName: zod.string(),
+          fileType: zod.string(),
+          fileSizeBytes: zod.number().optional(),
+          documentType: zod.string(),
+          linkedEntityType: zod.string(),
+          linkedEntityId: zod.number(),
+          linkedWorkflowId: zod.number().nullish(),
+          linkedStageId: zod.number().nullish(),
           notes: zod.string().nullish(),
-          createdAt: zod.string(),
+          metadata: zod.object({}).passthrough().optional(),
+          uploadedAt: zod.string(),
         }),
       ),
       alerts: zod.array(
@@ -852,37 +857,93 @@ export const GetWarrantyStatusResponse = zod.array(
 );
 
 /**
- * @summary List documents
+ * @summary Request a presigned upload URL
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number().optional(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
+});
+
+/**
+ * @summary List documents by entity
  */
 export const ListDocumentsQueryParams = zod.object({
+  entityType: zod.coerce.string().optional(),
+  entityId: zod.coerce.number().optional(),
   workflowId: zod.coerce.number().optional(),
-  assetId: zod.coerce.number().optional(),
 });
 
 export const ListDocumentsResponseItem = zod.object({
   id: zod.number(),
-  filename: zod.string(),
-  url: zod.string().nullish(),
-  detectedType: zod.string().nullish(),
-  workflowId: zod.number().nullish(),
-  stageId: zod.number().nullish(),
-  assetId: zod.number().nullish(),
+  uploadedBy: zod.string(),
+  objectPath: zod.string(),
+  fileName: zod.string(),
+  fileType: zod.string(),
+  fileSizeBytes: zod.number().optional(),
+  documentType: zod.string(),
+  linkedEntityType: zod.string(),
+  linkedEntityId: zod.number(),
+  linkedWorkflowId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
   notes: zod.string().nullish(),
-  createdAt: zod.string(),
+  metadata: zod.object({}).passthrough().optional(),
+  uploadedAt: zod.string(),
 });
 export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem);
 
 /**
- * @summary Create/link a document
+ * @summary Create a document record
  */
 export const CreateDocumentBody = zod.object({
-  filename: zod.string(),
-  url: zod.string().nullish(),
-  detectedType: zod.string().nullish(),
-  workflowId: zod.number().nullish(),
-  stageId: zod.number().nullish(),
-  assetId: zod.number().nullish(),
+  uploadedBy: zod.string().optional(),
+  objectPath: zod.string(),
+  fileName: zod.string(),
+  fileType: zod.string(),
+  fileSizeBytes: zod.number().optional(),
+  documentType: zod.string().optional(),
+  linkedEntityType: zod.string(),
+  linkedEntityId: zod.number(),
+  linkedWorkflowId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
   notes: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().optional(),
+});
+
+/**
+ * @summary Get a single document
+ */
+export const GetDocumentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetDocumentResponse = zod.object({
+  id: zod.number(),
+  uploadedBy: zod.string(),
+  objectPath: zod.string(),
+  fileName: zod.string(),
+  fileType: zod.string(),
+  fileSizeBytes: zod.number().optional(),
+  documentType: zod.string(),
+  linkedEntityType: zod.string(),
+  linkedEntityId: zod.number(),
+  linkedWorkflowId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
+  notes: zod.string().nullish(),
+  metadata: zod.object({}).passthrough().optional(),
+  uploadedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a document
+ */
+export const DeleteDocumentParams = zod.object({
+  id: zod.coerce.number(),
 });
 
 /**

@@ -54,21 +54,3 @@ export const insertAlertSchema = createInsertSchema(alertsTable).omit({
 export type InsertAlert = z.infer<typeof insertAlertSchema>;
 export type Alert = typeof alertsTable.$inferSelect;
 
-export const documentsTable = pgTable("documents", {
-  id: serial("id").primaryKey(),
-  filename: text("filename").notNull(),
-  url: text("url"),
-  detectedType: text("detected_type"),
-  workflowId: integer("workflow_id"),
-  stageId: integer("stage_id"),
-  assetId: integer("asset_id"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertDocumentSchema = createInsertSchema(documentsTable).omit({
-  id: true,
-  createdAt: true,
-});
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
-export type Document = typeof documentsTable.$inferSelect;

@@ -14,8 +14,10 @@ import {
   useListAlerts,
   useAcknowledgeAlert,
   useResolveAlert,
+  useListDocuments,
   WorkflowItem,
 } from "@workspace/api-client-react";
+import { DocumentPanel, DocumentCountBadge } from "@/components/document-panel";
 import { StoplightIndicator } from "@/components/stoplight";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,12 +137,14 @@ function ItemCard({
   item,
   stages,
   workflowId,
+  docCount,
   onSelect,
   onMoved,
 }: {
   item: WorkflowItem;
   stages: Array<{ id: number; name: string }>;
   workflowId: number;
+  docCount?: number;
   onSelect: (item: WorkflowItem) => void;
   onMoved: () => void;
 }) {
@@ -224,10 +228,13 @@ function ItemCard({
             <User className="h-3 w-3" /> {item.assignedTo}
           </span>
         )}
-        <span className="ml-auto text-xs text-muted-foreground flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {Math.round(item.daysInCurrentStage)}d here
-        </span>
+        <div className="ml-auto flex items-center gap-2">
+          {(docCount ?? 0) > 0 && <DocumentCountBadge count={docCount ?? 0} />}
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {Math.round(item.daysInCurrentStage)}d here
+          </span>
+        </div>
       </div>
     </motion.div>
   );
@@ -376,6 +383,17 @@ function ItemDetailSheet({
                     </Button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Documents section */}
+            {item && (
+              <div className="border-t border-border/50 pt-4">
+                <DocumentPanel
+                  entityType="workflow_item"
+                  entityId={item.id}
+                  workflowId={workflowId}
+                />
               </div>
             )}
 
@@ -565,8 +583,19 @@ export default function WorkflowDetail() {
     { workflowId: workflowId, isActive: true } as any,
     { query: { enabled: !!workflowId, queryKey: ["alerts", workflowId] } }
   );
+  const { data: workflowDocs = [] } = useListDocuments(
+    { workflowId: workflowId } as any,
+    { query: { enabled: !!workflowId, queryKey: ["docs", "workflow", workflowId] } }
+  );
   const acknowledgeMutation = useAcknowledgeAlert();
   const resolveMutation = useResolveAlert();
+
+  const docCountByItemId = (workflowDocs as any[]).reduce((acc: Record<number, number>, d: any) => {
+    if (d.linkedEntityType === "workflow_item") {
+      acc[d.linkedEntityId] = (acc[d.linkedEntityId] ?? 0) + 1;
+    }
+    return acc;
+  }, {} as Record<number, number>);
 
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: ["items", workflowId] });
@@ -752,6 +781,7 @@ export default function WorkflowDetail() {
                                     item={item}
                                     stages={stageList.map((s) => ({ id: s.id, name: s.name }))}
                                     workflowId={workflowId}
+                                    docCount={docCountByItemId[item.id] ?? 0}
                                     onSelect={(i) => setSelectedItemId(i.id)}
                                     onMoved={invalidateAll}
                                   />
@@ -783,6 +813,7 @@ export default function WorkflowDetail() {
                               item={item}
                               stages={stageList.map((s) => ({ id: s.id, name: s.name }))}
                               workflowId={workflowId}
+                              docCount={docCountByItemId[item.id] ?? 0}
                               onSelect={(i) => setSelectedItemId(i.id)}
                               onMoved={invalidateAll}
                             />

@@ -5,13 +5,19 @@
  * Ascent 1.0 - Operational Intelligence Platform
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateDocumentBodyMetadata } from "./createDocumentBodyMetadata";
 
 export interface CreateDocumentBody {
-  filename: string;
-  url?: string | null;
-  detectedType?: string | null;
-  workflowId?: number | null;
-  stageId?: number | null;
-  assetId?: number | null;
+  uploadedBy?: string;
+  objectPath: string;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes?: number;
+  documentType?: string;
+  linkedEntityType: string;
+  linkedEntityId: number;
+  linkedWorkflowId?: number | null;
+  linkedStageId?: number | null;
   notes?: string | null;
+  metadata?: CreateDocumentBodyMetadata;
 }

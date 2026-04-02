@@ -6,6 +6,7 @@ import alertsRouter from "./alerts";
 import dashboardRouter from "./dashboard";
 import analyticsRouter from "./analytics";
 import itemsRouter from "./items";
+import documentsRouter from "./documents";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use("/workflows/:id/items", itemsRouter);
 router.use(assetsRouter);
 router.use(alertsRouter);
 router.use(analyticsRouter);
+router.use(documentsRouter);
 
 export default router;
