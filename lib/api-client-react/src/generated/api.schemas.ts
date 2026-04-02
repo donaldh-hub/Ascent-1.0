@@ -382,6 +382,112 @@ export interface WorkflowPerformance {
   alertCount: number;
 }
 
+export type WorkflowItemPriority =
+  (typeof WorkflowItemPriority)[keyof typeof WorkflowItemPriority];
+
+export const WorkflowItemPriority = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type WorkflowItemStatus =
+  (typeof WorkflowItemStatus)[keyof typeof WorkflowItemStatus];
+
+export const WorkflowItemStatus = {
+  open: "open",
+  in_progress: "in_progress",
+  completed: "completed",
+  blocked: "blocked",
+} as const;
+
+export interface WorkflowItem {
+  id: number;
+  workflowId: number;
+  stageId: number;
+  stageName?: string;
+  title: string;
+  description?: string | null;
+  priority: WorkflowItemPriority;
+  status: WorkflowItemStatus;
+  assignedTo?: string | null;
+  dueDate?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  stageEnteredAt: string;
+  daysInCurrentStage: number;
+  daysOpen: number;
+}
+
+export interface WorkflowItemHistory {
+  id: number;
+  itemId: number;
+  fromStageId?: number | null;
+  fromStageName?: string | null;
+  toStageId: number;
+  toStageName: string;
+  movedBy?: string | null;
+  movedAt: string;
+  notes?: string | null;
+}
+
+export type WorkflowItemDetail = WorkflowItem & {
+  history: WorkflowItemHistory[];
+};
+
+export interface CreateWorkflowItemBody {
+  title: string;
+  description?: string | null;
+  priority?: WorkflowItemPriority;
+  stageId?: number | null;
+  assignedTo?: string | null;
+  dueDate?: string | null;
+}
+
+export interface UpdateWorkflowItemBody {
+  title?: string;
+  description?: string | null;
+  priority?: WorkflowItemPriority;
+  assignedTo?: string | null;
+  dueDate?: string | null;
+  status?: WorkflowItemStatus;
+}
+
+export interface MoveWorkflowItemBody {
+  toStageId: number;
+  notes?: string | null;
+  movedBy?: string | null;
+}
+
+export type WorkflowBottleneckAnalysisOldestItem = {
+  id?: number;
+  title?: string;
+  stageId?: number;
+  stageName?: string;
+  daysInStage?: number;
+} | null;
+
+export type WorkflowBottleneckAnalysisStageSummaryItem = {
+  stageId?: number;
+  stageName?: string;
+  stageOrder?: number;
+  itemCount?: number;
+  avgDaysInStage?: number;
+  oldestItemDays?: number;
+};
+
+export interface WorkflowBottleneckAnalysis {
+  workflowId: number;
+  hasBottleneck: boolean;
+  bottleneckStageId?: number | null;
+  bottleneckStageName?: string | null;
+  bottleneckItemCount: number;
+  oldestItem?: WorkflowBottleneckAnalysisOldestItem;
+  insights: string[];
+  stageSummary: WorkflowBottleneckAnalysisStageSummaryItem[];
+}
+
 export type ListWorkflowsParams = {
   status?: ListWorkflowsStatus;
   stoplight?: ListWorkflowsStoplight;
@@ -404,6 +510,32 @@ export const ListWorkflowsStoplight = {
   red: "red",
   yellow: "yellow",
   green: "green",
+} as const;
+
+export type ListWorkflowItemsParams = {
+  stageId?: number;
+  priority?: ListWorkflowItemsPriority;
+  status?: ListWorkflowItemsStatus;
+};
+
+export type ListWorkflowItemsPriority =
+  (typeof ListWorkflowItemsPriority)[keyof typeof ListWorkflowItemsPriority];
+
+export const ListWorkflowItemsPriority = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "critical",
+} as const;
+
+export type ListWorkflowItemsStatus =
+  (typeof ListWorkflowItemsStatus)[keyof typeof ListWorkflowItemsStatus];
+
+export const ListWorkflowItemsStatus = {
+  open: "open",
+  in_progress: "in_progress",
+  completed: "completed",
+  blocked: "blocked",
 } as const;
 
 export type ListAssetsParams = {

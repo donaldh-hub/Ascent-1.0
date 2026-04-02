@@ -368,6 +368,233 @@ export const DeleteStageParams = zod.object({
 });
 
 /**
+ * @summary List items for a workflow
+ */
+export const ListWorkflowItemsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListWorkflowItemsQueryParams = zod.object({
+  stageId: zod.coerce.number().optional(),
+  priority: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  status: zod.enum(["open", "in_progress", "completed", "blocked"]).optional(),
+});
+
+export const ListWorkflowItemsResponseItem = zod.object({
+  id: zod.number(),
+  workflowId: zod.number(),
+  stageId: zod.number(),
+  stageName: zod.string().optional(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]),
+  status: zod.enum(["open", "in_progress", "completed", "blocked"]),
+  assignedTo: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  stageEnteredAt: zod.string(),
+  daysInCurrentStage: zod.number(),
+  daysOpen: zod.number(),
+});
+export const ListWorkflowItemsResponse = zod.array(
+  ListWorkflowItemsResponseItem,
+);
+
+/**
+ * @summary Create a workflow item
+ */
+export const CreateWorkflowItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CreateWorkflowItemBody = zod.object({
+  title: zod.string(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  stageId: zod.number().nullish(),
+  assignedTo: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a workflow item with history
+ */
+export const GetWorkflowItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const GetWorkflowItemResponse = zod
+  .object({
+    id: zod.number(),
+    workflowId: zod.number(),
+    stageId: zod.number(),
+    stageName: zod.string().optional(),
+    title: zod.string(),
+    description: zod.string().nullish(),
+    priority: zod.enum(["low", "medium", "high", "critical"]),
+    status: zod.enum(["open", "in_progress", "completed", "blocked"]),
+    assignedTo: zod.string().nullish(),
+    dueDate: zod.string().nullish(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+    stageEnteredAt: zod.string(),
+    daysInCurrentStage: zod.number(),
+    daysOpen: zod.number(),
+  })
+  .and(
+    zod.object({
+      history: zod.array(
+        zod.object({
+          id: zod.number(),
+          itemId: zod.number(),
+          fromStageId: zod.number().nullish(),
+          fromStageName: zod.string().nullish(),
+          toStageId: zod.number(),
+          toStageName: zod.string(),
+          movedBy: zod.string().nullish(),
+          movedAt: zod.string(),
+          notes: zod.string().nullish(),
+        }),
+      ),
+    }),
+  );
+
+/**
+ * @summary Update a workflow item
+ */
+export const UpdateWorkflowItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const UpdateWorkflowItemBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]).optional(),
+  assignedTo: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+  status: zod.enum(["open", "in_progress", "completed", "blocked"]).optional(),
+});
+
+export const UpdateWorkflowItemResponse = zod.object({
+  id: zod.number(),
+  workflowId: zod.number(),
+  stageId: zod.number(),
+  stageName: zod.string().optional(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]),
+  status: zod.enum(["open", "in_progress", "completed", "blocked"]),
+  assignedTo: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  stageEnteredAt: zod.string(),
+  daysInCurrentStage: zod.number(),
+  daysOpen: zod.number(),
+});
+
+/**
+ * @summary Delete a workflow item
+ */
+export const DeleteWorkflowItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+/**
+ * @summary Move a workflow item to a different stage
+ */
+export const MoveWorkflowItemParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const MoveWorkflowItemBody = zod.object({
+  toStageId: zod.number(),
+  notes: zod.string().nullish(),
+  movedBy: zod.string().nullish(),
+});
+
+export const MoveWorkflowItemResponse = zod.object({
+  id: zod.number(),
+  workflowId: zod.number(),
+  stageId: zod.number(),
+  stageName: zod.string().optional(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  priority: zod.enum(["low", "medium", "high", "critical"]),
+  status: zod.enum(["open", "in_progress", "completed", "blocked"]),
+  assignedTo: zod.string().nullish(),
+  dueDate: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+  stageEnteredAt: zod.string(),
+  daysInCurrentStage: zod.number(),
+  daysOpen: zod.number(),
+});
+
+/**
+ * @summary Get movement history for a workflow item
+ */
+export const GetWorkflowItemHistoryParams = zod.object({
+  id: zod.coerce.number(),
+  itemId: zod.coerce.number(),
+});
+
+export const GetWorkflowItemHistoryResponseItem = zod.object({
+  id: zod.number(),
+  itemId: zod.number(),
+  fromStageId: zod.number().nullish(),
+  fromStageName: zod.string().nullish(),
+  toStageId: zod.number(),
+  toStageName: zod.string(),
+  movedBy: zod.string().nullish(),
+  movedAt: zod.string(),
+  notes: zod.string().nullish(),
+});
+export const GetWorkflowItemHistoryResponse = zod.array(
+  GetWorkflowItemHistoryResponseItem,
+);
+
+/**
+ * @summary Get bottleneck analysis for a workflow
+ */
+export const GetWorkflowBottleneckParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetWorkflowBottleneckResponse = zod.object({
+  workflowId: zod.number(),
+  hasBottleneck: zod.boolean(),
+  bottleneckStageId: zod.number().nullish(),
+  bottleneckStageName: zod.string().nullish(),
+  bottleneckItemCount: zod.number(),
+  oldestItem: zod
+    .object({
+      id: zod.number().optional(),
+      title: zod.string().optional(),
+      stageId: zod.number().optional(),
+      stageName: zod.string().optional(),
+      daysInStage: zod.number().optional(),
+    })
+    .nullish(),
+  insights: zod.array(zod.string()),
+  stageSummary: zod.array(
+    zod.object({
+      stageId: zod.number().optional(),
+      stageName: zod.string().optional(),
+      stageOrder: zod.number().optional(),
+      itemCount: zod.number().optional(),
+      avgDaysInStage: zod.number().optional(),
+      oldestItemDays: zod.number().optional(),
+    }),
+  ),
+});
+
+/**
  * @summary List all assets
  */
 export const ListAssetsQueryParams = zod.object({

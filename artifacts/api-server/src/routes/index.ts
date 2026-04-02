@@ -5,12 +5,14 @@ import assetsRouter from "./assets";
 import alertsRouter from "./alerts";
 import dashboardRouter from "./dashboard";
 import analyticsRouter from "./analytics";
+import itemsRouter from "./items";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(dashboardRouter);
 router.use(workflowsRouter);
+router.use("/workflows/:id/items", itemsRouter);
 router.use(assetsRouter);
 router.use(alertsRouter);
 router.use(analyticsRouter);

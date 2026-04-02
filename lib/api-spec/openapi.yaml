@@ -289,6 +289,209 @@ paths:
         "204":
           description: Deleted
 
+  /workflows/{id}/items:
+    get:
+      operationId: listWorkflowItems
+      tags: [workflows]
+      summary: List items for a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: stageId
+          in: query
+          schema:
+            type: integer
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, completed, blocked]
+      responses:
+        "200":
+          description: Workflow items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowItem"
+    post:
+      operationId: createWorkflowItem
+      tags: [workflows]
+      summary: Create a workflow item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowItemBody"
+      responses:
+        "201":
+          description: Created workflow item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowItem"
+
+  /workflows/{id}/items/{itemId}:
+    get:
+      operationId: getWorkflowItem
+      tags: [workflows]
+      summary: Get a workflow item with history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Workflow item detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowItemDetail"
+    put:
+      operationId: updateWorkflowItem
+      tags: [workflows]
+      summary: Update a workflow item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWorkflowItemBody"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowItem"
+    delete:
+      operationId: deleteWorkflowItem
+      tags: [workflows]
+      summary: Delete a workflow item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /workflows/{id}/items/{itemId}/move:
+    post:
+      operationId: moveWorkflowItem
+      tags: [workflows]
+      summary: Move a workflow item to a different stage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveWorkflowItemBody"
+      responses:
+        "200":
+          description: Moved item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowItem"
+
+  /workflows/{id}/items/{itemId}/history:
+    get:
+      operationId: getWorkflowItemHistory
+      tags: [workflows]
+      summary: Get movement history for a workflow item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Movement history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkflowItemHistory"
+
+  /workflows/{id}/bottleneck:
+    get:
+      operationId: getWorkflowBottleneck
+      tags: [workflows]
+      summary: Get bottleneck analysis for a workflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Bottleneck analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowBottleneckAnalysis"
+
   /assets:
     get:
       operationId: listAssets
@@ -1175,3 +1378,216 @@ components:
         - avgStageDurationDays
         - bottleneckCount
         - alertCount
+
+    WorkflowItemPriority:
+      type: string
+      enum: [low, medium, high, critical]
+
+    WorkflowItemStatus:
+      type: string
+      enum: [open, in_progress, completed, blocked]
+
+    WorkflowItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        workflowId:
+          type: integer
+        stageId:
+          type: integer
+        stageName:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        priority:
+          $ref: "#/components/schemas/WorkflowItemPriority"
+        status:
+          $ref: "#/components/schemas/WorkflowItemStatus"
+        assignedTo:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        stageEnteredAt:
+          type: string
+        daysInCurrentStage:
+          type: number
+        daysOpen:
+          type: number
+      required:
+        - id
+        - workflowId
+        - stageId
+        - title
+        - priority
+        - status
+        - createdAt
+        - updatedAt
+        - stageEnteredAt
+        - daysInCurrentStage
+        - daysOpen
+
+    WorkflowItemHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+        itemId:
+          type: integer
+        fromStageId:
+          type: integer
+          nullable: true
+        fromStageName:
+          type: string
+          nullable: true
+        toStageId:
+          type: integer
+        toStageName:
+          type: string
+        movedBy:
+          type: string
+          nullable: true
+        movedAt:
+          type: string
+        notes:
+          type: string
+          nullable: true
+      required:
+        - id
+        - itemId
+        - toStageId
+        - toStageName
+        - movedAt
+
+    WorkflowItemDetail:
+      allOf:
+        - $ref: "#/components/schemas/WorkflowItem"
+        - type: object
+          properties:
+            history:
+              type: array
+              items:
+                $ref: "#/components/schemas/WorkflowItemHistory"
+          required:
+            - history
+
+    CreateWorkflowItemBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        priority:
+          $ref: "#/components/schemas/WorkflowItemPriority"
+        stageId:
+          type: integer
+          nullable: true
+        assignedTo:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+      required:
+        - title
+
+    UpdateWorkflowItemBody:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        priority:
+          $ref: "#/components/schemas/WorkflowItemPriority"
+        assignedTo:
+          type: string
+          nullable: true
+        dueDate:
+          type: string
+          nullable: true
+        status:
+          $ref: "#/components/schemas/WorkflowItemStatus"
+
+    MoveWorkflowItemBody:
+      type: object
+      properties:
+        toStageId:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        movedBy:
+          type: string
+          nullable: true
+      required:
+        - toStageId
+
+    WorkflowBottleneckAnalysis:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        hasBottleneck:
+          type: boolean
+        bottleneckStageId:
+          type: integer
+          nullable: true
+        bottleneckStageName:
+          type: string
+          nullable: true
+        bottleneckItemCount:
+          type: integer
+        oldestItem:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            stageId:
+              type: integer
+            stageName:
+              type: string
+            daysInStage:
+              type: number
+        insights:
+          type: array
+          items:
+            type: string
+        stageSummary:
+          type: array
+          items:
+            type: object
+            properties:
+              stageId:
+                type: integer
+              stageName:
+                type: string
+              stageOrder:
+                type: integer
+              itemCount:
+                type: integer
+              avgDaysInStage:
+                type: number
+              oldestItemDays:
+                type: number
+      required:
+        - workflowId
+        - hasBottleneck
+        - bottleneckItemCount
+        - insights
+        - stageSummary

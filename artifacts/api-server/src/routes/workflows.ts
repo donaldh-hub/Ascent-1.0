@@ -6,10 +6,11 @@ import {
   impactEventsTable,
   alertsTable,
   documentsTable,
+  workflowItemsTable,
   insertWorkflowSchema,
   insertStageSchema,
 } from "@workspace/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, desc } from "drizzle-orm";
 import {
   CreateWorkflowBody,
   UpdateWorkflowBody,
@@ -310,6 +311,96 @@ router.delete("/workflows/:id/stages/:stageId", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete stage");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/workflows/:id/bottleneck", async (req, res) => {
+  try {
+    const workflowId = parseInt(req.params.id);
+
+    const stages = await db
+      .select()
+      .from(stagesTable)
+      .where(eq(stagesTable.workflowId, workflowId))
+      .orderBy(stagesTable.order);
+
+    const items = await db
+      .select()
+      .from(workflowItemsTable)
+      .where(eq(workflowItemsTable.workflowId, workflowId));
+
+    const openItems = items.filter((i) => i.status !== "completed");
+
+    const stageSummary = stages.map((stage) => {
+      const stageItems = openItems.filter((i) => i.stageId === stage.id);
+      const daysInStage = stageItems.map((i) =>
+        (Date.now() - new Date(i.stageEnteredAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const avgDays = daysInStage.length > 0 ? daysInStage.reduce((a, b) => a + b, 0) / daysInStage.length : 0;
+      const oldest = daysInStage.length > 0 ? Math.max(...daysInStage) : 0;
+      return {
+        stageId: stage.id,
+        stageName: stage.name,
+        stageOrder: stage.order,
+        itemCount: stageItems.length,
+        avgDaysInStage: Math.round(avgDays * 10) / 10,
+        oldestItemDays: Math.round(oldest * 10) / 10,
+      };
+    });
+
+    // Find bottleneck stage: highest item count among open items
+    const bottleneckStage = stageSummary.reduce(
+      (max, s) => (s.itemCount > max.itemCount ? s : max),
+      stageSummary[0] ?? { stageId: 0, stageName: "", stageOrder: 0, itemCount: 0, avgDaysInStage: 0, oldestItemDays: 0 }
+    );
+
+    // Find oldest aging item
+    let oldestItem = null;
+    if (openItems.length > 0) {
+      const oldest = openItems.reduce((max, i) => {
+        const daysInStage = (Date.now() - new Date(i.stageEnteredAt).getTime()) / (1000 * 60 * 60 * 24);
+        const maxDays = (Date.now() - new Date(max.stageEnteredAt).getTime()) / (1000 * 60 * 60 * 24);
+        return daysInStage > maxDays ? i : max;
+      });
+      const oldestStage = stages.find((s) => s.id === oldest.stageId);
+      oldestItem = {
+        id: oldest.id,
+        title: oldest.title,
+        stageId: oldest.stageId,
+        stageName: oldestStage?.name ?? "Unknown",
+        daysInStage: Math.round((Date.now() - new Date(oldest.stageEnteredAt).getTime()) / (1000 * 60 * 60 * 24) * 10) / 10,
+      };
+    }
+
+    const hasBottleneck = bottleneckStage.itemCount >= 2 || (oldestItem?.daysInStage ?? 0) > 7;
+
+    const insights: string[] = [];
+    if (bottleneckStage.itemCount >= 2) {
+      insights.push(`Stage "${bottleneckStage.stageName}" has the highest item volume (${bottleneckStage.itemCount} open items).`);
+    }
+    if (oldestItem && oldestItem.daysInStage > 7) {
+      insights.push(`"${oldestItem.stageName}" is the oldest aging stage — item "${oldestItem.title}" has been here ${Math.round(oldestItem.daysInStage)} days.`);
+    }
+    if (openItems.length === 0) {
+      insights.push("No open items. Workflow is clear.");
+    }
+    if (insights.length === 0) {
+      insights.push("No significant bottlenecks detected.");
+    }
+
+    res.json({
+      workflowId,
+      hasBottleneck,
+      bottleneckStageId: hasBottleneck ? bottleneckStage.stageId : null,
+      bottleneckStageName: hasBottleneck ? bottleneckStage.stageName : null,
+      bottleneckItemCount: bottleneckStage.itemCount,
+      oldestItem,
+      insights,
+      stageSummary,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get bottleneck analysis");
     res.status(500).json({ error: "Internal server error" });
   }
 });

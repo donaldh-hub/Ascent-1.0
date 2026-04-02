@@ -24,6 +24,7 @@ import type {
   CreateDocumentBody,
   CreateStageBody,
   CreateWorkflowBody,
+  CreateWorkflowItemBody,
   DashboardSummary,
   Document,
   GetAnalyticsTrendsParams,
@@ -31,17 +32,24 @@ import type {
   ListAlertsParams,
   ListAssetsParams,
   ListDocumentsParams,
+  ListWorkflowItemsParams,
   ListWorkflowsParams,
+  MoveWorkflowItemBody,
   PriorityAction,
   Stage,
   TrendData,
   UpdateAssetBody,
   UpdateStageBody,
   UpdateWorkflowBody,
+  UpdateWorkflowItemBody,
   WarrantyStatus,
   Workflow,
+  WorkflowBottleneckAnalysis,
   WorkflowDetail,
   WorkflowHealth,
+  WorkflowItem,
+  WorkflowItemDetail,
+  WorkflowItemHistory,
   WorkflowPerformance,
 } from "./api.schemas";
 
@@ -1226,6 +1234,748 @@ export const useDeleteStage = <
 > => {
   return useMutation(getDeleteStageMutationOptions(options));
 };
+
+/**
+ * @summary List items for a workflow
+ */
+export const getListWorkflowItemsUrl = (
+  id: number,
+  params?: ListWorkflowItemsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/workflows/${id}/items?${stringifiedParams}`
+    : `/api/workflows/${id}/items`;
+};
+
+export const listWorkflowItems = async (
+  id: number,
+  params?: ListWorkflowItemsParams,
+  options?: RequestInit,
+): Promise<WorkflowItem[]> => {
+  return customFetch<WorkflowItem[]>(getListWorkflowItemsUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWorkflowItemsQueryKey = (
+  id: number,
+  params?: ListWorkflowItemsParams,
+) => {
+  return [`/api/workflows/${id}/items`, ...(params ? [params] : [])] as const;
+};
+
+export const getListWorkflowItemsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkflowItems>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: ListWorkflowItemsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWorkflowItems>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListWorkflowItemsQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listWorkflowItems>>
+  > = ({ signal }) =>
+    listWorkflowItems(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkflowItems>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWorkflowItemsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWorkflowItems>>
+>;
+export type ListWorkflowItemsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List items for a workflow
+ */
+
+export function useListWorkflowItems<
+  TData = Awaited<ReturnType<typeof listWorkflowItems>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params?: ListWorkflowItemsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWorkflowItems>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWorkflowItemsQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a workflow item
+ */
+export const getCreateWorkflowItemUrl = (id: number) => {
+  return `/api/workflows/${id}/items`;
+};
+
+export const createWorkflowItem = async (
+  id: number,
+  createWorkflowItemBody: CreateWorkflowItemBody,
+  options?: RequestInit,
+): Promise<WorkflowItem> => {
+  return customFetch<WorkflowItem>(getCreateWorkflowItemUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createWorkflowItemBody),
+  });
+};
+
+export const getCreateWorkflowItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWorkflowItem>>,
+    TError,
+    { id: number; data: BodyType<CreateWorkflowItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createWorkflowItem>>,
+  TError,
+  { id: number; data: BodyType<CreateWorkflowItemBody> },
+  TContext
+> => {
+  const mutationKey = ["createWorkflowItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createWorkflowItem>>,
+    { id: number; data: BodyType<CreateWorkflowItemBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createWorkflowItem(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateWorkflowItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createWorkflowItem>>
+>;
+export type CreateWorkflowItemMutationBody = BodyType<CreateWorkflowItemBody>;
+export type CreateWorkflowItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a workflow item
+ */
+export const useCreateWorkflowItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createWorkflowItem>>,
+    TError,
+    { id: number; data: BodyType<CreateWorkflowItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createWorkflowItem>>,
+  TError,
+  { id: number; data: BodyType<CreateWorkflowItemBody> },
+  TContext
+> => {
+  return useMutation(getCreateWorkflowItemMutationOptions(options));
+};
+
+/**
+ * @summary Get a workflow item with history
+ */
+export const getGetWorkflowItemUrl = (id: number, itemId: number) => {
+  return `/api/workflows/${id}/items/${itemId}`;
+};
+
+export const getWorkflowItem = async (
+  id: number,
+  itemId: number,
+  options?: RequestInit,
+): Promise<WorkflowItemDetail> => {
+  return customFetch<WorkflowItemDetail>(getGetWorkflowItemUrl(id, itemId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWorkflowItemQueryKey = (id: number, itemId: number) => {
+  return [`/api/workflows/${id}/items/${itemId}`] as const;
+};
+
+export const getGetWorkflowItemQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkflowItem>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  itemId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowItem>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWorkflowItemQueryKey(id, itemId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkflowItem>>> = ({
+    signal,
+  }) => getWorkflowItem(id, itemId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && itemId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkflowItem>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkflowItemQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkflowItem>>
+>;
+export type GetWorkflowItemQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a workflow item with history
+ */
+
+export function useGetWorkflowItem<
+  TData = Awaited<ReturnType<typeof getWorkflowItem>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  itemId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowItem>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkflowItemQueryOptions(id, itemId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a workflow item
+ */
+export const getUpdateWorkflowItemUrl = (id: number, itemId: number) => {
+  return `/api/workflows/${id}/items/${itemId}`;
+};
+
+export const updateWorkflowItem = async (
+  id: number,
+  itemId: number,
+  updateWorkflowItemBody: UpdateWorkflowItemBody,
+  options?: RequestInit,
+): Promise<WorkflowItem> => {
+  return customFetch<WorkflowItem>(getUpdateWorkflowItemUrl(id, itemId), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateWorkflowItemBody),
+  });
+};
+
+export const getUpdateWorkflowItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWorkflowItem>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<UpdateWorkflowItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateWorkflowItem>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<UpdateWorkflowItemBody> },
+  TContext
+> => {
+  const mutationKey = ["updateWorkflowItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateWorkflowItem>>,
+    { id: number; itemId: number; data: BodyType<UpdateWorkflowItemBody> }
+  > = (props) => {
+    const { id, itemId, data } = props ?? {};
+
+    return updateWorkflowItem(id, itemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateWorkflowItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateWorkflowItem>>
+>;
+export type UpdateWorkflowItemMutationBody = BodyType<UpdateWorkflowItemBody>;
+export type UpdateWorkflowItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a workflow item
+ */
+export const useUpdateWorkflowItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateWorkflowItem>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<UpdateWorkflowItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateWorkflowItem>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<UpdateWorkflowItemBody> },
+  TContext
+> => {
+  return useMutation(getUpdateWorkflowItemMutationOptions(options));
+};
+
+/**
+ * @summary Delete a workflow item
+ */
+export const getDeleteWorkflowItemUrl = (id: number, itemId: number) => {
+  return `/api/workflows/${id}/items/${itemId}`;
+};
+
+export const deleteWorkflowItem = async (
+  id: number,
+  itemId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteWorkflowItemUrl(id, itemId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteWorkflowItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteWorkflowItem>>,
+    TError,
+    { id: number; itemId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteWorkflowItem>>,
+  TError,
+  { id: number; itemId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteWorkflowItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteWorkflowItem>>,
+    { id: number; itemId: number }
+  > = (props) => {
+    const { id, itemId } = props ?? {};
+
+    return deleteWorkflowItem(id, itemId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteWorkflowItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteWorkflowItem>>
+>;
+
+export type DeleteWorkflowItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a workflow item
+ */
+export const useDeleteWorkflowItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteWorkflowItem>>,
+    TError,
+    { id: number; itemId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteWorkflowItem>>,
+  TError,
+  { id: number; itemId: number },
+  TContext
+> => {
+  return useMutation(getDeleteWorkflowItemMutationOptions(options));
+};
+
+/**
+ * @summary Move a workflow item to a different stage
+ */
+export const getMoveWorkflowItemUrl = (id: number, itemId: number) => {
+  return `/api/workflows/${id}/items/${itemId}/move`;
+};
+
+export const moveWorkflowItem = async (
+  id: number,
+  itemId: number,
+  moveWorkflowItemBody: MoveWorkflowItemBody,
+  options?: RequestInit,
+): Promise<WorkflowItem> => {
+  return customFetch<WorkflowItem>(getMoveWorkflowItemUrl(id, itemId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(moveWorkflowItemBody),
+  });
+};
+
+export const getMoveWorkflowItemMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moveWorkflowItem>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<MoveWorkflowItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof moveWorkflowItem>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<MoveWorkflowItemBody> },
+  TContext
+> => {
+  const mutationKey = ["moveWorkflowItem"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof moveWorkflowItem>>,
+    { id: number; itemId: number; data: BodyType<MoveWorkflowItemBody> }
+  > = (props) => {
+    const { id, itemId, data } = props ?? {};
+
+    return moveWorkflowItem(id, itemId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MoveWorkflowItemMutationResult = NonNullable<
+  Awaited<ReturnType<typeof moveWorkflowItem>>
+>;
+export type MoveWorkflowItemMutationBody = BodyType<MoveWorkflowItemBody>;
+export type MoveWorkflowItemMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Move a workflow item to a different stage
+ */
+export const useMoveWorkflowItem = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof moveWorkflowItem>>,
+    TError,
+    { id: number; itemId: number; data: BodyType<MoveWorkflowItemBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof moveWorkflowItem>>,
+  TError,
+  { id: number; itemId: number; data: BodyType<MoveWorkflowItemBody> },
+  TContext
+> => {
+  return useMutation(getMoveWorkflowItemMutationOptions(options));
+};
+
+/**
+ * @summary Get movement history for a workflow item
+ */
+export const getGetWorkflowItemHistoryUrl = (id: number, itemId: number) => {
+  return `/api/workflows/${id}/items/${itemId}/history`;
+};
+
+export const getWorkflowItemHistory = async (
+  id: number,
+  itemId: number,
+  options?: RequestInit,
+): Promise<WorkflowItemHistory[]> => {
+  return customFetch<WorkflowItemHistory[]>(
+    getGetWorkflowItemHistoryUrl(id, itemId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetWorkflowItemHistoryQueryKey = (
+  id: number,
+  itemId: number,
+) => {
+  return [`/api/workflows/${id}/items/${itemId}/history`] as const;
+};
+
+export const getGetWorkflowItemHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkflowItemHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  itemId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowItemHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWorkflowItemHistoryQueryKey(id, itemId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWorkflowItemHistory>>
+  > = ({ signal }) =>
+    getWorkflowItemHistory(id, itemId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && itemId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkflowItemHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkflowItemHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkflowItemHistory>>
+>;
+export type GetWorkflowItemHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get movement history for a workflow item
+ */
+
+export function useGetWorkflowItemHistory<
+  TData = Awaited<ReturnType<typeof getWorkflowItemHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  itemId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowItemHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkflowItemHistoryQueryOptions(
+    id,
+    itemId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get bottleneck analysis for a workflow
+ */
+export const getGetWorkflowBottleneckUrl = (id: number) => {
+  return `/api/workflows/${id}/bottleneck`;
+};
+
+export const getWorkflowBottleneck = async (
+  id: number,
+  options?: RequestInit,
+): Promise<WorkflowBottleneckAnalysis> => {
+  return customFetch<WorkflowBottleneckAnalysis>(
+    getGetWorkflowBottleneckUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetWorkflowBottleneckQueryKey = (id: number) => {
+  return [`/api/workflows/${id}/bottleneck`] as const;
+};
+
+export const getGetWorkflowBottleneckQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkflowBottleneck>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowBottleneck>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWorkflowBottleneckQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWorkflowBottleneck>>
+  > = ({ signal }) => getWorkflowBottleneck(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkflowBottleneck>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkflowBottleneckQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkflowBottleneck>>
+>;
+export type GetWorkflowBottleneckQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get bottleneck analysis for a workflow
+ */
+
+export function useGetWorkflowBottleneck<
+  TData = Awaited<ReturnType<typeof getWorkflowBottleneck>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowBottleneck>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkflowBottleneckQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List all assets

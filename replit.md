@@ -81,6 +81,9 @@ artifacts-monorepo/
 | Dashboard | `GET /api/dashboard/summary`, `/bottlenecks`, `/actions` |
 | Workflows | `GET/POST /api/workflows`, `GET/PUT/DELETE /api/workflows/:id`, `GET /api/workflows/:id/health` |
 | Stages | `GET/POST /api/workflows/:id/stages`, `PUT/DELETE /api/workflows/:id/stages/:stageId` |
+| Workflow Items | `GET/POST /api/workflows/:id/items`, `GET/PUT/DELETE /api/workflows/:id/items/:itemId` |
+| Item Movement | `POST /api/workflows/:id/items/:itemId/move`, `GET /api/workflows/:id/items/:itemId/history` |
+| Bottleneck | `GET /api/workflows/:id/bottleneck` |
 | Assets | `GET/POST /api/assets`, `GET/PUT/DELETE /api/assets/:id`, `GET /api/assets/warranties` |
 | Alerts | `GET /api/alerts`, `PATCH /api/alerts/:id/read` |
 | Documents | `GET/POST /api/documents` |

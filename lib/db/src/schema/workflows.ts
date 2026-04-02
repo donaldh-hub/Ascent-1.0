@@ -66,3 +66,44 @@ export const insertImpactEventSchema = createInsertSchema(impactEventsTable).omi
 });
 export type InsertImpactEvent = z.infer<typeof insertImpactEventSchema>;
 export type ImpactEvent = typeof impactEventsTable.$inferSelect;
+
+export const workflowItemsTable = pgTable("workflow_items", {
+  id: serial("id").primaryKey(),
+  workflowId: integer("workflow_id").notNull(),
+  stageId: integer("stage_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  priority: text("priority").notNull().default("medium"),
+  status: text("status").notNull().default("open"),
+  assignedTo: text("assigned_to"),
+  dueDate: text("due_date"),
+  stageEnteredAt: timestamp("stage_entered_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertWorkflowItemSchema = createInsertSchema(workflowItemsTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  stageEnteredAt: true,
+});
+export type InsertWorkflowItem = z.infer<typeof insertWorkflowItemSchema>;
+export type WorkflowItem = typeof workflowItemsTable.$inferSelect;
+
+export const workflowItemHistoryTable = pgTable("workflow_item_history", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull(),
+  fromStageId: integer("from_stage_id"),
+  toStageId: integer("to_stage_id").notNull(),
+  movedBy: text("moved_by"),
+  notes: text("notes"),
+  movedAt: timestamp("moved_at").notNull().defaultNow(),
+});
+
+export const insertWorkflowItemHistorySchema = createInsertSchema(workflowItemHistoryTable).omit({
+  id: true,
+  movedAt: true,
+});
+export type InsertWorkflowItemHistory = z.infer<typeof insertWorkflowItemHistorySchema>;
+export type WorkflowItemHistory = typeof workflowItemHistoryTable.$inferSelect;

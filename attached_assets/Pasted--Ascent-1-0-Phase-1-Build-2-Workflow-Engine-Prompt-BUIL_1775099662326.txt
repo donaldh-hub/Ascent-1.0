@@ -1,0 +1,396 @@
+# Ascent 1.0 — Phase 1 Build 2 (Workflow Engine Prompt)
+
+## BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+```text
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 2.
+
+The foundation layer from Build 1 already exists:
+- authentication
+- organization structure
+- user roles
+- protected routes
+- app shell
+- settings foundation
+- database foundation
+
+Do NOT rebuild the auth system.
+Do NOT replace the app shell.
+Do NOT redesign the full product.
+Build on top of the existing foundation.
+
+PROJECT NAME:
+Ascent 1.0
+
+THIS BUILD FOCUSES ON:
+Core Workflow Engine
+
+CORE GOAL OF THIS BUILD:
+Create the real workflow backbone of Ascent 1.0 so users can define workflows, create workflow items, move those items through stages, track timing, and begin surfacing bottlenecks.
+
+This build must make the system feel like a real operational workflow app, not just a shell.
+
+==================================================
+BUILD REQUIREMENTS
+==================================================
+
+1. WORKFLOW DATA MODEL
+
+Build the workflow system data structure.
+
+Required entities:
+- workflows
+- workflow_stages
+- workflow_items
+- workflow_item_history
+- workflow_assignments
+- workflow_comments or notes
+
+Each workflow must support at minimum:
+- workflow name
+- workflow type
+- description
+- organization linkage
+- created by
+- active/inactive status
+- created date
+- updated date
+
+Each workflow stage must support at minimum:
+- linked workflow
+- stage name
+- stage order / sequence
+- expected duration
+- optional owner role
+- active/inactive status
+
+Each workflow item must support at minimum:
+- linked workflow
+- linked current stage
+- item title/name
+- description/notes
+- priority
+- status
+- created date
+- updated date
+- started date
+- completed date
+- assigned user if applicable
+- linked entity placeholders for future use
+  - property
+  - unit
+  - vendor
+  - asset
+  - case/job reference
+
+Each workflow item history record must support:
+- linked workflow item
+- from stage
+- to stage
+- moved by
+- moved date/time
+- note or reason if provided
+
+2. WORKFLOW LIST PAGE
+
+Build the main workflow list page.
+
+Requirements:
+- show all workflows for the organization
+- search workflows
+- filter by active/inactive if helpful
+- clean list or card layout
+- each workflow clickable into detail view
+- clear empty state when no workflows exist
+- button to create workflow
+
+Each workflow list row/card should show:
+- workflow name
+- workflow type
+- number of stages
+- number of open items
+- number of completed items
+- active/inactive status
+- last updated date
+
+3. CREATE WORKFLOW FLOW
+
+Build a real workflow creation flow.
+
+Users must be able to create a workflow with:
+- workflow name
+- workflow type
+- description
+- stage builder
+
+Stage builder requirements:
+- add multiple stages
+- stage name required
+- stage order clearly shown
+- expected duration per stage
+- reorder stages if cleanly supported
+- delete a stage before save
+
+Behavior requirements:
+- workflow must require at least one stage
+- saved workflow appears immediately in workflow list
+- workflow detail page loads after creation
+
+4. WORKFLOW DETAIL PAGE
+
+Build a real workflow detail page.
+
+This page must show:
+- workflow name
+- workflow type
+- description
+- stage list in order
+- item counts by stage
+- open items count
+- completed items count
+- created/updated info
+
+Layout requirement:
+Use a clean operational layout that supports future scaling.
+
+Suggested sections:
+A. workflow header
+B. stage flow / stage rail
+C. workflow items area
+D. workflow activity/history area
+E. workflow settings/edit area
+
+5. WORKFLOW ITEM CREATION
+
+Users must be able to create workflow items inside a workflow.
+
+Each workflow item must support at minimum:
+- item title
+- description or notes
+- priority (low / medium / high / critical)
+- assigned user if available
+- current stage (default = first stage)
+- optional due date if easy to support cleanly
+
+Behavior requirements:
+- new item lands in the first stage by default
+- item count updates immediately
+- item appears in workflow detail view without refresh if possible
+
+6. STAGE-BASED ITEM MOVEMENT
+
+This is a core requirement.
+
+Users must be able to move workflow items from one stage to another.
+
+Support at minimum one clean movement method:
+- drag and drop if stable
+OR
+- action button / move dropdown if more reliable
+
+Reliability matters more than visual flash.
+
+Movement requirements:
+- move item between valid stages
+- update current stage immediately
+- log movement into workflow_item_history
+- update timestamps as appropriate
+- preserve auditability
+
+Optional but valuable if stable:
+- move item backwards to earlier stage
+- mark item complete when moved to final stage
+- reopen item if moved backward from complete state
+
+7. WORKFLOW ITEM VIEW / PANEL
+
+Each item must be viewable in more detail.
+
+Support:
+- click item to open drawer, modal, or detail panel
+- show item title
+- show description
+- show current stage
+- show priority
+- show assignment
+- show created date
+- show updated date
+- show movement history
+- allow edit of core fields
+
+This does NOT need to be a separate full page unless that is the cleanest architecture.
+
+8. WORKFLOW TIMING FOUNDATION
+
+Begin the timing and bottleneck foundation in this build.
+
+For each workflow item, track:
+- created time
+- current stage entered time
+- total time open
+- time spent in current stage
+
+For each workflow, begin calculating:
+- total open items
+- total completed items
+- count of items per stage
+- average time in stage if feasible
+- longest-aging open item
+
+Do NOT overbuild analytics yet.
+This is the timing foundation only.
+
+9. BASIC BOTTLENECK FOUNDATION
+
+Introduce the first bottleneck signals.
+
+At minimum support:
+- identify the stage with the highest number of open items
+- identify the oldest aging stage/item based on current stage time
+- surface a simple “possible bottleneck” insight on workflow detail page
+
+Examples of acceptable insight language:
+- “Stage 3 has the highest item volume.”
+- “Inspection is currently the oldest aging stage.”
+- “This workflow may be slowing at Approval.”
+
+Do NOT build the full bottleneck engine yet.
+Build the real foundation for it.
+
+10. WORKFLOW DASHBOARD WIRING FOUNDATION
+
+Inside each workflow detail page, add lightweight summary cards.
+
+Required cards:
+- Open Items
+- Completed Items
+- Stage Count
+- Longest Aging Item
+- Possible Bottleneck
+
+These should use real workflow data from this build.
+No fake demo numbers.
+
+11. ROLE BEHAVIOR IN WORKFLOWS
+
+Respect the role system from Build 1.
+
+At minimum:
+- Admin can create/edit workflows and items
+- Supervisor can create/edit workflows and items
+- Manager can view workflows and items and possibly comment if supported
+- Technician can view assigned or accessible workflows/items and update item movement if permitted
+- Viewer gets read-only access
+
+You do not need perfect enterprise permissions in this build.
+But access must be real and role-aware.
+
+12. ROUTES TO SUPPORT
+
+Build or complete these protected routes:
+- /workflows
+- /workflows/:workflowId
+
+If your architecture benefits from nested routes, keep it clean.
+
+13. EDITING SUPPORT
+
+Users with appropriate permission must be able to:
+- edit workflow name
+- edit workflow description
+- edit stage names
+- edit stage duration
+- edit workflow item fields
+
+Guard against breaking the stage order or corrupting item references.
+
+14. EMPTY STATES + UX QUALITY
+
+This build must feel clear and usable even before a lot of data exists.
+
+Required empty states:
+- no workflows yet
+- workflow has no items yet
+- no history yet
+- no bottleneck insight yet
+
+The workflow engine should feel:
+- structured
+- operational
+- simple to understand
+- ready for real work
+
+15. AUDIT / ACTIVITY SUPPORT
+
+Extend the audit/activity structure from Build 1.
+
+At minimum log:
+- workflow created
+- workflow updated
+- workflow item created
+- workflow item moved stages
+- workflow item edited
+
+16. CODE QUALITY RULES
+
+DO:
+- build on the existing foundation cleanly
+- use reusable components
+- keep workflow logic separate from auth/layout logic
+- create stable data relationships
+- make mobile behavior usable
+
+DO NOT:
+- rebuild prior work unnecessarily
+- add fake analytics
+- add unfinished advanced automation
+- create a fragile drag/drop system if it is unstable
+- overcomplicate the UI
+
+17. SUCCESS STATE FOR THIS BUILD
+
+This build is successful when I can:
+1. Log in
+2. Go to Workflows
+3. Create a workflow with stages
+4. Open that workflow
+5. Create workflow items
+6. Move items through stages
+7. See counts update correctly
+8. See basic timing/bottleneck indicators
+9. Confirm role-aware behavior is working
+10. Use a real workflow system that is ready for dashboard and stoplight logic next
+
+18. IMPORTANT LIMITS
+
+This build is NOT yet for:
+- full operational dashboard scoring
+- red/yellow/green math engine
+- full alert engine
+- OCR/doc intelligence
+- asset/warranty intelligence
+- predictive recommendations
+
+Those come later.
+
+This build is the WORKFLOW BACKBONE.
+
+19. INTERNAL LABEL
+
+Label this internally as:
+“Phase 1 – Build 2: Core Workflow Engine”
+```
+
+---
+
+## BUILD INTENT
+
+Build 1 created the structure.
+
+Build 2 creates the movement.
+
+This is where Ascent 1.0 stops being a shell and starts becoming a real operating system.
+
+**This build creates the backbone everything else will ride on.**
