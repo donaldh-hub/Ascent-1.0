@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { evaluateAlerts } from "./engine/alerts";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,9 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // Run alert evaluation on startup (non-blocking)
+  evaluateAlerts()
+    .then((result) => logger.info(result, "Initial alert evaluation complete"))
+    .catch((evalErr) => logger.warn({ evalErr }, "Initial alert evaluation failed (non-fatal)"));
 });

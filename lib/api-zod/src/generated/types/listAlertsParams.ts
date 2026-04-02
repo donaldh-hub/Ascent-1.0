@@ -5,9 +5,17 @@
  * Ascent 1.0 - Operational Intelligence Platform
  * OpenAPI spec version: 0.1.0
  */
+import type { ListAlertsCategory } from "./listAlertsCategory";
+import type { ListAlertsLevel } from "./listAlertsLevel";
 import type { ListAlertsSeverity } from "./listAlertsSeverity";
+import type { ListAlertsStatus } from "./listAlertsStatus";
 
 export type ListAlertsParams = {
   unreadOnly?: boolean;
   severity?: ListAlertsSeverity;
+  level?: ListAlertsLevel;
+  category?: ListAlertsCategory;
+  status?: ListAlertsStatus;
+  isActive?: boolean;
+  workflowId?: number;
 };

@@ -1,17 +1,50 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
+/**
+ * Phase 1 – Build 4: Alert and Warning Engine
+ *
+ * Extended alerts table with full lifecycle, deduplication, and rule linkage.
+ * Legacy fields (severity, isRead) kept for backward compatibility.
+ */
 export const alertsTable = pgTable("alerts", {
   id: serial("id").primaryKey(),
+
+  // Categorization
   type: text("type").notNull(),
-  severity: text("severity").notNull().default("info"),
+  category: text("category").notNull().default("status_alert"), // status_alert | timing_alert | flow_alert | risk_alert
+  level: text("level").notNull().default("informational"), // informational | warning | critical
+  severity: text("severity").notNull().default("info"), // legacy compat: info | warning | critical
+
+  // Content
   title: text("title").notNull(),
   message: text("message").notNull(),
+  actionPath: text("action_path"), // e.g. "/workflows/1" — where to navigate for resolution
+
+  // Entity linkage
   workflowId: integer("workflow_id"),
   assetId: integer("asset_id"),
-  isRead: boolean("is_read").notNull().default(false),
+  linkedItemId: integer("linked_item_id"),
+  linkedStageId: integer("linked_stage_id"),
+
+  // Deduplication key — prevents duplicate alerts for the same condition
+  ruleKey: text("rule_key"),
+
+  // Lifecycle
+  status: text("status").notNull().default("active"), // active | acknowledged | resolved
+  isActive: boolean("is_active").notNull().default(true),
+  isRead: boolean("is_read").notNull().default(false), // legacy compat
+
+  // Timestamps
+  triggeredAt: timestamp("triggered_at").notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  resolvedAt: timestamp("resolved_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+
+  // Extra context payload
+  metadata: jsonb("metadata"),
 });
 
 export const insertAlertSchema = createInsertSchema(alertsTable).omit({

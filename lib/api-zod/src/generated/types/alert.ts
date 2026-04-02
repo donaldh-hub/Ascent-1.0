@@ -5,17 +5,33 @@
  * Ascent 1.0 - Operational Intelligence Platform
  * OpenAPI spec version: 0.1.0
  */
+import type { AlertCategory } from "./alertCategory";
+import type { AlertLevel } from "./alertLevel";
+import type { AlertMetadata } from "./alertMetadata";
 import type { AlertSeverity } from "./alertSeverity";
-import type { AlertType } from "./alertType";
+import type { AlertStatus } from "./alertStatus";
 
 export interface Alert {
   id: number;
-  type: AlertType;
+  type: string;
+  category: AlertCategory;
+  level: AlertLevel;
   severity: AlertSeverity;
   title: string;
   message: string;
+  actionPath?: string | null;
   workflowId?: number | null;
   assetId?: number | null;
+  linkedItemId?: number | null;
+  linkedStageId?: number | null;
+  ruleKey?: string | null;
+  status: AlertStatus;
+  isActive: boolean;
   isRead: boolean;
+  triggeredAt: string;
+  lastSeenAt: string;
+  acknowledgedAt?: string | null;
+  resolvedAt?: string | null;
   createdAt: string;
+  metadata?: AlertMetadata;
 }

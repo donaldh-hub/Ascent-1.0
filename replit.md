@@ -27,7 +27,7 @@ A continuous improvement operational intelligence platform — an air traffic co
 2. **Workflow Engine** — Create/manage workflows, break into stages, track movement, detect bottlenecks, health recalculation
 3. **Stoplight Scoring** — Red/Yellow/Green system at stage, workflow, and global levels
 4. **Asset & Warranty Tracking** — Asset registry with warranty lifecycle, health scores, maintenance schedules
-5. **Alert Center** — Critical/Warning/Info alerts sorted by severity with mark-read
+5. **Alert Engine** — Automated 6-rule evaluator (critical items, overdue, aging, bottleneck, health score drops, unassigned high-priority) with deduplication via ruleKey, lifecycle management (active → acknowledged → resolved), category/level filters, per-workflow alert badges
 6. **Analytics & Trends** — Score trend charts, workflow performance tables
 7. **Document Engine** — Link documents/evidence to workflows, stages, and assets
 
@@ -87,6 +87,29 @@ Lives in `artifacts/api-server/src/engine/`:
 
 All four dashboard score cards, the workflow list, the workflow detail health panel, and the analytics performance endpoint use this shared engine. Random noise/placeholder math has been eliminated.
 
+## Alert Engine (Phase 1 – Build 4)
+
+Lives in `artifacts/api-server/src/engine/alerts.ts`:
+
+**6 Rule Evaluators:**
+- `evaluateCriticalItems` — flags every open critical-priority item
+- `evaluateOverdueItems` — flags items past their due date (severity scales with priority)
+- `evaluateAgingItems` — items >7d in same stage (warning), >21d (critical)
+- `evaluateBottleneck` — stages with ≥2 open items concentrated
+- `evaluateWorkflowHealth` — health <75 → warning alert, <50 → critical alert
+- `evaluateUnassignedCritical` — critical/high items with no assigned owner
+
+**Deduplication:** Each rule produces a stable `ruleKey` (e.g. `critical_item_3`, `bottleneck_1_2`). On each evaluation run, existing alerts with matching ruleKeys are updated (`lastSeenAt`), new alerts are inserted, and alerts whose condition no longer holds are automatically resolved.
+
+**Alert lifecycle:** `active` → `acknowledged` → `resolved`
+
+**Auto-evaluation triggers:** On API server startup (non-blocking); manually via `POST /api/alerts/evaluate`
+
+**Frontend integration:**
+- Alert Center page: summary strip, tabs (Active/Acknowledged/Resolved/All), level + category filters, per-alert actions
+- Workflow list: alert badge (critical/warning count) per workflow card
+- Workflow detail: "Active Alerts" panel in the right column with inline acknowledge/resolve
+
 ## API Endpoints
 
 | Module | Routes |
@@ -98,7 +121,7 @@ All four dashboard score cards, the workflow list, the workflow detail health pa
 | Item Movement | `POST /api/workflows/:id/items/:itemId/move`, `GET /api/workflows/:id/items/:itemId/history` |
 | Bottleneck | `GET /api/workflows/:id/bottleneck` |
 | Assets | `GET/POST /api/assets`, `GET/PUT/DELETE /api/assets/:id`, `GET /api/assets/warranties` |
-| Alerts | `GET /api/alerts`, `PATCH /api/alerts/:id/read` |
+| Alerts | `GET /api/alerts` (with filters: level/category/status/isActive/workflowId), `GET /api/alerts/summary`, `POST /api/alerts/evaluate`, `PATCH /api/alerts/:id/read`, `PATCH /api/alerts/:id/acknowledge`, `PATCH /api/alerts/:id/resolve` |
 | Documents | `GET/POST /api/documents` |
 | Analytics | `GET /api/analytics/trends`, `/workflow-performance` |
 

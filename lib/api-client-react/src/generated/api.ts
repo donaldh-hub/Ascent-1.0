@@ -18,6 +18,8 @@ import type {
 
 import type {
   Alert,
+  AlertEvaluationResult,
+  AlertSummary,
   Asset,
   Bottleneck,
   CreateAssetBody,
@@ -2669,7 +2671,7 @@ export const useCreateDocument = <
 };
 
 /**
- * @summary List alerts
+ * @summary List alerts with filters
  */
 export const getListAlertsUrl = (params?: ListAlertsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -2736,7 +2738,7 @@ export type ListAlertsQueryResult = NonNullable<
 export type ListAlertsQueryError = ErrorType<unknown>;
 
 /**
- * @summary List alerts
+ * @summary List alerts with filters
  */
 
 export function useListAlerts<
@@ -2761,6 +2763,162 @@ export function useListAlerts<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get alert counts by level and status
+ */
+export const getGetAlertSummaryUrl = () => {
+  return `/api/alerts/summary`;
+};
+
+export const getAlertSummary = async (
+  options?: RequestInit,
+): Promise<AlertSummary> => {
+  return customFetch<AlertSummary>(getGetAlertSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAlertSummaryQueryKey = () => {
+  return [`/api/alerts/summary`] as const;
+};
+
+export const getGetAlertSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAlertSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAlertSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAlertSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAlertSummary>>> = ({
+    signal,
+  }) => getAlertSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAlertSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAlertSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAlertSummary>>
+>;
+export type GetAlertSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get alert counts by level and status
+ */
+
+export function useGetAlertSummary<
+  TData = Awaited<ReturnType<typeof getAlertSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAlertSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAlertSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Trigger the alert engine evaluation
+ */
+export const getEvaluateAlertsUrl = () => {
+  return `/api/alerts/evaluate`;
+};
+
+export const evaluateAlerts = async (
+  options?: RequestInit,
+): Promise<AlertEvaluationResult> => {
+  return customFetch<AlertEvaluationResult>(getEvaluateAlertsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getEvaluateAlertsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof evaluateAlerts>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof evaluateAlerts>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["evaluateAlerts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof evaluateAlerts>>,
+    void
+  > = () => {
+    return evaluateAlerts(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EvaluateAlertsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof evaluateAlerts>>
+>;
+
+export type EvaluateAlertsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Trigger the alert engine evaluation
+ */
+export const useEvaluateAlerts = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof evaluateAlerts>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof evaluateAlerts>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getEvaluateAlertsMutationOptions(options));
+};
 
 /**
  * @summary Mark an alert as read
@@ -2844,6 +3002,174 @@ export const useMarkAlertRead = <
   TContext
 > => {
   return useMutation(getMarkAlertReadMutationOptions(options));
+};
+
+/**
+ * @summary Acknowledge an alert (does not resolve it)
+ */
+export const getAcknowledgeAlertUrl = (id: number) => {
+  return `/api/alerts/${id}/acknowledge`;
+};
+
+export const acknowledgeAlert = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Alert> => {
+  return customFetch<Alert>(getAcknowledgeAlertUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getAcknowledgeAlertMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeAlert>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acknowledgeAlert>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["acknowledgeAlert"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acknowledgeAlert>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return acknowledgeAlert(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcknowledgeAlertMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acknowledgeAlert>>
+>;
+
+export type AcknowledgeAlertMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Acknowledge an alert (does not resolve it)
+ */
+export const useAcknowledgeAlert = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeAlert>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acknowledgeAlert>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAcknowledgeAlertMutationOptions(options));
+};
+
+/**
+ * @summary Manually resolve an alert
+ */
+export const getResolveAlertUrl = (id: number) => {
+  return `/api/alerts/${id}/resolve`;
+};
+
+export const resolveAlert = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Alert> => {
+  return customFetch<Alert>(getResolveAlertUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getResolveAlertMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveAlert>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resolveAlert>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["resolveAlert"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resolveAlert>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return resolveAlert(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResolveAlertMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resolveAlert>>
+>;
+
+export type ResolveAlertMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Manually resolve an alert
+ */
+export const useResolveAlert = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveAlert>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resolveAlert>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getResolveAlertMutationOptions(options));
 };
 
 /**

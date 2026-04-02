@@ -1,0 +1,264 @@
+Ascent 1.0 — Phase 1 Build 4 (Alert and Warning Engine Prompt)
+
+Reference Blueprint: Continuous Improvement App Core Builds
+Reference Prompt: Ascent 1.0 — Phase 1 Build 1 (Foundation Prompt)
+Reference Prompt: Ascent 1.0 — Phase 1 Build 2 (Workflow Engine Prompt)
+Reference Prompt: Ascent 1.0 — Phase 1 Build 3 (Scoring + Stoplight Engine Prompt)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 4.
+
+The current system already has:
+
+* authentication
+* organization / role structure
+* app shell
+* workflow engine
+* workflow items and stage movement
+* timing foundation
+* bottleneck foundation
+* scoring + stoplight engine
+* dashboard scoring outputs
+* workflow health outputs
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT replace the workflow engine.
+Do NOT duplicate scoring logic inside alert components.
+Do NOT create fake notification activity.
+
+This build is the ALERT AND WARNING ENGINE.
+
+PROJECT NAME:
+
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Create the real alert and warning system for Ascent 1.0 so the app can detect
+operational risk, warn users when action is needed, surface what changed, and
+direct attention to the right next move.
+
+This build must turn the current workflow + scoring system into an operating
+system that actively flags issues instead of waiting for users to discover them.
+
+==================================================
+BUILD REQUIREMENTS
+==================
+
+1. ALERT ENGINE ARCHITECTURE
+
+Build a reusable alert and warning engine layer that sits on top of real system
+data and the shared scoring engine.
+
+The architecture must:
+
+* evaluate live workflow and workflow item conditions
+* evaluate stage aging and bottleneck signals
+* evaluate due-date conditions if due dates exist
+* evaluate scoring/stoplight changes
+* generate alerts from real rules
+* assign alert level consistently
+* store active and historical alerts
+* support dashboard, workflow pages, and alerts page
+* remain extendable for asset, warranty, preventative maintenance, and document alerts later
+
+Keep this logic separate from UI components.
+
+2. ALERT DATA MODEL
+
+Required alert fields:
+
+* alert id
+* organization id
+* alert type
+* alert category
+* alert level
+* title
+* message
+* linked entity type
+* linked entity id
+* linked workflow id
+* linked workflow item id
+* linked stage id
+* status
+* is_active
+* triggered_at
+* last_seen_at
+* resolved_at
+* created_by_system
+* metadata payload
+
+3. ALERT TYPES
+
+A. Status Alerts
+B. Date / Timing Alerts
+C. Flow Alerts
+D. Risk Alerts
+
+All alerts must be based on REAL system data.
+
+4. ALERT LEVELS
+
+* informational
+* warning
+* critical
+
+5. ALERT RULE ENGINE
+
+* centralized rule system
+* threshold-driven
+* explainable
+* no duplicate spam alerts
+
+6. DEDUPLICATION + LIFECYCLE
+
+* prevent duplicate alerts
+* update existing alerts
+* resolve when condition clears
+* preserve history
+
+7. ALERT EXPLAINABILITY
+
+Each alert must include:
+
+* clear title
+* clear explanation
+* reason triggered
+* next action path
+
+8. DATA SOURCES
+
+Use real system signals:
+
+* workflow health
+* stoplight states
+* item priority
+* due dates
+* stage aging
+* bottlenecks
+* critical items
+
+9. THRESHOLDS
+
+Centralized thresholds for:
+
+* aging
+* overdue
+* score changes
+* bottleneck severity
+
+10. ALERT TRIGGERS
+
+* workflow updates
+* item movement
+* scoring recalculation
+* page load evaluation if needed
+
+11. ALERTS PAGE
+
+Must support:
+
+* active alerts
+* history
+* filters (level, type, status)
+* sorting
+* click-through navigation
+
+12. DASHBOARD INTEGRATION
+
+* open alert counts
+* critical alerts
+* warning alerts
+* attention panel
+
+13. WORKFLOW INTEGRATION
+
+* alert badges on workflows
+* workflow alert sections
+
+14. ALERT HISTORY
+
+* store resolved alerts
+* show timestamps
+
+15. ROLE-BASED ACCESS
+
+* Admin: full access
+* Supervisor: operational scope
+* Manager: view-level
+* Technician: assigned scope
+* Viewer: read-only
+
+16. ACKNOWLEDGE / RESOLVE
+
+* acknowledge does not remove active condition
+* resolve only when condition clears
+
+17. SCORING INTEGRATION
+
+* alerts must use scoring engine outputs
+* no duplicate scoring logic
+
+18. EMPTY STATES
+
+* no alerts state
+* low-data state
+
+19. AUDIT LOG
+
+Track:
+
+* alert triggered
+* alert acknowledged
+* alert resolved
+
+20. CODE QUALITY RULES
+
+DO:
+
+* centralize logic
+* keep system modular
+* prevent noise
+
+DO NOT:
+
+* hardcode alerts
+* create fake notifications
+
+21. SUCCESS STATE
+
+User must be able to:
+
+1. See alerts on dashboard
+
+2. View alerts page
+
+3. See workflow alerts
+
+4. Trust alerts reflect real conditions
+
+5. Avoid duplicate spam alerts
+
+6. View alert history
+
+7. LIMITS
+
+This build does NOT include:
+
+* push notifications
+* asset/warranty automation
+* predictive AI
+
+23. INTERNAL LABEL
+
+"Phase 1 – Build 4: Alert and Warning Engine"
+
+==================================================
+
+# END OF BUILD PROMPT

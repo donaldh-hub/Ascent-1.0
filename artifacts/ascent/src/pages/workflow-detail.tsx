@@ -11,6 +11,9 @@ import {
   useDeleteWorkflowItem,
   useMoveWorkflowItem,
   useGetWorkflowBottleneck,
+  useListAlerts,
+  useAcknowledgeAlert,
+  useResolveAlert,
   WorkflowItem,
 } from "@workspace/api-client-react";
 import { StoplightIndicator } from "@/components/stoplight";
@@ -76,6 +79,9 @@ import {
   Edit,
   Trash2,
   Flag,
+  AlertCircle,
+  Bell,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -555,6 +561,12 @@ export default function WorkflowDetail() {
   const { data: bottleneck } = useGetWorkflowBottleneck(workflowId, {
     query: { enabled: !!workflowId, queryKey: ["bottleneck", workflowId] },
   });
+  const { data: wfAlerts, refetch: refetchAlerts } = useListAlerts(
+    { workflowId: workflowId, isActive: true } as any,
+    { query: { enabled: !!workflowId, queryKey: ["alerts", workflowId] } }
+  );
+  const acknowledgeMutation = useAcknowledgeAlert();
+  const resolveMutation = useResolveAlert();
 
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: ["items", workflowId] });
@@ -852,6 +864,67 @@ export default function WorkflowDetail() {
                       <div className="flex items-center gap-3 shrink-0 ml-2 text-muted-foreground">
                         <span>{s.itemCount} open</span>
                         {s.avgDaysInStage > 0 && <span>{s.avgDaysInStage}d avg</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Active Alerts for this workflow */}
+          {wfAlerts && wfAlerts.length > 0 && (
+            <Card className="bg-card border-border">
+              <CardHeader className="pb-2 border-b border-border/50">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-primary" />
+                  Active Alerts
+                  <span className={cn(
+                    "ml-1 text-xs font-mono px-1.5 py-0.5 rounded-full",
+                    wfAlerts.some((a) => a.level === "critical")
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-yellow-500/20 text-yellow-400"
+                  )}>
+                    {wfAlerts.length}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-3 space-y-2">
+                {wfAlerts.map((alert) => {
+                  const isCritical = alert.level === "critical";
+                  return (
+                    <div
+                      key={alert.id}
+                      className={cn(
+                        "flex items-start gap-2.5 p-2.5 rounded-md border text-xs",
+                        isCritical ? "bg-red-950/20 border-red-900/40" : "bg-amber-950/20 border-amber-900/30"
+                      )}
+                    >
+                      {isCritical
+                        ? <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
+                        : <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("font-semibold truncate", isCritical ? "text-red-300" : "text-amber-300")}>
+                          {alert.title}
+                        </p>
+                        <p className="text-muted-foreground mt-0.5 line-clamp-2">{alert.message}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => acknowledgeMutation.mutate({ id: alert.id }, { onSuccess: () => refetchAlerts() })}
+                          className="p-1 rounded hover:bg-blue-500/20 text-blue-400 transition-colors"
+                          title="Acknowledge"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => resolveMutation.mutate({ id: alert.id }, { onSuccess: () => refetchAlerts() })}
+                          className="p-1 rounded hover:bg-green-500/20 text-green-400 transition-colors"
+                          title="Resolve"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
                   );

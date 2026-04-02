@@ -7,8 +7,13 @@
  */
 
 export * from "./alert";
+export * from "./alertCategory";
+export * from "./alertEvaluationResult";
+export * from "./alertLevel";
+export * from "./alertMetadata";
 export * from "./alertSeverity";
-export * from "./alertType";
+export * from "./alertStatus";
+export * from "./alertSummary";
 export * from "./asset";
 export * from "./assetStatus";
 export * from "./bottleneck";
@@ -24,8 +29,11 @@ export * from "./getAnalyticsTrendsParams";
 export * from "./healthStatus";
 export * from "./impactEvent";
 export * from "./impactEventEventType";
+export * from "./listAlertsCategory";
+export * from "./listAlertsLevel";
 export * from "./listAlertsParams";
 export * from "./listAlertsSeverity";
+export * from "./listAlertsStatus";
 export * from "./listAssetsParams";
 export * from "./listAssetsStatus";
 export * from "./listDocumentsParams";

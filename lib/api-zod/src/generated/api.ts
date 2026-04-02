@@ -180,21 +180,32 @@ export const GetWorkflowResponse = zod
       alerts: zod.array(
         zod.object({
           id: zod.number(),
-          type: zod.enum([
-            "status_change",
-            "due_date",
-            "bottleneck",
-            "warranty_expiration",
-            "risk_escalation",
-            "overdue",
+          type: zod.string(),
+          category: zod.enum([
+            "status_alert",
+            "timing_alert",
+            "flow_alert",
+            "risk_alert",
           ]),
+          level: zod.enum(["informational", "warning", "critical"]),
           severity: zod.enum(["critical", "warning", "info"]),
           title: zod.string(),
           message: zod.string(),
+          actionPath: zod.string().nullish(),
           workflowId: zod.number().nullish(),
           assetId: zod.number().nullish(),
+          linkedItemId: zod.number().nullish(),
+          linkedStageId: zod.number().nullish(),
+          ruleKey: zod.string().nullish(),
+          status: zod.enum(["active", "acknowledged", "resolved"]),
+          isActive: zod.boolean(),
           isRead: zod.boolean(),
+          triggeredAt: zod.string(),
+          lastSeenAt: zod.string(),
+          acknowledgedAt: zod.string().nullish(),
+          resolvedAt: zod.string().nullish(),
           createdAt: zod.string(),
+          metadata: zod.object({}).passthrough().nullish(),
         }),
       ),
       impactEvents: zod.array(
@@ -771,32 +782,72 @@ export const CreateDocumentBody = zod.object({
 });
 
 /**
- * @summary List alerts
+ * @summary List alerts with filters
  */
 export const ListAlertsQueryParams = zod.object({
   unreadOnly: zod.coerce.boolean().optional(),
   severity: zod.enum(["critical", "warning", "info"]).optional(),
+  level: zod.enum(["critical", "warning", "informational"]).optional(),
+  category: zod
+    .enum(["status_alert", "timing_alert", "flow_alert", "risk_alert"])
+    .optional(),
+  status: zod.enum(["active", "acknowledged", "resolved"]).optional(),
+  isActive: zod.coerce.boolean().optional(),
+  workflowId: zod.coerce.number().optional(),
 });
 
 export const ListAlertsResponseItem = zod.object({
   id: zod.number(),
-  type: zod.enum([
-    "status_change",
-    "due_date",
-    "bottleneck",
-    "warranty_expiration",
-    "risk_escalation",
-    "overdue",
+  type: zod.string(),
+  category: zod.enum([
+    "status_alert",
+    "timing_alert",
+    "flow_alert",
+    "risk_alert",
   ]),
+  level: zod.enum(["informational", "warning", "critical"]),
   severity: zod.enum(["critical", "warning", "info"]),
   title: zod.string(),
   message: zod.string(),
+  actionPath: zod.string().nullish(),
   workflowId: zod.number().nullish(),
   assetId: zod.number().nullish(),
+  linkedItemId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
+  ruleKey: zod.string().nullish(),
+  status: zod.enum(["active", "acknowledged", "resolved"]),
+  isActive: zod.boolean(),
   isRead: zod.boolean(),
+  triggeredAt: zod.string(),
+  lastSeenAt: zod.string(),
+  acknowledgedAt: zod.string().nullish(),
+  resolvedAt: zod.string().nullish(),
   createdAt: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
 });
 export const ListAlertsResponse = zod.array(ListAlertsResponseItem);
+
+/**
+ * @summary Get alert counts by level and status
+ */
+export const GetAlertSummaryResponse = zod.object({
+  total: zod.number(),
+  active: zod.number(),
+  critical: zod.number(),
+  warning: zod.number(),
+  informational: zod.number(),
+  unread: zod.number(),
+});
+
+/**
+ * @summary Trigger the alert engine evaluation
+ */
+export const EvaluateAlertsResponse = zod.object({
+  created: zod.number(),
+  updated: zod.number(),
+  resolved: zod.number(),
+  total: zod.number(),
+});
 
 /**
  * @summary Mark an alert as read
@@ -807,21 +858,106 @@ export const MarkAlertReadParams = zod.object({
 
 export const MarkAlertReadResponse = zod.object({
   id: zod.number(),
-  type: zod.enum([
-    "status_change",
-    "due_date",
-    "bottleneck",
-    "warranty_expiration",
-    "risk_escalation",
-    "overdue",
+  type: zod.string(),
+  category: zod.enum([
+    "status_alert",
+    "timing_alert",
+    "flow_alert",
+    "risk_alert",
   ]),
+  level: zod.enum(["informational", "warning", "critical"]),
   severity: zod.enum(["critical", "warning", "info"]),
   title: zod.string(),
   message: zod.string(),
+  actionPath: zod.string().nullish(),
   workflowId: zod.number().nullish(),
   assetId: zod.number().nullish(),
+  linkedItemId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
+  ruleKey: zod.string().nullish(),
+  status: zod.enum(["active", "acknowledged", "resolved"]),
+  isActive: zod.boolean(),
   isRead: zod.boolean(),
+  triggeredAt: zod.string(),
+  lastSeenAt: zod.string(),
+  acknowledgedAt: zod.string().nullish(),
+  resolvedAt: zod.string().nullish(),
   createdAt: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
+});
+
+/**
+ * @summary Acknowledge an alert (does not resolve it)
+ */
+export const AcknowledgeAlertParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AcknowledgeAlertResponse = zod.object({
+  id: zod.number(),
+  type: zod.string(),
+  category: zod.enum([
+    "status_alert",
+    "timing_alert",
+    "flow_alert",
+    "risk_alert",
+  ]),
+  level: zod.enum(["informational", "warning", "critical"]),
+  severity: zod.enum(["critical", "warning", "info"]),
+  title: zod.string(),
+  message: zod.string(),
+  actionPath: zod.string().nullish(),
+  workflowId: zod.number().nullish(),
+  assetId: zod.number().nullish(),
+  linkedItemId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
+  ruleKey: zod.string().nullish(),
+  status: zod.enum(["active", "acknowledged", "resolved"]),
+  isActive: zod.boolean(),
+  isRead: zod.boolean(),
+  triggeredAt: zod.string(),
+  lastSeenAt: zod.string(),
+  acknowledgedAt: zod.string().nullish(),
+  resolvedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
+});
+
+/**
+ * @summary Manually resolve an alert
+ */
+export const ResolveAlertParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ResolveAlertResponse = zod.object({
+  id: zod.number(),
+  type: zod.string(),
+  category: zod.enum([
+    "status_alert",
+    "timing_alert",
+    "flow_alert",
+    "risk_alert",
+  ]),
+  level: zod.enum(["informational", "warning", "critical"]),
+  severity: zod.enum(["critical", "warning", "info"]),
+  title: zod.string(),
+  message: zod.string(),
+  actionPath: zod.string().nullish(),
+  workflowId: zod.number().nullish(),
+  assetId: zod.number().nullish(),
+  linkedItemId: zod.number().nullish(),
+  linkedStageId: zod.number().nullish(),
+  ruleKey: zod.string().nullish(),
+  status: zod.enum(["active", "acknowledged", "resolved"]),
+  isActive: zod.boolean(),
+  isRead: zod.boolean(),
+  triggeredAt: zod.string(),
+  lastSeenAt: zod.string(),
+  acknowledgedAt: zod.string().nullish(),
+  resolvedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
 });
 
 /**

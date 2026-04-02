@@ -645,7 +645,7 @@ paths:
     get:
       operationId: listAlerts
       tags: [alerts]
-      summary: List alerts
+      summary: List alerts with filters
       parameters:
         - name: unreadOnly
           in: query
@@ -656,6 +656,29 @@ paths:
           schema:
             type: string
             enum: [critical, warning, info]
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [critical, warning, informational]
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [status_alert, timing_alert, flow_alert, risk_alert]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, acknowledged, resolved]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - name: workflowId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Alerts
@@ -666,11 +689,75 @@ paths:
                 items:
                   $ref: "#/components/schemas/Alert"
 
+  /alerts/summary:
+    get:
+      operationId: getAlertSummary
+      tags: [alerts]
+      summary: Get alert counts by level and status
+      responses:
+        "200":
+          description: Alert summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertSummary"
+
+  /alerts/evaluate:
+    post:
+      operationId: evaluateAlerts
+      tags: [alerts]
+      summary: Trigger the alert engine evaluation
+      responses:
+        "200":
+          description: Evaluation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertEvaluationResult"
+
   /alerts/{id}/read:
     patch:
       operationId: markAlertRead
       tags: [alerts]
       summary: Mark an alert as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/acknowledge:
+    patch:
+      operationId: acknowledgeAlert
+      tags: [alerts]
+      summary: Acknowledge an alert (does not resolve it)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alert"
+
+  /alerts/{id}/resolve:
+    patch:
+      operationId: resolveAlert
+      tags: [alerts]
+      summary: Manually resolve an alert
       parameters:
         - name: id
           in: path
@@ -1311,7 +1398,12 @@ components:
           type: integer
         type:
           type: string
-          enum: [status_change, due_date, bottleneck, warranty_expiration, risk_escalation, overdue]
+        category:
+          type: string
+          enum: [status_alert, timing_alert, flow_alert, risk_alert]
+        level:
+          type: string
+          enum: [informational, warning, critical]
         severity:
           type: string
           enum: [critical, warning, info]
@@ -1319,24 +1411,100 @@ components:
           type: string
         message:
           type: string
+        actionPath:
+          type: string
+          nullable: true
         workflowId:
           type: integer
           nullable: true
         assetId:
           type: integer
           nullable: true
+        linkedItemId:
+          type: integer
+          nullable: true
+        linkedStageId:
+          type: integer
+          nullable: true
+        ruleKey:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, acknowledged, resolved]
+        isActive:
+          type: boolean
         isRead:
           type: boolean
+        triggeredAt:
+          type: string
+        lastSeenAt:
+          type: string
+        acknowledgedAt:
+          type: string
+          nullable: true
+        resolvedAt:
+          type: string
+          nullable: true
         createdAt:
           type: string
+        metadata:
+          type: object
+          nullable: true
       required:
         - id
         - type
+        - category
+        - level
         - severity
         - title
         - message
+        - status
+        - isActive
         - isRead
+        - triggeredAt
+        - lastSeenAt
         - createdAt
+
+    AlertSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        active:
+          type: integer
+        critical:
+          type: integer
+        warning:
+          type: integer
+        informational:
+          type: integer
+        unread:
+          type: integer
+      required:
+        - total
+        - active
+        - critical
+        - warning
+        - informational
+        - unread
+
+    AlertEvaluationResult:
+      type: object
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        resolved:
+          type: integer
+        total:
+          type: integer
+      required:
+        - created
+        - updated
+        - resolved
+        - total
 
     ImpactEvent:
       type: object

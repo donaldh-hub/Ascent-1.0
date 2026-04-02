@@ -140,15 +140,21 @@ export interface Document {
   createdAt: string;
 }
 
-export type AlertType = (typeof AlertType)[keyof typeof AlertType];
+export type AlertCategory = (typeof AlertCategory)[keyof typeof AlertCategory];
 
-export const AlertType = {
-  status_change: "status_change",
-  due_date: "due_date",
-  bottleneck: "bottleneck",
-  warranty_expiration: "warranty_expiration",
-  risk_escalation: "risk_escalation",
-  overdue: "overdue",
+export const AlertCategory = {
+  status_alert: "status_alert",
+  timing_alert: "timing_alert",
+  flow_alert: "flow_alert",
+  risk_alert: "risk_alert",
+} as const;
+
+export type AlertLevel = (typeof AlertLevel)[keyof typeof AlertLevel];
+
+export const AlertLevel = {
+  informational: "informational",
+  warning: "warning",
+  critical: "critical",
 } as const;
 
 export type AlertSeverity = (typeof AlertSeverity)[keyof typeof AlertSeverity];
@@ -159,16 +165,39 @@ export const AlertSeverity = {
   info: "info",
 } as const;
 
+export type AlertStatus = (typeof AlertStatus)[keyof typeof AlertStatus];
+
+export const AlertStatus = {
+  active: "active",
+  acknowledged: "acknowledged",
+  resolved: "resolved",
+} as const;
+
+export type AlertMetadata = { [key: string]: unknown } | null;
+
 export interface Alert {
   id: number;
-  type: AlertType;
+  type: string;
+  category: AlertCategory;
+  level: AlertLevel;
   severity: AlertSeverity;
   title: string;
   message: string;
+  actionPath?: string | null;
   workflowId?: number | null;
   assetId?: number | null;
+  linkedItemId?: number | null;
+  linkedStageId?: number | null;
+  ruleKey?: string | null;
+  status: AlertStatus;
+  isActive: boolean;
   isRead: boolean;
+  triggeredAt: string;
+  lastSeenAt: string;
+  acknowledgedAt?: string | null;
+  resolvedAt?: string | null;
   createdAt: string;
+  metadata?: AlertMetadata;
 }
 
 export type ImpactEventEventType =
@@ -377,6 +406,22 @@ export interface CreateDocumentBody {
   notes?: string | null;
 }
 
+export interface AlertSummary {
+  total: number;
+  active: number;
+  critical: number;
+  warning: number;
+  informational: number;
+  unread: number;
+}
+
+export interface AlertEvaluationResult {
+  created: number;
+  updated: number;
+  resolved: number;
+  total: number;
+}
+
 export interface TrendData {
   dates: string[];
   operationalHealth: number[];
@@ -575,6 +620,11 @@ export type ListDocumentsParams = {
 export type ListAlertsParams = {
   unreadOnly?: boolean;
   severity?: ListAlertsSeverity;
+  level?: ListAlertsLevel;
+  category?: ListAlertsCategory;
+  status?: ListAlertsStatus;
+  isActive?: boolean;
+  workflowId?: number;
 };
 
 export type ListAlertsSeverity =
@@ -584,6 +634,34 @@ export const ListAlertsSeverity = {
   critical: "critical",
   warning: "warning",
   info: "info",
+} as const;
+
+export type ListAlertsLevel =
+  (typeof ListAlertsLevel)[keyof typeof ListAlertsLevel];
+
+export const ListAlertsLevel = {
+  critical: "critical",
+  warning: "warning",
+  informational: "informational",
+} as const;
+
+export type ListAlertsCategory =
+  (typeof ListAlertsCategory)[keyof typeof ListAlertsCategory];
+
+export const ListAlertsCategory = {
+  status_alert: "status_alert",
+  timing_alert: "timing_alert",
+  flow_alert: "flow_alert",
+  risk_alert: "risk_alert",
+} as const;
+
+export type ListAlertsStatus =
+  (typeof ListAlertsStatus)[keyof typeof ListAlertsStatus];
+
+export const ListAlertsStatus = {
+  active: "active",
+  acknowledged: "acknowledged",
+  resolved: "resolved",
 } as const;
 
 export type GetAnalyticsTrendsParams = {

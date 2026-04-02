@@ -4,6 +4,7 @@ import {
   useListWorkflows,
   useCreateWorkflow,
   useCreateStage,
+  useListAlerts,
 } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { StoplightIndicator, StoplightBadge } from "@/components/stoplight";
-import { Search, Plus, Trash2, GripVertical, GitBranch, Calendar } from "lucide-react";
+import { Search, Plus, Trash2, GripVertical, GitBranch, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -123,6 +124,7 @@ export default function Workflows() {
   const { toast } = useToast();
 
   const { data: workflows, isLoading, refetch } = useListWorkflows();
+  const { data: alerts } = useListAlerts({ isActive: true } as any);
   const createMutation = useCreateWorkflow();
   const createStageMutation = useCreateStage();
 
@@ -311,6 +313,22 @@ export default function Workflows() {
                           <span className="text-xs uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground font-semibold shrink-0">
                             {workflow.status.replace("_", " ")}
                           </span>
+                          {(() => {
+                            const wfAlerts = (alerts ?? []).filter((a) => a.workflowId === workflow.id);
+                            const critCount = wfAlerts.filter((a) => a.level === "critical").length;
+                            const warnCount = wfAlerts.filter((a) => a.level === "warning").length;
+                            if (critCount > 0) return (
+                              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold shrink-0">
+                                <AlertCircle className="h-3 w-3" /> {critCount} critical
+                              </span>
+                            );
+                            if (warnCount > 0) return (
+                              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-semibold shrink-0">
+                                <AlertTriangle className="h-3 w-3" /> {warnCount} warning{warnCount !== 1 ? "s" : ""}
+                              </span>
+                            );
+                            return null;
+                          })()}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-1 max-w-xl">
                           {workflow.description || "No description provided."}
