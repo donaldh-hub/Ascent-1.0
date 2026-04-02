@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams } from "wouter";
 import {
   useGetWorkflow,
@@ -17,7 +17,8 @@ import {
   useListDocuments,
   WorkflowItem,
 } from "@workspace/api-client-react";
-import { DocumentPanel, DocumentCountBadge } from "@/components/document-panel";
+import { DocumentPanel } from "@/components/document-panel";
+import { AttachmentBadge, EvidenceSummary } from "@/components/attachment-badge";
 import { StoplightIndicator } from "@/components/stoplight";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -229,7 +230,10 @@ function ItemCard({
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
-          {(docCount ?? 0) > 0 && <DocumentCountBadge count={docCount ?? 0} />}
+          <AttachmentBadge
+            count={docCount ?? 0}
+            showWarning={item.priority === "critical" && (docCount ?? 0) === 0}
+          />
           <span className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {Math.round(item.daysInCurrentStage)}d here
@@ -265,6 +269,7 @@ function ItemDetailSheet({
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editAssignedTo, setEditAssignedTo] = useState("");
+  const docSectionRef = useRef<HTMLDivElement>(null);
 
   function startEdit() {
     if (!item) return;
@@ -335,6 +340,16 @@ function ItemDetailSheet({
               )}
             </div>
 
+            {/* Evidence Summary */}
+            <EvidenceSummary
+              entityType="workflow_item"
+              entityId={item.id}
+              workflowId={workflowId}
+              onViewAll={() =>
+                docSectionRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+            />
+
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Description</p>
               {editMode ? (
@@ -388,7 +403,7 @@ function ItemDetailSheet({
 
             {/* Documents section */}
             {item && (
-              <div className="border-t border-border/50 pt-4">
+              <div ref={docSectionRef} className="border-t border-border/50 pt-4">
                 <DocumentPanel
                   entityType="workflow_item"
                   entityId={item.id}

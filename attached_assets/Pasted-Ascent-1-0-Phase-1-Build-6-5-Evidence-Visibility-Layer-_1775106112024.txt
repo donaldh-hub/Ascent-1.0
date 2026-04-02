@@ -1,0 +1,263 @@
+Ascent 1.0 — Phase 1 Build 6.5 (Evidence Visibility Layer Prompt)
+
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 6.5.
+
+The system already has:
+
+* authentication
+* role-based access
+* app shell
+* workflow engine
+* workflow item movement
+* timing + bottleneck foundation
+* scoring + stoplight engine
+* alert and warning engine
+* dashboard intelligence layer
+* document + evidence engine (upload, attach, preview)
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT duplicate scoring or alert logic.
+Do NOT rebuild the document engine.
+
+This build is the EVIDENCE VISIBILITY LAYER.
+
+PROJECT NAME:
+
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Expose document/evidence signals directly inside decision surfaces so users can SEE proof without leaving workflow or dashboard context.
+
+The system must show:
+
+* where evidence exists
+* where evidence is missing
+* how evidence supports decisions
+
+==================================================
+
+BUILD REQUIREMENTS
+
+==================================================
+
+1. GLOBAL ATTACHMENT SIGNAL MODEL
+
+Create a lightweight, reusable selector/service that returns for any entity:
+
+* attachment_count
+* has_documents (boolean)
+* last_document_timestamp (optional)
+
+Supported entities:
+
+* workflow_item
+* workflow
+* stage (optional)
+
+This must read from the existing document table.
+Do NOT duplicate storage.
+
+==================================================
+
+2. WORKFLOW ITEM UI (MANDATORY)
+
+Update all workflow item representations (cards/rows) to include:
+
+* paperclip icon
+* attachment count badge
+
+States:
+
+* 0 documents → hollow icon + “0” or muted state
+* 1+ documents → solid icon + count
+
+Behavior:
+
+* icon click opens document panel (existing)
+* no navigation away from workflow
+
+==================================================
+
+3. ITEM DETAIL PANEL — EVIDENCE SUMMARY
+
+At top of item detail panel, add:
+
+* “Evidence” section
+* attachment count
+* quick preview thumbnails (first 1–3 if images)
+* “View all” → opens existing document panel
+
+Empty state:
+
+* “No documents attached yet”
+
+==================================================
+
+4. PRIORITY ACTIONS PANEL — EVIDENCE BADGES
+
+Each action must display one of the following:
+
+A. Has documents:
+
+* 📎 {count} documents
+
+B. Missing documents (critical condition):
+
+* ⚠ No supporting document
+
+Rule (simple for now):
+
+* If linked item priority = CRITICAL AND attachment_count = 0 → show warning badge
+
+Do NOT add complex rules.
+
+==================================================
+
+5. BOTTLENECK PANEL — EVIDENCE CONTEXT
+
+Enhance bottleneck panel with:
+
+* “Documents attached: X” (for top bottleneck item/workflow)
+  OR
+* “No documentation linked”
+
+Optional line (if available):
+
+* “Last document added: {time}”
+
+==================================================
+
+6. WORKFLOW LIST + SPOTLIGHT — MICRO SIGNALS
+
+Each workflow card/row should include:
+
+* aggregated attachment indicator (sum or presence)
+
+Display options:
+
+* 📎 icon with count
+  OR
+* small badge: “Docs: X”
+
+Do NOT clutter UI.
+
+==================================================
+
+7. DASHBOARD — LIGHT EVIDENCE SIGNAL
+
+Add a subtle signal (no heavy UI):
+
+* count of critical items without documents
+
+Display location (choose one clean placement):
+
+* under Priority Actions header
+  OR
+* small line in Executive Snapshot
+
+Example:
+
+* “2 critical items missing documentation”
+
+==================================================
+
+8. ALERT HOOK (LIGHT INTEGRATION)
+
+Extend alert rule set with ONE rule:
+
+IF:
+
+* item priority = CRITICAL
+  AND
+* attachment_count = 0
+
+THEN:
+
+* generate WARNING level alert
+* title: “Critical item missing documentation”
+* link to item
+
+Ensure:
+
+* no duplicate spam alerts
+* resolves when document is added
+
+==================================================
+
+9. PERFORMANCE + UX RULES
+
+* attachment counts must load with item data (no noticeable lag)
+* no blocking UI calls
+* no full-page reloads
+* keep icons and badges minimal and readable
+
+==================================================
+
+10. ROLE-BASED VISIBILITY
+
+* all roles can SEE attachment indicators where they have access
+* upload/delete still controlled by existing permissions
+
+==================================================
+
+11. EMPTY STATES
+
+Handle clearly:
+
+* no documents → “No documents attached yet”
+* missing docs warning only when condition is met
+
+No misleading signals.
+
+==================================================
+
+12. CODE QUALITY RULES
+
+DO:
+
+* reuse document service/data
+* create small, reusable UI components (AttachmentBadge, EvidenceSummary)
+* keep logic separate from UI
+
+DO NOT:
+
+* duplicate document queries across components
+* add heavy analytics
+* overdesign visuals
+
+==================================================
+
+13. SUCCESS STATE
+
+This build is complete when:
+
+1. I can see attachment count on every workflow item without opening it
+2. Priority Actions show document presence or missing warning
+3. Bottleneck panel reflects document context
+4. Dashboard shows count of critical items missing documents
+5. Alerts trigger for critical items without documents and resolve when fixed
+6. I never leave workflow context to understand evidence
+
+==================================================
+
+14. IMPORTANT LIMITS
+
+This build is NOT for:
+
+* OCR or document intelligence
+* auto-matching documents
+* advanced compliance workflows
+
+This is visibility only.
+
+==================================================
+
+15. INTERNAL LABEL
+
+“Phase 1 – Build 6.5: Evidence Visibility Layer”

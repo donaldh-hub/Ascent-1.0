@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { documentsTable, insertDocumentSchema } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -52,6 +52,121 @@ router.get("/storage/objects/{*objectPath}", async (req, res) => {
       req.log.error({ err }, "Failed to serve object");
       res.status(500).json({ error: "Failed to serve object" });
     }
+  }
+});
+
+// ─── Bulk attachment counts ──────────────────────────────────────────────────
+// GET /api/documents/counts?entityType=workflow_item&entityIds=1,2,3
+// Returns: Record<entityId, { count, hasDocuments, lastDocumentAt }>
+
+router.get("/documents/counts", async (req, res) => {
+  const { entityType, entityIds } = req.query as { entityType?: string; entityIds?: string };
+
+  if (!entityType || !entityIds) {
+    res.json({});
+    return;
+  }
+
+  const ids = entityIds
+    .split(",")
+    .map(Number)
+    .filter((n) => !isNaN(n) && n > 0);
+
+  if (ids.length === 0) {
+    res.json({});
+    return;
+  }
+
+  try {
+    const docs = await db
+      .select()
+      .from(documentsTable)
+      .where(
+        and(
+          eq(documentsTable.linkedEntityType, entityType),
+          inArray(documentsTable.linkedEntityId, ids)
+        )
+      );
+
+    const result: Record<
+      number,
+      { count: number; hasDocuments: boolean; lastDocumentAt: string | null }
+    > = {};
+
+    for (const id of ids) {
+      const entityDocs = docs.filter((d) => d.linkedEntityId === id);
+      const sorted = [...entityDocs].sort(
+        (a, b) =>
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      );
+      result[id] = {
+        count: entityDocs.length,
+        hasDocuments: entityDocs.length > 0,
+        lastDocumentAt: sorted[0]?.uploadedAt
+          ? new Date(sorted[0].uploadedAt).toISOString()
+          : null,
+      };
+    }
+
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get document counts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Per-workflow total doc counts ───────────────────────────────────────────
+// GET /api/documents/workflow-totals?workflowIds=1,2,3
+// Returns: Record<workflowId, { count, hasDocuments, lastDocumentAt }>
+
+router.get("/documents/workflow-totals", async (req, res) => {
+  const { workflowIds } = req.query as { workflowIds?: string };
+
+  if (!workflowIds) {
+    res.json({});
+    return;
+  }
+
+  const ids = workflowIds
+    .split(",")
+    .map(Number)
+    .filter((n) => !isNaN(n) && n > 0);
+
+  if (ids.length === 0) {
+    res.json({});
+    return;
+  }
+
+  try {
+    const docs = await db
+      .select()
+      .from(documentsTable)
+      .where(inArray(documentsTable.linkedWorkflowId, ids));
+
+    const result: Record<
+      number,
+      { count: number; hasDocuments: boolean; lastDocumentAt: string | null }
+    > = {};
+
+    for (const id of ids) {
+      const wfDocs = docs.filter((d) => d.linkedWorkflowId === id);
+      const sorted = [...wfDocs].sort(
+        (a, b) =>
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      );
+      result[id] = {
+        count: wfDocs.length,
+        hasDocuments: wfDocs.length > 0,
+        lastDocumentAt: sorted[0]?.uploadedAt
+          ? new Date(sorted[0].uploadedAt).toISOString()
+          : null,
+      };
+    }
+
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get workflow document totals");
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

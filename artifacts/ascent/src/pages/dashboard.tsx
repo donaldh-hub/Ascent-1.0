@@ -1,11 +1,14 @@
 import {
   useGetDashboardIntelligence,
   useGetDashboardSummary,
+  useListDocuments,
   type DashboardIntelligence,
   type IntelligenceAction,
   type WorkflowSpotlightEntry,
   type TrendSignal,
 } from "@workspace/api-client-react";
+import { useDocCounts } from "@/hooks/use-doc-counts";
+import { AttachmentBadge } from "@/components/attachment-badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StoplightIndicator, StoplightBadge } from "@/components/stoplight";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +28,7 @@ import {
   ShieldAlert,
   Package,
   Users,
+  Paperclip,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
@@ -392,6 +396,17 @@ function ActionPanel({
   actions: IntelligenceAction[];
   isLoading: boolean;
 }) {
+  const actionItemIds = actions
+    .map((a) => Number((a.metadata as any)?.itemId))
+    .filter((id) => id > 0);
+
+  const { data: docCountsData = {} } = useDocCounts("workflow_item", actionItemIds);
+
+  const criticalMissingDocCount = actions.filter((a) => {
+    const itemId = Number((a.metadata as any)?.itemId);
+    return a.urgency === "critical" && itemId > 0 && (docCountsData[itemId]?.count ?? 0) === 0;
+  }).length;
+
   return (
     <Card className="bg-card border-border/50 shadow-md flex flex-col h-full">
       <CardHeader className="pb-3 border-b border-border/50 flex flex-row items-center justify-between">
@@ -401,6 +416,12 @@ function ActionPanel({
             Priority Actions
           </CardTitle>
           <CardDescription>Requires immediate attention</CardDescription>
+          {criticalMissingDocCount > 0 && (
+            <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+              <Paperclip className="h-3 w-3" />
+              {criticalMissingDocCount} critical item{criticalMissingDocCount > 1 ? "s" : ""} missing documentation
+            </p>
+          )}
         </div>
         {actions.filter((a) => a.urgency === "critical").length > 0 && (
           <Badge variant="destructive" className="text-[10px]">
@@ -423,56 +444,66 @@ function ActionPanel({
           </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {actions.map((action, i) => (
-              <motion.div
-                key={action.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.07 }}
-                className={`p-4 hover:bg-secondary/50 transition-colors flex items-start gap-3 border-l-2 ${
-                  action.urgency === "critical"
-                    ? "border-l-red-500"
-                    : action.urgency === "high"
-                    ? "border-l-amber-500"
-                    : "border-l-border"
-                }`}
-              >
-                <div
-                  className={`mt-0.5 p-1.5 rounded-md ${
+            {actions.map((action, i) => {
+              const itemId = Number((action.metadata as any)?.itemId);
+              const docCount = itemId > 0 ? (docCountsData[itemId]?.count ?? 0) : null;
+              return (
+                <motion.div
+                  key={action.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className={`p-4 hover:bg-secondary/50 transition-colors flex items-start gap-3 border-l-2 ${
                     action.urgency === "critical"
-                      ? "bg-red-500/15 text-red-400"
+                      ? "border-l-red-500"
                       : action.urgency === "high"
-                      ? "bg-amber-500/15 text-amber-400"
-                      : "bg-muted text-muted-foreground"
+                      ? "border-l-amber-500"
+                      : "border-l-border"
                   }`}
                 >
-                  {categoryIcon(action.category)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider ${urgencyLabel(action.urgency)}`}
-                    >
-                      {action.urgency}
-                    </span>
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase">
-                      {action.category.replace("_", " ")}
-                    </span>
+                  <div
+                    className={`mt-0.5 p-1.5 rounded-md ${
+                      action.urgency === "critical"
+                        ? "bg-red-500/15 text-red-400"
+                        : action.urgency === "high"
+                        ? "bg-amber-500/15 text-amber-400"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {categoryIcon(action.category)}
                   </div>
-                  <h4 className="font-semibold text-sm text-foreground leading-snug">
-                    {action.title}
-                  </h4>
-                  <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                    {action.reason}
-                  </p>
-                </div>
-                <Link href={action.actionPath}>
-                  <div className="h-7 w-7 rounded-full border border-border flex items-center justify-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all cursor-pointer shrink-0">
-                    <ArrowRight className="h-3.5 w-3.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider ${urgencyLabel(action.urgency)}`}
+                      >
+                        {action.urgency}
+                      </span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase">
+                        {action.category.replace("_", " ")}
+                      </span>
+                      {docCount !== null && (
+                        <AttachmentBadge
+                          count={docCount}
+                          showWarning={action.urgency === "critical" && docCount === 0}
+                        />
+                      )}
+                    </div>
+                    <h4 className="font-semibold text-sm text-foreground leading-snug">
+                      {action.title}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                      {action.reason}
+                    </p>
                   </div>
-                </Link>
-              </motion.div>
-            ))}
+                  <Link href={action.actionPath}>
+                    <div className="h-7 w-7 rounded-full border border-border flex items-center justify-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all cursor-pointer shrink-0">
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </CardContent>
@@ -487,6 +518,12 @@ function BottleneckPanel({
   bottleneck: DashboardIntelligence["primaryBottleneck"];
   isLoading: boolean;
 }) {
+  const { data: bnDocs = [] } = useListDocuments(
+    { workflowId: bottleneck?.workflowId } as any,
+    { query: { enabled: !!bottleneck?.workflowId, queryKey: ["docs", "bn", bottleneck?.workflowId] } }
+  );
+  const bnDocCount = (bnDocs as any[]).length;
+
   return (
     <Card className="bg-card border-border/50 shadow-md flex flex-col h-full">
       <CardHeader className="pb-3 border-b border-border/50 flex flex-row items-center justify-between">
@@ -569,6 +606,14 @@ function BottleneckPanel({
                 <span className="text-foreground font-semibold">Impact: </span>
                 {bottleneck.impactSummary}
               </p>
+              <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/30">
+                <Paperclip className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+                <span className={`text-[10px] ${bnDocCount > 0 ? "text-muted-foreground" : "text-amber-500/80"}`}>
+                  {bnDocCount > 0
+                    ? `${bnDocCount} document${bnDocCount > 1 ? "s" : ""} attached to this workflow`
+                    : "No documentation linked to this workflow"}
+                </span>
+              </div>
             </div>
 
             {/* Recommendation */}

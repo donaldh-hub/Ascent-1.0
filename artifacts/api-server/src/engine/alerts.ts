@@ -9,8 +9,8 @@
  */
 
 import { db } from "@workspace/db";
-import { alertsTable } from "@workspace/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { alertsTable, documentsTable } from "@workspace/db/schema";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { loadAllWorkflowInputs } from "./loader";
 import { calcWorkflowHealth } from "./scoring";
 import type { WorkflowInput, ItemInput, StageInput } from "./scoring";
@@ -277,6 +277,64 @@ function evaluateUnassignedCritical(wf: WorkflowInput): AlertCandidate[] {
 }
 
 // ─────────────────────────────────────────────
+// Rule 7: Critical Items Missing Documentation
+// ─────────────────────────────────────────────
+
+async function loadCriticalItemDocCounts(
+  criticalItemIds: number[]
+): Promise<Map<number, number>> {
+  if (criticalItemIds.length === 0) return new Map();
+
+  const docs = await db
+    .select()
+    .from(documentsTable)
+    .where(
+      and(
+        eq(documentsTable.linkedEntityType, "workflow_item"),
+        inArray(documentsTable.linkedEntityId, criticalItemIds)
+      )
+    );
+
+  const counts = new Map<number, number>();
+  for (const doc of docs) {
+    const id = doc.linkedEntityId;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function evaluateMissingDocsCritical(
+  wf: WorkflowInput,
+  docCounts: Map<number, number>
+): AlertCandidate[] {
+  const candidates: AlertCandidate[] = [];
+  const openItems = wf.items.filter((i) => i.status !== "completed");
+
+  for (const item of openItems) {
+    if (item.priority !== "critical") continue;
+    const count = docCounts.get(item.id) ?? 0;
+    if (count > 0) continue; // Has docs — condition resolved
+
+    const stage = wf.stages.find((s) => s.id === item.stageId);
+    candidates.push({
+      ruleKey: `missing_docs_critical_${item.id}`,
+      type: "risk_alert",
+      category: "risk_alert",
+      level: "warning",
+      severity: levelToSeverity("warning"),
+      title: `Critical item missing documentation: ${item.title}`,
+      message: `Critical-priority item "${item.title}" in "${wf.title}" — stage "${stage?.name ?? "unknown"}" has no supporting documents attached. Attach evidence to support decision-making.`,
+      actionPath: `/workflows/${wf.id}`,
+      workflowId: wf.id,
+      linkedItemId: item.id,
+      linkedStageId: item.stageId,
+      metadata: { itemTitle: item.title, stageName: stage?.name, priority: item.priority },
+    });
+  }
+  return candidates;
+}
+
+// ─────────────────────────────────────────────
 // Active Rule Keys — which ruleKeys should be ACTIVE right now
 // ─────────────────────────────────────────────
 
@@ -299,6 +357,14 @@ export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
   const workflowInputs = await loadAllWorkflowInputs();
   const activeWorkflows = workflowInputs.filter((w) => w.status === "active" || w.status === "paused");
 
+  // Pre-load doc counts for all critical open items (rule 7)
+  const allCriticalItemIds = activeWorkflows.flatMap((wf) =>
+    wf.items
+      .filter((i) => i.status !== "completed" && i.priority === "critical")
+      .map((i) => i.id)
+  );
+  const criticalItemDocCounts = await loadCriticalItemDocCounts(allCriticalItemIds);
+
   // Collect all candidates from all rule evaluators
   const allCandidates: AlertCandidate[] = [];
   for (const wf of activeWorkflows) {
@@ -308,7 +374,8 @@ export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
       ...evaluateAgingItems(wf),
       ...evaluateBottleneck(wf),
       ...evaluateWorkflowHealth(wf),
-      ...evaluateUnassignedCritical(wf)
+      ...evaluateUnassignedCritical(wf),
+      ...evaluateMissingDocsCritical(wf, criticalItemDocCounts)
     );
   }
 

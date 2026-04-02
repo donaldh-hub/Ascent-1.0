@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { StoplightIndicator, StoplightBadge } from "@/components/stoplight";
-import { Search, Plus, Trash2, GripVertical, GitBranch, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
+import { Search, Plus, Trash2, GripVertical, GitBranch, Calendar, AlertCircle, AlertTriangle, Paperclip } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useWorkflowDocTotals } from "@/hooks/use-doc-counts";
 
 interface StageEntry {
   name: string;
@@ -175,6 +176,9 @@ export default function Workflows() {
     if (filterStatus === "at_risk" && wf.stoplight !== "red") return false;
     return true;
   });
+
+  const allWorkflowIds = (workflows ?? []).map((wf) => wf.id);
+  const { data: wfDocTotals = {} } = useWorkflowDocTotals(allWorkflowIds);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
@@ -344,6 +348,21 @@ export default function Workflows() {
                             </span>
                           )}
                           <span>{workflow.stagesCount} stage{workflow.stagesCount !== 1 ? "s" : ""}</span>
+                          {(() => {
+                            const docInfo = (wfDocTotals as any)[workflow.id];
+                            if (!docInfo) return null;
+                            return (
+                              <span className={cn(
+                                "flex items-center gap-1",
+                                docInfo.count > 0 ? "text-blue-400" : "text-muted-foreground/50"
+                              )}>
+                                <Paperclip className="h-3 w-3" />
+                                {docInfo.count > 0
+                                  ? `${docInfo.count} doc${docInfo.count !== 1 ? "s" : ""}`
+                                  : "no docs"}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
