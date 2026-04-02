@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Ascent 1.0"
+version = "1.0.0"
+id = "artifacts/ascent"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20496
+
+[services.development]
+run = "pnpm --filter @workspace/ascent run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ascent", "run", "build" ]
+publicDir = "artifacts/ascent/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20496"
+BASE_PATH = "/"
