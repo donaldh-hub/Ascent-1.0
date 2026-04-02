@@ -1,0 +1,282 @@
+Ascent 1.0 — Phase 1 Build 5 (Dashboard Intelligence Layer Prompt)
+
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 5.
+
+The system already has the earlier layers in place, including:
+
+* authentication
+* role-based access
+* app shell / navigation shell
+* workflow engine
+* workflow stages and workflow items
+* workflow movement and timing foundation
+* scoring + stoplight engine
+* workflow-level health outputs
+* operational health outputs
+* early dashboard structure
+* alert/warning foundation from prior build work
+
+Do NOT rebuild the foundation.
+
+Do NOT redesign the whole application.
+
+Do NOT replace the workflow engine.
+
+Do NOT create fake dashboard intelligence with static cards or hardcoded summaries.
+
+This build is the DASHBOARD INTELLIGENCE LAYER.
+
+PROJECT NAME:
+
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Create the real dashboard intelligence layer of Ascent 1.0 so the dashboard becomes a true operational control tower.
+
+This build must turn the dashboard from a collection of screens and score cards into a live, role-aware, action-driving intelligence surface that answers:
+
+1. Are we on track?
+2. Where is the bottleneck?
+3. What needs attention now?
+4. What is improving or worsening?
+5. What is the next best action?
+
+The dashboard must feel like the brain-facing window of the app.
+
+It should not just show information.
+
+It should direct attention.
+
+==================================================
+
+BUILD REQUIREMENTS
+
+==================================================
+
+1. DASHBOARD INTELLIGENCE ARCHITECTURE
+
+Build a dashboard intelligence layer that aggregates:
+
+* operational health outputs (from scoring engine)
+* workflow health outputs
+* bottleneck signals
+* alert signals
+* workflow timing + aging data
+* trend signals where available
+
+This layer must:
+
+* produce structured dashboard outputs
+* be reusable across dashboard sections
+* not live inside UI components
+* support future expansion (alerts, assets, reporting)
+
+Preferred structure:
+
+* dashboard intelligence service layer
+* aggregation functions
+* insight generation utilities
+
+2. EXECUTIVE SNAPSHOT (TOP SECTION)
+
+Build a real executive snapshot section.
+
+Must include:
+
+* Operational Health Score (real)
+* Stoplight color (from engine)
+* Open Critical Items count (real logic)
+* Biggest Bottleneck (real detection)
+* Throughput (today / week if available)
+* Improvement activity signal (basic but real)
+
+Each element must:
+
+* use real system data
+* include a short explanation
+
+3. CORE HEALTH CARDS (FLOW / RISK / IMPROVEMENT / EXECUTION)
+
+Each card must display:
+
+* score (0–100)
+* stoplight color
+* trend indicator (up / down / stable if available)
+* one-line insight (generated from scoring engine)
+
+Cards must be powered ONLY by the shared scoring engine.
+
+No duplicated logic in UI.
+
+4. ACTION PANEL (MOST IMPORTANT SECTION)
+
+Build a dynamic action panel that surfaces:
+
+* Top 3 actions required now
+* Most urgent workflows
+* Overdue items / follow-ups
+* High-risk conditions
+
+Action logic must be derived from:
+
+* risk signals
+* bottlenecks
+* critical items
+* workflow health
+
+Each action must include:
+
+* short title
+* reason (WHY this matters)
+* linked workflow or route
+
+This panel must prioritize clarity over volume.
+
+5. BOTTLENECK INTELLIGENCE
+
+Enhance bottleneck visibility:
+
+* identify top bottleneck workflow
+* identify top bottleneck stage
+* identify longest aging item
+
+Display:
+
+* bottleneck name
+* impact explanation
+
+Example:
+
+“Approval stage is the primary bottleneck due to aging and high item volume.”
+
+6. VISUAL FLOW SECTION
+
+Build a visual representation using real data:
+
+* stage distribution (items per stage)
+* aging signals
+* bottleneck highlighting
+
+Must:
+
+* use real workflow data
+* avoid fake charts
+
+7. WORKFLOW SPOTLIGHT SECTION
+
+Display:
+
+* top workflows by concern
+* recent status changes
+* most recently updated workflows
+
+Each workflow card must include:
+
+* workflow health score
+* stoplight
+* bottleneck indicator
+
+8. TREND SIGNALS (LIGHTWEIGHT)
+
+If data exists, show:
+
+* improving vs worsening
+* volume change
+* congestion change
+
+If not:
+
+Display:
+
+“Trend not yet available.”
+
+Do NOT fabricate trends.
+
+9. CRITICAL ITEMS ENGINE
+
+Define real rules for critical items:
+
+* high priority items
+* severely aged items
+* items in red workflows
+
+Use consistently across:
+
+* dashboard
+* risk scoring
+
+10. ROLE-AWARE DASHBOARD
+
+Respect role visibility:
+
+* Admin / Supervisor / Manager → full dashboard
+* Technician → limited to assigned workflows
+* Viewer → read-only
+
+11. EXPLAINABILITY
+
+Every major metric must include explanation text.
+
+Examples:
+
+* “Flow reduced due to congestion in stage 2.”
+* “Risk elevated due to aging items.”
+
+12. EMPTY STATES
+
+Handle low data properly:
+
+* no misleading green states
+* no broken UI
+
+Use honest fallback messaging.
+
+13. CODE QUALITY RULES
+
+DO:
+
+* keep logic separate from UI
+* reuse scoring engine outputs
+* build extendable structure
+
+DO NOT:
+
+* hardcode dashboard values
+* duplicate scoring logic
+* create fake insights
+
+14. SUCCESS STATE
+
+This build is complete when:
+
+1. Dashboard shows real operational health
+
+2. Health cards reflect real scoring
+
+3. Action panel provides meaningful direction
+
+4. Bottlenecks are clearly surfaced
+
+5. Dashboard feels like a control tower
+
+6. INTERNAL LABEL
+
+“Phase 1 – Build 5: Dashboard Intelligence Layer”
+
+WHY THIS BUILD MATTERS
+
+Build 1 created the structure.
+Build 2 created the movement.
+Build 3 created the meaning.
+Build 4 created awareness.
+
+Build 5 creates DIRECTION.
+
+This is where the system stops reporting…
+
+…and starts THINKING.

@@ -17,6 +17,144 @@ export const Stoplight = {
   green: "green",
 } as const;
 
+export type ExecutiveSnapshotLongestAgingItem = {
+  title?: string;
+  daysInStage?: number;
+  workflowTitle?: string;
+} | null;
+
+export interface ExecutiveSnapshot {
+  operationalHealthScore: number;
+  stoplight: string;
+  insight: string;
+  criticalItemsCount: number;
+  openItemsCount: number;
+  overdueItemsCount: number;
+  activeWorkflowsCount: number;
+  completedWorkflowsCount: number;
+  biggestBottleneck?: string | null;
+  biggestBottleneckExplanation?: string | null;
+  throughputPercent: number;
+  throughputLabel: string;
+  improvementSignal: string;
+  longestAgingItem?: ExecutiveSnapshotLongestAgingItem;
+}
+
+export type IntelligenceActionCategory =
+  (typeof IntelligenceActionCategory)[keyof typeof IntelligenceActionCategory];
+
+export const IntelligenceActionCategory = {
+  critical_item: "critical_item",
+  bottleneck: "bottleneck",
+  overdue: "overdue",
+  unassigned: "unassigned",
+  health: "health",
+  aging: "aging",
+} as const;
+
+export type IntelligenceActionUrgency =
+  (typeof IntelligenceActionUrgency)[keyof typeof IntelligenceActionUrgency];
+
+export const IntelligenceActionUrgency = {
+  critical: "critical",
+  high: "high",
+  medium: "medium",
+} as const;
+
+export type IntelligenceActionMetadata = { [key: string]: unknown };
+
+export interface IntelligenceAction {
+  id: string;
+  category: IntelligenceActionCategory;
+  urgency: IntelligenceActionUrgency;
+  title: string;
+  reason: string;
+  actionPath: string;
+  workflowId?: number | null;
+  workflowTitle?: string | null;
+  metadata?: IntelligenceActionMetadata;
+}
+
+export interface BottleneckStory {
+  workflowId: number;
+  workflowTitle: string;
+  stageName: string;
+  stageId: number;
+  itemCount: number;
+  maxAgeDays: number;
+  avgAgeDays: number;
+  hasCritical: boolean;
+  stoplight: string;
+  impactSummary: string;
+  recommendation: string;
+}
+
+export interface StageDistributionRow {
+  workflowId: number;
+  workflowTitle: string;
+  stageId: number;
+  stageName: string;
+  stageOrder: number;
+  openItems: number;
+  completedItems: number;
+  avgAgeDays: number;
+  isBottleneck: boolean;
+}
+
+export type WorkflowSpotlightEntryConcernLevel =
+  (typeof WorkflowSpotlightEntryConcernLevel)[keyof typeof WorkflowSpotlightEntryConcernLevel];
+
+export const WorkflowSpotlightEntryConcernLevel = {
+  critical: "critical",
+  warning: "warning",
+  healthy: "healthy",
+} as const;
+
+export interface WorkflowSpotlightEntry {
+  workflowId: number;
+  title: string;
+  status: string;
+  healthScore: number;
+  stoplight: string;
+  openItems: number;
+  criticalItems: number;
+  overdueItems: number;
+  hasBottleneck: boolean;
+  bottleneckStageName?: string | null;
+  concernReason: string;
+  concernLevel: WorkflowSpotlightEntryConcernLevel;
+  flowScore: number;
+  riskScore: number;
+}
+
+export type TrendSignalDirection =
+  (typeof TrendSignalDirection)[keyof typeof TrendSignalDirection];
+
+export const TrendSignalDirection = {
+  up: "up",
+  down: "down",
+  stable: "stable",
+  unknown: "unknown",
+} as const;
+
+export interface TrendSignal {
+  label: string;
+  value: string;
+  direction: TrendSignalDirection;
+  explanation: string;
+  available: boolean;
+}
+
+export interface DashboardIntelligence {
+  executiveSnapshot: ExecutiveSnapshot;
+  actions: IntelligenceAction[];
+  primaryBottleneck?: BottleneckStory | null;
+  stageDistribution: StageDistributionRow[];
+  workflowSpotlight: WorkflowSpotlightEntry[];
+  trends: TrendSignal[];
+  generatedAt: string;
+}
+
 export interface DashboardSummary {
   operationalHealthScore: number;
   stoplight: Stoplight;

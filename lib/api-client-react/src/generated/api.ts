@@ -27,6 +27,7 @@ import type {
   CreateStageBody,
   CreateWorkflowBody,
   CreateWorkflowItemBody,
+  DashboardIntelligence,
   DashboardSummary,
   Document,
   GetAnalyticsTrendsParams,
@@ -131,6 +132,82 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get full dashboard intelligence bundle
+ */
+export const getGetDashboardIntelligenceUrl = () => {
+  return `/api/dashboard/intelligence`;
+};
+
+export const getDashboardIntelligence = async (
+  options?: RequestInit,
+): Promise<DashboardIntelligence> => {
+  return customFetch<DashboardIntelligence>(getGetDashboardIntelligenceUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDashboardIntelligenceQueryKey = () => {
+  return [`/api/dashboard/intelligence`] as const;
+};
+
+export const getGetDashboardIntelligenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardIntelligence>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardIntelligence>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDashboardIntelligenceQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDashboardIntelligence>>
+  > = ({ signal }) => getDashboardIntelligence({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardIntelligence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDashboardIntelligenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardIntelligence>>
+>;
+export type GetDashboardIntelligenceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get full dashboard intelligence bundle
+ */
+
+export function useGetDashboardIntelligence<
+  TData = Awaited<ReturnType<typeof getDashboardIntelligence>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardIntelligence>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDashboardIntelligenceQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

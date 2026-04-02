@@ -15,6 +15,110 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary Get full dashboard intelligence bundle
+ */
+export const GetDashboardIntelligenceResponse = zod.object({
+  executiveSnapshot: zod.object({
+    operationalHealthScore: zod.number(),
+    stoplight: zod.string(),
+    insight: zod.string(),
+    criticalItemsCount: zod.number(),
+    openItemsCount: zod.number(),
+    overdueItemsCount: zod.number(),
+    activeWorkflowsCount: zod.number(),
+    completedWorkflowsCount: zod.number(),
+    biggestBottleneck: zod.string().nullish(),
+    biggestBottleneckExplanation: zod.string().nullish(),
+    throughputPercent: zod.number(),
+    throughputLabel: zod.string(),
+    improvementSignal: zod.string(),
+    longestAgingItem: zod
+      .object({
+        title: zod.string().optional(),
+        daysInStage: zod.number().optional(),
+        workflowTitle: zod.string().optional(),
+      })
+      .nullish(),
+  }),
+  actions: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.enum([
+        "critical_item",
+        "bottleneck",
+        "overdue",
+        "unassigned",
+        "health",
+        "aging",
+      ]),
+      urgency: zod.enum(["critical", "high", "medium"]),
+      title: zod.string(),
+      reason: zod.string(),
+      actionPath: zod.string(),
+      workflowId: zod.number().nullish(),
+      workflowTitle: zod.string().nullish(),
+      metadata: zod.object({}).passthrough().optional(),
+    }),
+  ),
+  primaryBottleneck: zod
+    .object({
+      workflowId: zod.number(),
+      workflowTitle: zod.string(),
+      stageName: zod.string(),
+      stageId: zod.number(),
+      itemCount: zod.number(),
+      maxAgeDays: zod.number(),
+      avgAgeDays: zod.number(),
+      hasCritical: zod.boolean(),
+      stoplight: zod.string(),
+      impactSummary: zod.string(),
+      recommendation: zod.string(),
+    })
+    .nullish(),
+  stageDistribution: zod.array(
+    zod.object({
+      workflowId: zod.number(),
+      workflowTitle: zod.string(),
+      stageId: zod.number(),
+      stageName: zod.string(),
+      stageOrder: zod.number(),
+      openItems: zod.number(),
+      completedItems: zod.number(),
+      avgAgeDays: zod.number(),
+      isBottleneck: zod.boolean(),
+    }),
+  ),
+  workflowSpotlight: zod.array(
+    zod.object({
+      workflowId: zod.number(),
+      title: zod.string(),
+      status: zod.string(),
+      healthScore: zod.number(),
+      stoplight: zod.string(),
+      openItems: zod.number(),
+      criticalItems: zod.number(),
+      overdueItems: zod.number(),
+      hasBottleneck: zod.boolean(),
+      bottleneckStageName: zod.string().nullish(),
+      concernReason: zod.string(),
+      concernLevel: zod.enum(["critical", "warning", "healthy"]),
+      flowScore: zod.number(),
+      riskScore: zod.number(),
+    }),
+  ),
+  trends: zod.array(
+    zod.object({
+      label: zod.string(),
+      value: zod.string(),
+      direction: zod.enum(["up", "down", "stable", "unknown"]),
+      explanation: zod.string(),
+      available: zod.boolean(),
+    }),
+  ),
+  generatedAt: zod.string(),
+});
+
+/**
  * @summary Get operational health summary
  */
 export const GetDashboardSummaryResponse = zod.object({

@@ -23,7 +23,7 @@ A continuous improvement operational intelligence platform — an air traffic co
 
 ### Core Features
 
-1. **Control Tower Dashboard** — Operational Health Score (composite of Flow/Risk/Improvement/Execution), stoplight indicators, priority actions, critical bottlenecks
+1. **Control Tower Dashboard** — Full intelligence layer: OHS gauge, 4 dimension cards, Trend Signals strip, Priority Actions panel (with rich reasons), Primary Bottleneck story, Stage Distribution bar chart, Workflow Spotlight ranking
 2. **Workflow Engine** — Create/manage workflows, break into stages, track movement, detect bottlenecks, health recalculation
 3. **Stoplight Scoring** — Red/Yellow/Green system at stage, workflow, and global levels
 4. **Asset & Warranty Tracking** — Asset registry with warranty lifecycle, health scores, maintenance schedules

@@ -4,6 +4,7 @@ import { workflowsTable, stagesTable, alertsTable, assetsTable, workflowItemsTab
 import { eq } from "drizzle-orm";
 import { loadAllWorkflowInputs, loadAlerts } from "../engine/loader";
 import { calcOperationalHealth, calcStoplight } from "../engine/scoring";
+import { buildDashboardIntelligence } from "../engine/intelligence";
 
 const router: IRouter = Router();
 
@@ -272,6 +273,16 @@ router.get("/dashboard/actions", async (req, res) => {
     res.json(actions.slice(0, 6));
   } catch (err) {
     req.log.error({ err }, "Failed to get priority actions");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/dashboard/intelligence", async (req, res) => {
+  try {
+    const intelligence = await buildDashboardIntelligence();
+    res.json(intelligence);
+  } catch (err) {
+    req.log.error({ err }, "Failed to build dashboard intelligence");
     res.status(500).json({ error: "Internal server error" });
   }
 });

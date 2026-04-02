@@ -37,6 +37,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /dashboard/intelligence:
+    get:
+      operationId: getDashboardIntelligence
+      tags: [dashboard]
+      summary: Get full dashboard intelligence bundle
+      responses:
+        "200":
+          description: Dashboard intelligence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardIntelligence"
+
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -818,6 +831,266 @@ components:
     Stoplight:
       type: string
       enum: [red, yellow, green]
+
+    DashboardIntelligence:
+      type: object
+      properties:
+        executiveSnapshot:
+          $ref: "#/components/schemas/ExecutiveSnapshot"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/IntelligenceAction"
+        primaryBottleneck:
+          $ref: "#/components/schemas/BottleneckStory"
+          nullable: true
+        stageDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageDistributionRow"
+        workflowSpotlight:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowSpotlightEntry"
+        trends:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendSignal"
+        generatedAt:
+          type: string
+      required:
+        - executiveSnapshot
+        - actions
+        - stageDistribution
+        - workflowSpotlight
+        - trends
+        - generatedAt
+
+    ExecutiveSnapshot:
+      type: object
+      properties:
+        operationalHealthScore:
+          type: number
+        stoplight:
+          type: string
+        insight:
+          type: string
+        criticalItemsCount:
+          type: integer
+        openItemsCount:
+          type: integer
+        overdueItemsCount:
+          type: integer
+        activeWorkflowsCount:
+          type: integer
+        completedWorkflowsCount:
+          type: integer
+        biggestBottleneck:
+          type: string
+          nullable: true
+        biggestBottleneckExplanation:
+          type: string
+          nullable: true
+        throughputPercent:
+          type: number
+        throughputLabel:
+          type: string
+        improvementSignal:
+          type: string
+        longestAgingItem:
+          type: object
+          nullable: true
+          properties:
+            title:
+              type: string
+            daysInStage:
+              type: integer
+            workflowTitle:
+              type: string
+      required:
+        - operationalHealthScore
+        - stoplight
+        - insight
+        - criticalItemsCount
+        - openItemsCount
+        - overdueItemsCount
+        - activeWorkflowsCount
+        - completedWorkflowsCount
+        - throughputPercent
+        - throughputLabel
+        - improvementSignal
+
+    IntelligenceAction:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          enum: [critical_item, bottleneck, overdue, unassigned, health, aging]
+        urgency:
+          type: string
+          enum: [critical, high, medium]
+        title:
+          type: string
+        reason:
+          type: string
+        actionPath:
+          type: string
+        workflowId:
+          type: integer
+          nullable: true
+        workflowTitle:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+      required:
+        - id
+        - category
+        - urgency
+        - title
+        - reason
+        - actionPath
+
+    BottleneckStory:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        workflowTitle:
+          type: string
+        stageName:
+          type: string
+        stageId:
+          type: integer
+        itemCount:
+          type: integer
+        maxAgeDays:
+          type: integer
+        avgAgeDays:
+          type: integer
+        hasCritical:
+          type: boolean
+        stoplight:
+          type: string
+        impactSummary:
+          type: string
+        recommendation:
+          type: string
+      required:
+        - workflowId
+        - workflowTitle
+        - stageName
+        - stageId
+        - itemCount
+        - maxAgeDays
+        - avgAgeDays
+        - hasCritical
+        - stoplight
+        - impactSummary
+        - recommendation
+
+    StageDistributionRow:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        workflowTitle:
+          type: string
+        stageId:
+          type: integer
+        stageName:
+          type: string
+        stageOrder:
+          type: integer
+        openItems:
+          type: integer
+        completedItems:
+          type: integer
+        avgAgeDays:
+          type: integer
+        isBottleneck:
+          type: boolean
+      required:
+        - workflowId
+        - workflowTitle
+        - stageId
+        - stageName
+        - stageOrder
+        - openItems
+        - completedItems
+        - avgAgeDays
+        - isBottleneck
+
+    WorkflowSpotlightEntry:
+      type: object
+      properties:
+        workflowId:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+        healthScore:
+          type: number
+        stoplight:
+          type: string
+        openItems:
+          type: integer
+        criticalItems:
+          type: integer
+        overdueItems:
+          type: integer
+        hasBottleneck:
+          type: boolean
+        bottleneckStageName:
+          type: string
+          nullable: true
+        concernReason:
+          type: string
+        concernLevel:
+          type: string
+          enum: [critical, warning, healthy]
+        flowScore:
+          type: number
+        riskScore:
+          type: number
+      required:
+        - workflowId
+        - title
+        - status
+        - healthScore
+        - stoplight
+        - openItems
+        - criticalItems
+        - overdueItems
+        - hasBottleneck
+        - concernReason
+        - concernLevel
+        - flowScore
+        - riskScore
+
+    TrendSignal:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        direction:
+          type: string
+          enum: [up, down, stable, unknown]
+        explanation:
+          type: string
+        available:
+          type: boolean
+      required:
+        - label
+        - value
+        - direction
+        - explanation
+        - available
 
     DashboardSummary:
       type: object
