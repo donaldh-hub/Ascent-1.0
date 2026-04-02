@@ -1,22 +1,154 @@
 /**
- * Phase 1 – Build 6.5: Evidence Visibility Layer
+ * Phase 1 – Build 6.6: Signal Strength + Language Layer
  *
- * Reusable attachment signal components:
- *   AttachmentBadge — inline paperclip + count or warning
- *   EvidenceSummary — top-of-panel evidence overview with thumbnails
+ * Reusable evidence signal components.
+ * All copy comes from evidence-language.ts — never hardcode text here.
+ *
+ *  AttachmentBadge       — inline compound badge (all states)
+ *  EvidenceBadge         — semantic badge driven by count + isCritical
+ *  EvidenceWarningLabel  — standalone "⚠ Missing documentation" pill
+ *  AttachmentCountBadge  — standalone "📎 {count}" pill
+ *  EvidenceSummary       — top-of-panel evidence overview with thumbnails
  */
 
-import { Paperclip, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListDocuments } from "@workspace/api-client-react";
+import {
+  EVIDENCE,
+  getEvidenceState,
+  type EvidenceState,
+} from "@/lib/evidence-language";
 
-// ─────────────────────────────────────────────
-// AttachmentBadge
-// count > 0  → solid blue badge with count
-// count = 0, showWarning = true  → amber ⚠ "No docs"
-// count = 0, showWarning = false → muted hollow paperclip
-// ─────────────────────────────────────────────
+// ─── EvidenceWarningLabel ─────────────────────────────────────────────────────
+// "⚠ Missing documentation" — amber pill
+
+interface EvidenceWarningLabelProps {
+  className?: string;
+  compact?: boolean;
+}
+
+export function EvidenceWarningLabel({
+  className,
+  compact = false,
+}: EvidenceWarningLabelProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded",
+        compact
+          ? "text-[10px] px-1 py-0.5"
+          : "text-[10px] px-1.5 py-0.5",
+        "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+        className
+      )}
+      title="No supporting documentation attached"
+    >
+      <AlertTriangle className="h-3 w-3 shrink-0" />
+      {EVIDENCE.MISSING_CRITICAL}
+    </span>
+  );
+}
+
+// ─── AttachmentCountBadge ─────────────────────────────────────────────────────
+// "📎 {count}" — blue solid pill
+
+interface AttachmentCountBadgeProps {
+  count: number;
+  onClick?: (e: React.MouseEvent) => void;
+  className?: string;
+}
+
+export function AttachmentCountBadge({
+  count,
+  onClick,
+  className,
+}: AttachmentCountBadgeProps) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      className={cn(
+        "inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded cursor-pointer",
+        "bg-blue-500/15 text-blue-400 border border-blue-500/20 hover:bg-blue-500/25 transition-colors",
+        className
+      )}
+      title={EVIDENCE.DOCS_ATTACHED(count)}
+    >
+      {EVIDENCE.DOCS(count)}
+    </button>
+  );
+}
+
+// ─── EvidenceBadge ────────────────────────────────────────────────────────────
+// Picks the right variant based on count + isCritical
+
+interface EvidenceBadgeProps {
+  count: number;
+  isCritical?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+  className?: string;
+  showMissingLabel?: boolean;
+}
+
+export function EvidenceBadge({
+  count,
+  isCritical = false,
+  onClick,
+  className,
+  showMissingLabel = false,
+}: EvidenceBadgeProps) {
+  const state: EvidenceState = getEvidenceState(count, isCritical);
+
+  if (state === "missing_critical") {
+    return <EvidenceWarningLabel className={className} />;
+  }
+
+  if (state === "has_docs") {
+    return (
+      <AttachmentCountBadge count={count} onClick={onClick} className={className} />
+    );
+  }
+
+  // state === "missing" (non-critical)
+  if (showMissingLabel) {
+    return (
+      <span
+        className={cn("text-xs text-muted-foreground/50", className)}
+        title="No documents attached"
+      >
+        {EVIDENCE.MISSING}
+      </span>
+    );
+  }
+
+  // Compact: just a hollow paperclip icon with no text
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
+      className={cn(
+        "inline-flex items-center text-xs text-muted-foreground/35",
+        "hover:text-muted-foreground/60 transition-colors cursor-pointer",
+        className
+      )}
+      title={EVIDENCE.MISSING}
+    >
+      📎
+    </button>
+  );
+}
+
+// ─── AttachmentBadge ──────────────────────────────────────────────────────────
+// Backwards-compatible compound badge (used on ItemCards)
+// Delegates to EvidenceBadge internally.
 
 interface AttachmentBadgeProps {
   count: number;
@@ -31,60 +163,18 @@ export function AttachmentBadge({
   showWarning = false,
   className,
 }: AttachmentBadgeProps) {
-  if (count > 0) {
-    return (
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onClick?.(e); }}
-        className={cn(
-          "inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded cursor-pointer",
-          "bg-blue-500/15 text-blue-400 border border-blue-500/20 hover:bg-blue-500/25 transition-colors",
-          className
-        )}
-        title={`${count} document${count !== 1 ? "s" : ""} attached`}
-      >
-        <Paperclip className="h-3 w-3" />
-        <span>{count}</span>
-      </button>
-    );
-  }
-
-  if (showWarning) {
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded",
-          "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-          className
-        )}
-        title="No supporting document"
-      >
-        <AlertTriangle className="h-3 w-3" />
-        No docs
-      </span>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onClick?.(e); }}
-      className={cn(
-        "inline-flex items-center gap-1 text-xs text-muted-foreground/40",
-        "hover:text-muted-foreground transition-colors cursor-pointer",
-        className
-      )}
-      title="No documents attached"
-    >
-      <Paperclip className="h-3 w-3" />
-    </button>
+    <EvidenceBadge
+      count={count}
+      isCritical={showWarning}
+      onClick={onClick}
+      className={className}
+    />
   );
 }
 
-// ─────────────────────────────────────────────
-// EvidenceSummary
-// Shows at the top of ItemDetailSheet: count, thumbnails, last-added time
-// ─────────────────────────────────────────────
+// ─── EvidenceSummary ──────────────────────────────────────────────────────────
+// Top-of-panel evidence overview with count, thumbnails, last-added time
 
 interface EvidenceSummaryProps {
   entityType: string;
@@ -132,16 +222,20 @@ export function EvidenceSummary({
     return <Skeleton className="h-14 w-full rounded-lg" />;
   }
 
+  const state: EvidenceState = getEvidenceState(count, false);
+
   return (
     <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Paperclip
+          <span
             className={cn(
-              "h-3.5 w-3.5",
+              "text-sm",
               count > 0 ? "text-blue-400" : "text-muted-foreground/40"
             )}
-          />
+          >
+            📎
+          </span>
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Evidence
           </span>
@@ -151,7 +245,7 @@ export function EvidenceSummary({
               count > 0 ? "text-foreground" : "text-muted-foreground"
             )}
           >
-            {count} {count === 1 ? "document" : "documents"}
+            {count > 0 ? EVIDENCE.DOCS_VERBOSE(count) : EVIDENCE.MISSING}
           </span>
         </div>
         {count > 0 && onViewAll && (
@@ -165,7 +259,7 @@ export function EvidenceSummary({
         )}
       </div>
 
-      {count === 0 ? (
+      {state === "missing" ? (
         <p className="text-[11px] text-muted-foreground mt-1.5 italic">
           No documents attached yet.
         </p>

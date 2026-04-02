@@ -1,0 +1,266 @@
+Ascent 1.0 — Phase 1 Build 6.6 (Signal Strength + Language Layer Prompt)
+
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 6.6.
+
+The system already has:
+
+* authentication
+* role-based access
+* app shell
+* workflow engine
+* workflow item movement
+* timing + bottleneck foundation
+* scoring + stoplight engine
+* alert and warning engine
+* dashboard intelligence layer
+* document + evidence engine (upload, attach, preview)
+* evidence visibility layer (attachment counts, badges, alerts)
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT duplicate scoring or alert logic.
+Do NOT rebuild the document engine or visibility layer.
+
+This build is the SIGNAL STRENGTH + LANGUAGE LAYER.
+
+PROJECT NAME:
+
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Upgrade how evidence signals are communicated so users can instantly understand:
+
+* where proof exists
+* where proof is missing
+* why it matters RIGHT NOW
+
+Turn weak metadata into strong, decision-driving signals.
+
+==================================================
+
+BUILD REQUIREMENTS
+
+==================================================
+
+1. STANDARDIZED EVIDENCE LANGUAGE SYSTEM
+
+Create a centralized language map for evidence states.
+
+States and required labels:
+
+A. NO DOCUMENTS (non-critical)
+
+* Label: "No documents"
+* Style: muted / neutral
+
+B. NO DOCUMENTS (critical condition)
+
+* Label: "⚠ Missing documentation"
+* Style: amber warning
+
+C. HAS DOCUMENTS
+
+* Label: "📎 {count}"
+* Style: neutral/positive, compact
+
+D. HIGH DOCUMENT COVERAGE (optional future-ready)
+
+* Label: "📎 {count} docs"
+* Style: subtle positive emphasis
+
+All components must use this shared language.
+No custom text per component.
+
+==================================================
+
+2. WORKFLOW LIST — SIGNAL STRENGTH UPGRADE
+
+Update each workflow row/card to include:
+
+* attachment signal using standardized language
+* stronger visual contrast for missing documentation
+
+Rules:
+
+* If workflow has 0 documents → show "No documents"
+* If workflow contains CRITICAL item with 0 docs → show "⚠ Missing documentation"
+* If documents exist → show "📎 {count}"
+
+Placement:
+
+* inline with metadata row (clean, not cluttered)
+
+==================================================
+
+3. WARNING + DOCUMENT LINKAGE (CRITICAL)
+
+Unify warning signals with document state.
+
+If a workflow shows a warning due to missing documentation:
+
+Replace generic:
+
+* "1 warning"
+
+With:
+
+* "⚠ Missing documentation (1 item)"
+
+If multiple:
+
+* "⚠ Missing documentation (3 items)"
+
+This must be driven by real alert + document conditions.
+
+==================================================
+
+4. PRIORITY ACTIONS — LANGUAGE UPGRADE
+
+Each action must clearly communicate evidence state.
+
+Replace weak labels with:
+
+* "📎 {count} documents attached"
+  OR
+* "⚠ Missing supporting document"
+
+If CRITICAL + no docs:
+
+* always show warning version
+
+Ensure the reason text reflects evidence context.
+
+==================================================
+
+5. BOTTLENECK PANEL — CAUSE CLARITY
+
+Enhance bottleneck explanation with evidence-aware language.
+
+Add line:
+
+* "No documentation linked — verification risk"
+  OR
+* "Supported by {count} documents"
+
+If no docs and bottleneck is critical:
+
+* escalate tone slightly (still controlled)
+
+==================================================
+
+6. DASHBOARD — GLOBAL EVIDENCE SIGNAL
+
+Upgrade subtle signal into clear insight.
+
+Replace generic count with:
+
+* "{X} critical items missing documentation"
+
+Ensure this appears near Priority Actions or Executive Snapshot.
+
+Must be readable in under 2 seconds.
+
+==================================================
+
+7. COMPONENT STANDARDIZATION
+
+Create reusable UI components:
+
+* EvidenceBadge
+* EvidenceWarningLabel
+* AttachmentCountBadge
+
+These must:
+
+* use shared language system
+* accept props: count, isCritical, hasDocs
+* render consistent styles across app
+
+==================================================
+
+8. VISUAL HIERARCHY RULES
+
+Define strict visual priority:
+
+Highest:
+
+* ⚠ Missing documentation (critical)
+
+Medium:
+
+* 📎 {count}
+
+Lowest:
+
+* No documents
+
+Ensure contrast and color reflect this hierarchy.
+
+==================================================
+
+9. PERFORMANCE + UX RULES
+
+* no additional API calls for language layer
+* reuse existing attachment + alert data
+* no UI lag introduced
+* no clutter or duplication
+
+==================================================
+
+10. ROLE-AWARE LANGUAGE (LIGHT)
+
+Keep language universal for now.
+
+Do NOT create role-specific phrasing yet.
+
+==================================================
+
+11. CODE QUALITY RULES
+
+DO:
+
+* centralize language constants
+* reuse visibility layer data
+* keep components lightweight
+
+DO NOT:
+
+* hardcode text inside components
+* duplicate logic across views
+* introduce new business logic
+
+==================================================
+
+12. SUCCESS STATE
+
+This build is complete when:
+
+1. "No docs" is no longer used anywhere
+2. All workflows clearly show evidence state
+3. Critical missing documentation is immediately obvious
+4. Warning badges directly reflect document issues
+5. Users can scan the screen and identify proof gaps instantly
+6. Language feels intentional, not generic
+
+==================================================
+
+13. IMPORTANT LIMITS
+
+This build is NOT for:
+
+* new scoring logic
+* new alert types beyond document linkage
+* OCR or document intelligence
+
+This is communication and signal strength only.
+
+==================================================
+
+14. INTERNAL LABEL
+
+"Phase 1 – Build 6.6: Signal Strength + Language Layer"

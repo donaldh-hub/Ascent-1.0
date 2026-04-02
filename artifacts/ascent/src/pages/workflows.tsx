@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { StoplightIndicator, StoplightBadge } from "@/components/stoplight";
-import { Search, Plus, Trash2, GripVertical, GitBranch, Calendar, AlertCircle, AlertTriangle, Paperclip } from "lucide-react";
+import { Search, Plus, Trash2, GripVertical, GitBranch, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -35,6 +35,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useWorkflowDocTotals } from "@/hooks/use-doc-counts";
+import { EVIDENCE, isDocMissingAlert } from "@/lib/evidence-language";
 
 interface StageEntry {
   name: string;
@@ -319,19 +320,31 @@ export default function Workflows() {
                           </span>
                           {(() => {
                             const wfAlerts = (alerts ?? []).filter((a) => a.workflowId === workflow.id);
-                            const critCount = wfAlerts.filter((a) => a.level === "critical").length;
+                            const docMissingAlerts = wfAlerts.filter(isDocMissingAlert);
+                            const otherCritAlerts = wfAlerts.filter(
+                              (a) => a.level === "critical" && !isDocMissingAlert(a)
+                            );
                             const warnCount = wfAlerts.filter((a) => a.level === "warning").length;
-                            if (critCount > 0) return (
-                              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold shrink-0">
-                                <AlertCircle className="h-3 w-3" /> {critCount} critical
-                              </span>
+                            return (
+                              <>
+                                {docMissingAlerts.length > 0 && (
+                                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-semibold shrink-0">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {EVIDENCE.MISSING_ITEMS(docMissingAlerts.length)}
+                                  </span>
+                                )}
+                                {otherCritAlerts.length > 0 && (
+                                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold shrink-0">
+                                    <AlertCircle className="h-3 w-3" /> {otherCritAlerts.length} critical
+                                  </span>
+                                )}
+                                {docMissingAlerts.length === 0 && otherCritAlerts.length === 0 && warnCount > 0 && (
+                                  <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-semibold shrink-0">
+                                    <AlertTriangle className="h-3 w-3" /> {warnCount} warning{warnCount !== 1 ? "s" : ""}
+                                  </span>
+                                )}
+                              </>
                             );
-                            if (warnCount > 0) return (
-                              <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-semibold shrink-0">
-                                <AlertTriangle className="h-3 w-3" /> {warnCount} warning{warnCount !== 1 ? "s" : ""}
-                              </span>
-                            );
-                            return null;
                           })()}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-1 max-w-xl">
@@ -351,15 +364,25 @@ export default function Workflows() {
                           {(() => {
                             const docInfo = (wfDocTotals as any)[workflow.id];
                             if (!docInfo) return null;
+                            const wfAlerts = (alerts ?? []).filter((a) => a.workflowId === workflow.id);
+                            const hasDocMissingAlert = wfAlerts.some(isDocMissingAlert);
+                            if (docInfo.count > 0) {
+                              return (
+                                <span className="flex items-center gap-1 text-blue-400">
+                                  {EVIDENCE.DOCS_VERBOSE(docInfo.count)}
+                                </span>
+                              );
+                            }
+                            if (hasDocMissingAlert) {
+                              return (
+                                <span className="flex items-center gap-1 text-amber-400 font-medium">
+                                  {EVIDENCE.MISSING_CRITICAL}
+                                </span>
+                              );
+                            }
                             return (
-                              <span className={cn(
-                                "flex items-center gap-1",
-                                docInfo.count > 0 ? "text-blue-400" : "text-muted-foreground/50"
-                              )}>
-                                <Paperclip className="h-3 w-3" />
-                                {docInfo.count > 0
-                                  ? `${docInfo.count} doc${docInfo.count !== 1 ? "s" : ""}`
-                                  : "no docs"}
+                              <span className="text-muted-foreground/50">
+                                {EVIDENCE.MISSING}
                               </span>
                             );
                           })()}

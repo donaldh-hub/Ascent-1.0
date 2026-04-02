@@ -9,6 +9,7 @@ import {
 } from "@workspace/api-client-react";
 import { useDocCounts } from "@/hooks/use-doc-counts";
 import { AttachmentBadge } from "@/components/attachment-badge";
+import { EVIDENCE } from "@/lib/evidence-language";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StoplightIndicator, StoplightBadge } from "@/components/stoplight";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,6 @@ import {
   ShieldAlert,
   Package,
   Users,
-  Paperclip,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
@@ -417,9 +417,8 @@ function ActionPanel({
           </CardTitle>
           <CardDescription>Requires immediate attention</CardDescription>
           {criticalMissingDocCount > 0 && (
-            <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
-              <Paperclip className="h-3 w-3" />
-              {criticalMissingDocCount} critical item{criticalMissingDocCount > 1 ? "s" : ""} missing documentation
+            <p className="text-[11px] text-amber-400 mt-1 font-medium">
+              {EVIDENCE.MISSING_ITEMS_COUNT(criticalMissingDocCount)}
             </p>
           )}
         </div>
@@ -606,12 +605,13 @@ function BottleneckPanel({
                 <span className="text-foreground font-semibold">Impact: </span>
                 {bottleneck.impactSummary}
               </p>
-              <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/30">
-                <Paperclip className="h-3 w-3 text-muted-foreground/60 shrink-0" />
-                <span className={`text-[10px] ${bnDocCount > 0 ? "text-muted-foreground" : "text-amber-500/80"}`}>
+              <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/30">
+                <span
+                  className={`text-[10px] font-medium ${bnDocCount > 0 ? "text-muted-foreground" : "text-amber-400/80"}`}
+                >
                   {bnDocCount > 0
-                    ? `${bnDocCount} document${bnDocCount > 1 ? "s" : ""} attached to this workflow`
-                    : "No documentation linked to this workflow"}
+                    ? EVIDENCE.DOCS_SUPPORTED(bnDocCount)
+                    : EVIDENCE.NO_DOCS_RISK}
                 </span>
               </div>
             </div>
