@@ -11,13 +11,21 @@ export interface WorkflowHealth {
   workflowId: number;
   healthScore: number;
   stoplight: Stoplight;
+  insight: string;
   flowScore: number;
+  flowStoplight: Stoplight;
+  flowInsight: string;
   riskScore: number;
+  riskStoplight: Stoplight;
+  riskInsight: string;
   improvementScore: number;
+  improvementStoplight: Stoplight;
+  improvementInsight: string;
   executionScore: number;
-  totalDelayDays: number;
-  estimatedCostImpact: number;
+  executionStoplight: Stoplight;
+  executionInsight: string;
   bottleneckStageId?: number | null;
   bottleneckStageName?: string | null;
-  recommendation: string;
+  openItemCount: number;
+  totalItemCount: number;
 }

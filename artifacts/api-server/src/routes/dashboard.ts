@@ -1,67 +1,72 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { workflowsTable, stagesTable, alertsTable, assetsTable } from "@workspace/db/schema";
+import { workflowsTable, stagesTable, alertsTable, assetsTable, workflowItemsTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
+import { loadAllWorkflowInputs, loadAlerts } from "../engine/loader";
+import { calcOperationalHealth, calcStoplight } from "../engine/scoring";
 
 const router: IRouter = Router();
 
-function calcStoplight(score: number): string {
-  if (score >= 75) return "green";
-  if (score >= 50) return "yellow";
-  return "red";
-}
-
 router.get("/dashboard/summary", async (req, res) => {
   try {
-    const workflows = await db.select().from(workflowsTable);
-    const stages = await db.select().from(stagesTable);
-    const alerts = await db.select().from(alertsTable);
-    const assets = await db.select().from(assetsTable);
+    const [workflowInputs, alerts] = await Promise.all([
+      loadAllWorkflowInputs(),
+      loadAlerts(),
+    ]);
 
-    const activeWorkflows = workflows.filter((w) => w.status === "active");
-    const criticalItems = workflows.filter((w) => w.stoplight === "red").length +
-      alerts.filter((a) => a.severity === "critical" && !a.isRead).length;
-    const overdueItems = stages.filter((s) => s.status === "overdue").length;
-    const completedWorkflows = workflows.filter((w) => w.status === "completed").length;
-    const throughput = workflows.length > 0 ? Math.round((completedWorkflows / workflows.length) * 100) : 0;
+    const operational = calcOperationalHealth(workflowInputs, alerts);
 
-    const flowScore = workflows.length > 0
-      ? Math.round(workflows.reduce((s, w) => s + w.flowScore, 0) / workflows.length)
-      : 85;
-    const riskScore = workflows.length > 0
-      ? Math.round(workflows.reduce((s, w) => s + w.riskScore, 0) / workflows.length)
-      : 85;
-    const improvementScore = workflows.length > 0
-      ? Math.round(workflows.reduce((s, w) => s + w.improvementScore, 0) / workflows.length)
-      : 85;
-    const executionScore = workflows.length > 0
-      ? Math.round(workflows.reduce((s, w) => s + w.executionScore, 0) / workflows.length)
-      : 85;
-    const operationalHealthScore = Math.round((flowScore + riskScore + improvementScore + executionScore) / 4);
+    // Count open items across all workflows
+    const allOpenItems = workflowInputs.flatMap((w) =>
+      w.items.filter((i) => i.status !== "completed")
+    );
 
-    const bottleneckStage = stages.find((s) => s.isBottleneck);
+    const activeWorkflowsCount = workflowInputs.filter(
+      (w) => w.status === "active" || w.status === "paused"
+    ).length;
+
+    const completedWorkflows = workflowInputs.filter((w) => w.status === "completed").length;
+    const throughput = workflowInputs.length > 0
+      ? Math.round((completedWorkflows / workflowInputs.length) * 100)
+      : 0;
+
+    const overdueCount = allOpenItems.filter((i) => {
+      if (!i.dueDate) return false;
+      return new Date(i.dueDate).getTime() < Date.now();
+    }).length;
+
+    const improvementSummary = operational.insight;
+
+    // Build biggest bottleneck description
     let biggestBottleneck: string | null = null;
-    if (bottleneckStage) {
-      const wf = workflows.find((w) => w.id === bottleneckStage.workflowId);
-      biggestBottleneck = wf ? `${wf.title} — ${bottleneckStage.name}` : bottleneckStage.name;
+    if (operational.biggestBottleneckWorkflow && operational.biggestBottleneckStage) {
+      biggestBottleneck = `${operational.biggestBottleneckWorkflow} — ${operational.biggestBottleneckStage}`;
+    } else if (operational.biggestBottleneckWorkflow) {
+      biggestBottleneck = operational.biggestBottleneckWorkflow;
     }
 
     res.json({
-      operationalHealthScore,
-      stoplight: calcStoplight(operationalHealthScore),
-      flowScore,
-      flowStoplight: calcStoplight(flowScore),
-      riskScore,
-      riskStoplight: calcStoplight(riskScore),
-      improvementScore,
-      improvementStoplight: calcStoplight(improvementScore),
-      executionScore,
-      executionStoplight: calcStoplight(executionScore),
-      criticalItemsCount: criticalItems,
-      activeWorkflowsCount: activeWorkflows.length,
-      overdueItemsCount: overdueItems,
+      operationalHealthScore: operational.operationalHealthScore,
+      stoplight: operational.stoplight,
+      insight: operational.insight,
+      flowScore: operational.flowScore,
+      flowStoplight: operational.flowStoplight,
+      flowInsight: operational.flowInsight,
+      riskScore: operational.riskScore,
+      riskStoplight: operational.riskStoplight,
+      riskInsight: operational.riskInsight,
+      improvementScore: operational.improvementScore,
+      improvementStoplight: operational.improvementStoplight,
+      improvementInsight: operational.improvementInsight,
+      executionScore: operational.executionScore,
+      executionStoplight: operational.executionStoplight,
+      executionInsight: operational.executionInsight,
+      criticalItemsCount: operational.criticalItemsCount,
+      activeWorkflowsCount,
+      overdueItemsCount: overdueCount,
       biggestBottleneck,
       throughput,
-      improvementSummary: `${completedWorkflows} of ${workflows.length} workflows completed. ${overdueItems} stages overdue.`,
+      improvementSummary,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard summary");
@@ -71,34 +76,81 @@ router.get("/dashboard/summary", async (req, res) => {
 
 router.get("/dashboard/bottlenecks", async (req, res) => {
   try {
-    const workflows = await db.select().from(workflowsTable);
-    const stages = await db.select().from(stagesTable);
+    const workflowInputs = await loadAllWorkflowInputs();
 
-    const bottlenecks = [];
+    const bottlenecks: {
+      workflowId: number;
+      workflowTitle: string;
+      stageId: number | null;
+      stageName: string | null;
+      daysStuck: number;
+      impact: string;
+      stoplight: string;
+      openItemCount: number;
+      insight: string;
+    }[] = [];
 
-    for (const wf of workflows) {
-      const wfStages = stages.filter((s) => s.workflowId === wf.id);
-      const bottleneckStage = wfStages.find((s) => s.isBottleneck);
-      const blockedStages = wfStages.filter((s) => s.status === "blocked" || s.status === "overdue");
+    for (const wf of workflowInputs) {
+      const openItems = wf.items.filter((i) => i.status !== "completed");
+      if (openItems.length === 0) continue;
 
-      if (wf.stoplight === "red" || bottleneckStage || blockedStages.length > 0) {
-        const daysStuck = bottleneckStage?.startedAt
-          ? Math.round((Date.now() - new Date(bottleneckStage.startedAt).getTime()) / 86400000)
-          : blockedStages.length > 0
-          ? Math.round(Math.random() * 5 + 1)
-          : 0;
+      // Find most congested stage
+      const stageCounts = openItems.reduce((acc, i) => {
+        acc[i.stageId] = (acc[i.stageId] ?? 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
 
+      const maxCount = Math.max(0, ...Object.values(stageCounts));
+      if (maxCount < 1) continue;
+
+      // Find oldest item in the congested stage
+      const bottleneckStageId = Object.keys(stageCounts).find(
+        (id) => stageCounts[Number(id)] === maxCount
+      );
+      const stage = wf.stages.find((s) => s.id === Number(bottleneckStageId));
+
+      const stageItems = openItems.filter((i) => i.stageId === Number(bottleneckStageId));
+      const oldestDays = stageItems.length > 0
+        ? Math.round(Math.max(...stageItems.map((i) =>
+            (Date.now() - i.stageEnteredAt.getTime()) / (1000 * 60 * 60 * 24)
+          )))
+        : 0;
+
+      const hasCritical = stageItems.some((i) => i.priority === "critical");
+      const stoplight = hasCritical || oldestDays > 14 ? "red" : oldestDays > 7 ? "yellow" : "yellow";
+
+      const impact = hasCritical
+        ? "Critical — contains critical-priority items"
+        : maxCount >= 3
+        ? "High — multiple items concentrated in one stage"
+        : "Moderate — stage congestion detected";
+
+      const insight = stage
+        ? `"${stage.name}" has ${maxCount} open item${maxCount > 1 ? "s" : ""}, oldest aged ${oldestDays} day${oldestDays !== 1 ? "s" : ""}.`
+        : "Bottleneck stage identified.";
+
+      // Only surface genuine bottlenecks (2+ items OR old items)
+      if (maxCount >= 2 || oldestDays > 7) {
         bottlenecks.push({
           workflowId: wf.id,
           workflowTitle: wf.title,
-          stageId: bottleneckStage?.id ?? blockedStages[0]?.id ?? null,
-          stageName: bottleneckStage?.name ?? blockedStages[0]?.name ?? null,
-          daysStuck,
-          impact: daysStuck > 5 ? "High — multiple dependencies blocked" : "Moderate — single stage delayed",
-          stoplight: daysStuck > 7 ? "red" : daysStuck > 3 ? "yellow" : "yellow",
+          stageId: stage?.id ?? null,
+          stageName: stage?.name ?? null,
+          daysStuck: oldestDays,
+          impact,
+          stoplight,
+          openItemCount: maxCount,
+          insight,
         });
       }
     }
+
+    // Sort by severity: critical first, then days stuck
+    bottlenecks.sort((a, b) => {
+      if (a.stoplight === "red" && b.stoplight !== "red") return -1;
+      if (b.stoplight === "red" && a.stoplight !== "red") return 1;
+      return b.daysStuck - a.daysStuck;
+    });
 
     res.json(bottlenecks);
   } catch (err) {
@@ -109,10 +161,10 @@ router.get("/dashboard/bottlenecks", async (req, res) => {
 
 router.get("/dashboard/actions", async (req, res) => {
   try {
-    const workflows = await db.select().from(workflowsTable);
-    const stages = await db.select().from(stagesTable);
-    const alerts = await db.select().from(alertsTable);
-    const assets = await db.select().from(assetsTable);
+    const [workflowInputs, alerts] = await Promise.all([
+      loadAllWorkflowInputs(),
+      loadAlerts(),
+    ]);
 
     const actions: {
       id: number;
@@ -125,33 +177,46 @@ router.get("/dashboard/actions", async (req, res) => {
     }[] = [];
 
     let counter = 1;
-    const redWorkflows = workflows.filter((w) => w.stoplight === "red");
-    for (const wf of redWorkflows.slice(0, 2)) {
-      actions.push({
-        id: counter++,
-        type: "workflow",
-        title: `Review critical workflow: ${wf.title}`,
-        description: "Health score is critically low. Immediate review required.",
-        urgency: "red",
-        relatedId: wf.id,
-        dueDate: wf.dueDate,
-      });
+
+    // Critical items across workflows
+    for (const wf of workflowInputs) {
+      const critItems = wf.items.filter(
+        (i) => i.status !== "completed" && i.priority === "critical"
+      );
+      for (const item of critItems.slice(0, 2)) {
+        const stage = wf.stages.find((s) => s.id === item.stageId);
+        actions.push({
+          id: counter++,
+          type: "workflow_item",
+          title: `Critical item: ${item.title}`,
+          description: `In "${wf.title}" — ${stage?.name ?? "unknown stage"}. Needs immediate attention.`,
+          urgency: "red",
+          relatedId: wf.id,
+          dueDate: item.dueDate,
+        });
+      }
     }
 
-    const overdueStages = stages.filter((s) => s.status === "overdue" || s.status === "blocked");
-    for (const stage of overdueStages.slice(0, 2)) {
-      const wf = workflows.find((w) => w.id === stage.workflowId);
-      actions.push({
-        id: counter++,
-        type: "stage",
-        title: `Unblock stage: ${stage.name}`,
-        description: `Stage in "${wf?.title ?? "workflow"}" is ${stage.status}. Assign owner or escalate.`,
-        urgency: "red",
-        relatedId: stage.workflowId,
-        dueDate: stage.dueDate,
-      });
+    // Workflows with very low health scores
+    for (const wf of workflowInputs.filter((w) => w.status === "active")) {
+      const openItems = wf.items.filter((i) => i.status !== "completed");
+      const hasOldItems = openItems.some(
+        (i) => (Date.now() - i.stageEnteredAt.getTime()) / (1000 * 60 * 60 * 24) > 30
+      );
+      if (hasOldItems) {
+        actions.push({
+          id: counter++,
+          type: "workflow",
+          title: `Review aging items: ${wf.title}`,
+          description: "One or more items have been stuck in a stage for 30+ days.",
+          urgency: "red",
+          relatedId: wf.id,
+          dueDate: null,
+        });
+      }
     }
 
+    // Unread critical alerts
     const criticalAlerts = alerts.filter((a) => a.severity === "critical" && !a.isRead);
     for (const alert of criticalAlerts.slice(0, 2)) {
       actions.push({
@@ -165,21 +230,46 @@ router.get("/dashboard/actions", async (req, res) => {
       });
     }
 
-    const warningWorkflows = workflows.filter((w) => w.stoplight === "yellow");
-    for (const wf of warningWorkflows.slice(0, 2)) {
+    // Workflows with high-priority unassigned items
+    for (const wf of workflowInputs) {
+      const unassignedHigh = wf.items.filter(
+        (i) => i.status !== "completed" &&
+          (i.priority === "high" || i.priority === "critical") &&
+          (!i.assignedTo || !i.assignedTo.trim())
+      );
+      if (unassignedHigh.length > 0) {
+        actions.push({
+          id: counter++,
+          type: "workflow",
+          title: `Assign owners: ${wf.title}`,
+          description: `${unassignedHigh.length} high/critical item${unassignedHigh.length > 1 ? "s" : ""} without an assigned owner.`,
+          urgency: "yellow",
+          relatedId: wf.id,
+          dueDate: null,
+        });
+      }
+    }
+
+    // Warning alerts
+    const warnAlerts = alerts.filter((a) => a.severity === "warning" && !a.isRead);
+    for (const alert of warnAlerts.slice(0, 1)) {
       actions.push({
         id: counter++,
-        type: "workflow",
-        title: `Monitor workflow: ${wf.title}`,
-        description: "Health score is declining. Review progress and address risks.",
+        type: "alert",
+        title: alert.title,
+        description: alert.message,
         urgency: "yellow",
-        relatedId: wf.id,
-        dueDate: wf.dueDate,
+        relatedId: alert.id,
+        dueDate: null,
       });
     }
 
-    actions.sort((a, b) => (a.urgency === "red" ? -1 : 1));
-    res.json(actions.slice(0, 5));
+    actions.sort((a, b) => {
+      const urgencyOrder: Record<string, number> = { red: 0, yellow: 1, green: 2 };
+      return (urgencyOrder[a.urgency] ?? 2) - (urgencyOrder[b.urgency] ?? 2);
+    });
+
+    res.json(actions.slice(0, 6));
   } catch (err) {
     req.log.error({ err }, "Failed to get priority actions");
     res.status(500).json({ error: "Internal server error" });

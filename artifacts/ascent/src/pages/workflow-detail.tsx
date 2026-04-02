@@ -796,27 +796,35 @@ export default function WorkflowDetail() {
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
                 {[
-                  { label: "Flow Score", value: health.flowScore, icon: TrendingUp },
-                  { label: "Risk Score", value: health.riskScore, icon: ShieldAlert },
-                  { label: "Execution", value: health.executionScore, icon: Zap },
-                  { label: "Improvement", value: health.improvementScore, icon: Activity },
-                ].map(({ label, value, icon: Icon }) => {
+                  { label: "Flow", value: health.flowScore, stoplight: health.flowStoplight, insight: health.flowInsight, icon: TrendingUp },
+                  { label: "Risk", value: health.riskScore, stoplight: health.riskStoplight, insight: health.riskInsight, icon: ShieldAlert },
+                  { label: "Execution", value: health.executionScore, stoplight: health.executionStoplight, insight: health.executionInsight, icon: Zap },
+                  { label: "Improvement", value: health.improvementScore, stoplight: health.improvementStoplight, insight: health.improvementInsight, icon: Activity },
+                ].map(({ label, value, stoplight: sl, insight, icon: Icon }) => {
                   const pct = Math.min(100, Math.round(value ?? 0));
                   const barColor = pct >= 75 ? "bg-green-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
                   return (
-                    <div key={label}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="h-3 w-3" />{label}</span>
-                        <span className="text-xs font-semibold">{pct}</span>
+                    <div key={label} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Icon className="h-3 w-3" />{label}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <StoplightIndicator status={sl ?? "yellow"} size="sm" />
+                          <span className="text-xs font-semibold tabular-nums">{pct}</span>
+                        </div>
                       </div>
                       <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden">
-                        <div className={cn("h-full rounded-full", barColor)} style={{ width: `${pct}%` }} />
+                        <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${pct}%` }} />
                       </div>
+                      {insight && pct < 75 && (
+                        <p className="text-[10px] text-muted-foreground leading-tight">{insight}</p>
+                      )}
                     </div>
                   );
                 })}
-                {health.recommendation && (
-                  <p className="text-xs text-muted-foreground pt-2 border-t border-border leading-relaxed">{health.recommendation}</p>
+                {health.insight && (
+                  <p className="text-xs text-muted-foreground pt-2 border-t border-border leading-relaxed">{health.insight}</p>
                 )}
               </CardContent>
             </Card>

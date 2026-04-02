@@ -74,6 +74,19 @@ artifacts-monorepo/
 - `alerts` — System alerts with severity levels
 - `documents` — Evidence/documents linked to workflows/assets
 
+## Scoring Engine (Phase 1 – Build 3)
+
+Lives in `artifacts/api-server/src/engine/`:
+
+- **`scoring.ts`** — Pure calculation utilities: `calcFlow`, `calcRisk`, `calcImprovement`, `calcExecution`, `calcWorkflowHealth`, `calcOperationalHealth`. Zero DB access.
+- **`loader.ts`** — Assembles `WorkflowInput` objects from DB (items + stages + history). Used by all routes that need real scoring.
+
+**Stoplight thresholds (centralized):** ≥75 = green, 50–74 = yellow, <50 = red
+
+**Workflow health weights:** Flow 30% · Risk 30% · Execution 25% · Improvement 15%
+
+All four dashboard score cards, the workflow list, the workflow detail health panel, and the analytics performance endpoint use this shared engine. Random noise/placeholder math has been eliminated.
+
 ## API Endpoints
 
 | Module | Routes |

@@ -15,4 +15,6 @@ export interface Bottleneck {
   daysStuck: number;
   impact: string;
   stoplight: Stoplight;
+  openItemCount: number;
+  insight: string;
 }

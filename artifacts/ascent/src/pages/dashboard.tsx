@@ -89,6 +89,7 @@ export default function Dashboard() {
             title="Flow" 
             score={summary?.flowScore} 
             stoplight={summary?.flowStoplight} 
+            insight={summary?.flowInsight}
             icon={Workflow}
             isLoading={isLoadingSummary}
             colorClass="text-blue-400"
@@ -97,6 +98,7 @@ export default function Dashboard() {
             title="Risk" 
             score={summary?.riskScore} 
             stoplight={summary?.riskStoplight} 
+            insight={summary?.riskInsight}
             icon={AlertTriangle}
             isLoading={isLoadingSummary}
             colorClass="text-red-400"
@@ -104,7 +106,8 @@ export default function Dashboard() {
           <ScoreCard 
             title="Execution" 
             score={summary?.executionScore} 
-            stoplight={summary?.executionStoplight} 
+            stoplight={summary?.executionStoplight}
+            insight={summary?.executionInsight}
             icon={Target}
             isLoading={isLoadingSummary}
             colorClass="text-green-400"
@@ -113,6 +116,7 @@ export default function Dashboard() {
             title="Improvement" 
             score={summary?.improvementScore} 
             stoplight={summary?.improvementStoplight} 
+            insight={summary?.improvementInsight}
             icon={Activity}
             isLoading={isLoadingSummary}
             colorClass="text-purple-400"
@@ -235,11 +239,11 @@ export default function Dashboard() {
   );
 }
 
-function ScoreCard({ title, score, stoplight, icon: Icon, isLoading, colorClass }: any) {
+function ScoreCard({ title, score, stoplight, insight, icon: Icon, isLoading, colorClass }: any) {
   return (
     <Card className="bg-card border-border/50 shadow-sm relative overflow-hidden group hover:border-primary/50 transition-colors">
       <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={`p-2 rounded-md bg-muted/50 ${colorClass}`}>
               <Icon className="h-4 w-4" />
@@ -252,10 +256,15 @@ function ScoreCard({ title, score, stoplight, icon: Icon, isLoading, colorClass 
         {isLoading ? (
           <Skeleton className="h-10 w-24" />
         ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold tracking-tight">{score}</span>
-            <span className="text-sm font-medium text-muted-foreground">/100</span>
-          </div>
+          <>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-4xl font-bold tracking-tight">{score}</span>
+              <span className="text-sm font-medium text-muted-foreground">/100</span>
+            </div>
+            {insight && (
+              <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">{insight}</p>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

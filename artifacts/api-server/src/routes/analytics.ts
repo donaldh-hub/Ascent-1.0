@@ -1,52 +1,55 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { workflowsTable, stagesTable, alertsTable } from "@workspace/db/schema";
+import { alertsTable } from "@workspace/db/schema";
+import { loadAllWorkflowInputs } from "../engine/loader";
+import { calcWorkflowHealth, calcOperationalHealth } from "../engine/scoring";
 
 const router: IRouter = Router();
 
 router.get("/analytics/trends", async (req, res) => {
   try {
-    const days = req.query.days ? parseInt(req.query.days as string) : 30;
-    const workflows = await db.select().from(workflowsTable);
+    const [workflowInputs, alerts] = await Promise.all([
+      loadAllWorkflowInputs(),
+      db.select().from(alertsTable),
+    ]);
 
+    // Compute today's real scores
+    const operational = calcOperationalHealth(workflowInputs, alerts);
+    const today = new Date().toISOString().split("T")[0];
+
+    // For now, history is today only. As the system runs longer,
+    // score snapshots will accumulate and populate this series.
+    // We return a truthful single-point series rather than fake historical data.
+    const days = req.query.days ? parseInt(req.query.days as string, 10) : 30;
+
+    // Build placeholder history: today is real, past is null (no fake jitter)
     const dates: string[] = [];
-    const operationalHealth: number[] = [];
-    const flowScores: number[] = [];
-    const riskScores: number[] = [];
-    const improvementScores: number[] = [];
-    const executionScores: number[] = [];
-
-    const avgFlow = workflows.length > 0
-      ? workflows.reduce((s, w) => s + w.flowScore, 0) / workflows.length
-      : 80;
-    const avgRisk = workflows.length > 0
-      ? workflows.reduce((s, w) => s + w.riskScore, 0) / workflows.length
-      : 80;
-    const avgImprove = workflows.length > 0
-      ? workflows.reduce((s, w) => s + w.improvementScore, 0) / workflows.length
-      : 80;
-    const avgExec = workflows.length > 0
-      ? workflows.reduce((s, w) => s + w.executionScore, 0) / workflows.length
-      : 80;
+    const operationalHealth: (number | null)[] = [];
+    const flowScores: (number | null)[] = [];
+    const riskScores: (number | null)[] = [];
+    const improvementScores: (number | null)[] = [];
+    const executionScores: (number | null)[] = [];
 
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      dates.push(date.toISOString().split("T")[0]);
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dates.push(d.toISOString().split("T")[0]);
 
-      const noiseFactor = 0.85 + (i / days) * 0.1;
-      const jitter = () => (Math.random() - 0.5) * 8;
-
-      const f = Math.min(100, Math.max(10, Math.round(avgFlow * noiseFactor + jitter())));
-      const r = Math.min(100, Math.max(10, Math.round(avgRisk * noiseFactor + jitter())));
-      const im = Math.min(100, Math.max(10, Math.round(avgImprove * noiseFactor + jitter())));
-      const ex = Math.min(100, Math.max(10, Math.round(avgExec * noiseFactor + jitter())));
-
-      flowScores.push(f);
-      riskScores.push(r);
-      improvementScores.push(im);
-      executionScores.push(ex);
-      operationalHealth.push(Math.round((f + r + im + ex) / 4));
+      if (i === 0) {
+        // Today — use real computed scores
+        operationalHealth.push(operational.operationalHealthScore);
+        flowScores.push(operational.flowScore);
+        riskScores.push(operational.riskScore);
+        improvementScores.push(operational.improvementScore);
+        executionScores.push(operational.executionScore);
+      } else {
+        // Historical data not yet available
+        operationalHealth.push(null);
+        flowScores.push(null);
+        riskScores.push(null);
+        improvementScores.push(null);
+        executionScores.push(null);
+      }
     }
 
     res.json({
@@ -56,6 +59,17 @@ router.get("/analytics/trends", async (req, res) => {
       riskScore: riskScores,
       improvementScore: improvementScores,
       executionScore: executionScores,
+      hasHistoricalData: false,
+      historicalNote: "Trend history accumulates as workflows are active. Current scores reflect live data.",
+      currentScores: {
+        operationalHealth: operational.operationalHealthScore,
+        flow: operational.flowScore,
+        risk: operational.riskScore,
+        improvement: operational.improvementScore,
+        execution: operational.executionScore,
+        stoplight: operational.stoplight,
+        insight: operational.insight,
+      },
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get trends");
@@ -65,38 +79,55 @@ router.get("/analytics/trends", async (req, res) => {
 
 router.get("/analytics/workflow-performance", async (req, res) => {
   try {
-    const workflows = await db.select().from(workflowsTable);
-    const stages = await db.select().from(stagesTable);
-    const alerts = await db.select().from(alertsTable);
+    const [workflowInputs, alerts] = await Promise.all([
+      loadAllWorkflowInputs(),
+      db.select().from(alertsTable),
+    ]);
 
-    const result = workflows.map((wf) => {
-      const wfStages = stages.filter((s) => s.workflowId === wf.id);
-      const completedStages = wfStages.filter((s) => s.status === "completed");
-      const completionRate = wfStages.length > 0
-        ? Math.round((completedStages.length / wfStages.length) * 100)
+    const result = workflowInputs.map((wf) => {
+      const health = calcWorkflowHealth(wf);
+      const openItems = wf.items.filter((i) => i.status !== "completed");
+      const completedItems = wf.items.filter((i) => i.status === "completed");
+      const completionRate = wf.items.length > 0
+        ? Math.round((completedItems.length / wf.items.length) * 100)
         : 0;
 
-      const stageDurations = wfStages
-        .filter((s) => s.startedAt && s.completedAt)
-        .map((s) =>
-          (new Date(s.completedAt!).getTime() - new Date(s.startedAt!).getTime()) / 86400000
-        );
-      const avgStageDurationDays =
-        stageDurations.length > 0
-          ? Math.round(stageDurations.reduce((a, b) => a + b, 0) / stageDurations.length * 10) / 10
-          : 0;
+      // Compute average stage duration from item history
+      const avgItemAgeDays = openItems.length > 0
+        ? Math.round(
+            openItems.reduce((sum, i) => {
+              return sum + (Date.now() - i.stageEnteredAt.getTime()) / (1000 * 60 * 60 * 24);
+            }, 0) / openItems.length * 10
+          ) / 10
+        : 0;
+
+      const wfAlerts = alerts.filter((a) => a.workflowId === wf.id);
 
       return {
         workflowId: wf.id,
         title: wf.title,
-        healthScore: wf.healthScore,
-        stoplight: wf.stoplight,
+        status: wf.status,
+        healthScore: health.healthScore,
+        stoplight: health.stoplight,
+        insight: health.insight,
+        flowScore: health.flow.score,
+        flowStoplight: health.flow.stoplight,
+        riskScore: health.risk.score,
+        riskStoplight: health.risk.stoplight,
+        improvementScore: health.improvement.score,
+        executionScore: health.execution.score,
         completionRate,
-        avgStageDurationDays,
-        bottleneckCount: wfStages.filter((s) => s.isBottleneck).length,
-        alertCount: alerts.filter((a) => a.workflowId === wf.id).length,
+        openItemCount: openItems.length,
+        totalItemCount: wf.items.length,
+        avgItemAgeDays,
+        stageCount: wf.stages.length,
+        alertCount: wfAlerts.length,
+        criticalAlertCount: wfAlerts.filter((a) => a.severity === "critical").length,
       };
     });
+
+    // Sort by health score ascending (worst first) so attention areas are top
+    result.sort((a, b) => a.healthScore - b.healthScore);
 
     res.json(result);
   } catch (err) {

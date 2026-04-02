@@ -739,22 +739,32 @@ components:
           type: number
         stoplight:
           $ref: "#/components/schemas/Stoplight"
+        insight:
+          type: string
         flowScore:
           type: number
         flowStoplight:
           $ref: "#/components/schemas/Stoplight"
+        flowInsight:
+          type: string
         riskScore:
           type: number
         riskStoplight:
           $ref: "#/components/schemas/Stoplight"
+        riskInsight:
+          type: string
         improvementScore:
           type: number
         improvementStoplight:
           $ref: "#/components/schemas/Stoplight"
+        improvementInsight:
+          type: string
         executionScore:
           type: number
         executionStoplight:
           $ref: "#/components/schemas/Stoplight"
+        executionInsight:
+          type: string
         criticalItemsCount:
           type: integer
         activeWorkflowsCount:
@@ -771,14 +781,19 @@ components:
       required:
         - operationalHealthScore
         - stoplight
+        - insight
         - flowScore
         - flowStoplight
+        - flowInsight
         - riskScore
         - riskStoplight
+        - riskInsight
         - improvementScore
         - improvementStoplight
+        - improvementInsight
         - executionScore
         - executionStoplight
+        - executionInsight
         - criticalItemsCount
         - activeWorkflowsCount
         - overdueItemsCount
@@ -804,12 +819,18 @@ components:
           type: string
         stoplight:
           $ref: "#/components/schemas/Stoplight"
+        openItemCount:
+          type: integer
+        insight:
+          type: string
       required:
         - workflowId
         - workflowTitle
         - daysStuck
         - impact
         - stoplight
+        - openItemCount
+        - insight
 
     PriorityAction:
       type: object
@@ -918,37 +939,61 @@ components:
           type: number
         stoplight:
           $ref: "#/components/schemas/Stoplight"
+        insight:
+          type: string
         flowScore:
           type: number
+        flowStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        flowInsight:
+          type: string
         riskScore:
           type: number
+        riskStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        riskInsight:
+          type: string
         improvementScore:
           type: number
+        improvementStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        improvementInsight:
+          type: string
         executionScore:
           type: number
-        totalDelayDays:
-          type: number
-        estimatedCostImpact:
-          type: number
+        executionStoplight:
+          $ref: "#/components/schemas/Stoplight"
+        executionInsight:
+          type: string
         bottleneckStageId:
           type: integer
           nullable: true
         bottleneckStageName:
           type: string
           nullable: true
-        recommendation:
-          type: string
+        openItemCount:
+          type: integer
+        totalItemCount:
+          type: integer
       required:
         - workflowId
         - healthScore
         - stoplight
+        - insight
         - flowScore
+        - flowStoplight
+        - flowInsight
         - riskScore
+        - riskStoplight
+        - riskInsight
         - improvementScore
+        - improvementStoplight
+        - improvementInsight
         - executionScore
-        - totalDelayDays
-        - estimatedCostImpact
-        - recommendation
+        - executionStoplight
+        - executionInsight
+        - openItemCount
+        - totalItemCount
 
     CreateWorkflowBody:
       type: object

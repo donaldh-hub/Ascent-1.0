@@ -18,34 +18,10 @@ import {
   UpdateStageBody,
   ListWorkflowsQueryParams,
 } from "@workspace/api-zod";
+import { loadWorkflowInput } from "../engine/loader";
+import { calcWorkflowHealth, calcStoplight } from "../engine/scoring";
 
 const router: IRouter = Router();
-
-function calcStoplight(score: number): string {
-  if (score >= 75) return "green";
-  if (score >= 50) return "yellow";
-  return "red";
-}
-
-function calcWorkflowScores(stages: typeof stagesTable.$inferSelect[]) {
-  if (stages.length === 0) {
-    return { flowScore: 80, riskScore: 80, improvementScore: 80, executionScore: 80, healthScore: 80 };
-  }
-  const completed = stages.filter((s) => s.status === "completed").length;
-  const blocked = stages.filter((s) => s.status === "blocked").length;
-  const overdue = stages.filter((s) => s.status === "overdue").length;
-  const bottlenecks = stages.filter((s) => s.isBottleneck).length;
-  const total = stages.length;
-
-  const completionRate = completed / total;
-  const flowScore = Math.round(Math.max(10, (completionRate * 100) - blocked * 20 - bottlenecks * 15));
-  const riskScore = Math.round(Math.max(10, 100 - overdue * 25 - blocked * 15));
-  const improvementScore = Math.round(Math.max(10, completionRate * 90 + 10));
-  const executionScore = Math.round(Math.max(10, (completionRate * 100) - overdue * 20));
-  const healthScore = Math.round((flowScore + riskScore + improvementScore + executionScore) / 4);
-
-  return { flowScore, riskScore, improvementScore, executionScore, healthScore };
-}
 
 function enrichStage(stage: typeof stagesTable.$inferSelect) {
   const daysInStage = stage.startedAt
@@ -57,22 +33,51 @@ function enrichStage(stage: typeof stagesTable.$inferSelect) {
 router.get("/workflows", async (req, res) => {
   try {
     const query = ListWorkflowsQueryParams.parse(req.query);
-    let rows = await db.select().from(workflowsTable);
+    const { loadAllWorkflowInputs } = await import("../engine/loader");
+    const { calcWorkflowHealth } = await import("../engine/scoring");
 
-    if (query.status) rows = rows.filter((w) => w.status === query.status);
-    if (query.stoplight) rows = rows.filter((w) => w.stoplight === query.stoplight);
+    const allWorkflowInputs = await loadAllWorkflowInputs();
 
-    const allStages = await db.select().from(stagesTable);
-    const result = rows.map((w) => {
-      const stages = allStages.filter((s) => s.workflowId === w.id);
-      return {
-        ...w,
-        stagesCount: stages.length,
-        completedStagesCount: stages.filter((s) => s.status === "completed").length,
-        createdAt: w.createdAt.toISOString(),
-        updatedAt: w.updatedAt.toISOString(),
-      };
-    });
+    const result = allWorkflowInputs
+      .map((wfInput) => {
+        const health = calcWorkflowHealth(wfInput);
+        return {
+          id: wfInput.id,
+          title: wfInput.title,
+          status: wfInput.status,
+          healthScore: health.healthScore,
+          stoplight: health.stoplight,
+          insight: health.insight,
+          flowScore: health.flow.score,
+          riskScore: health.risk.score,
+          improvementScore: health.improvement.score,
+          executionScore: health.execution.score,
+          stagesCount: wfInput.stages.length,
+          completedStagesCount: wfInput.stages.filter((s) => s.status === "completed").length,
+          openItemCount: wfInput.items.filter((i) => i.status !== "completed").length,
+          totalItemCount: wfInput.items.length,
+        };
+      })
+      .filter((w) => {
+        if (query.status && w.status !== query.status) return false;
+        if (query.stoplight && w.stoplight !== query.stoplight) return false;
+        return true;
+      });
+
+    // Persist computed scores back to DB in background (non-blocking)
+    Promise.allSettled(
+      result.map((r) =>
+        db.update(workflowsTable).set({
+          healthScore: r.healthScore,
+          stoplight: r.stoplight as "green" | "yellow" | "red",
+          flowScore: r.flowScore,
+          riskScore: r.riskScore,
+          improvementScore: r.improvementScore,
+          executionScore: r.executionScore,
+          updatedAt: new Date(),
+        }).where(eq(workflowsTable.id, r.id))
+      )
+    ).catch(() => {});
 
     res.json(result);
   } catch (err) {
@@ -180,35 +185,57 @@ router.delete("/workflows/:id", async (req, res) => {
 router.get("/workflows/:id/health", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [workflow] = await db.select().from(workflowsTable).where(eq(workflowsTable.id, id));
-    if (!workflow) return res.status(404).json({ error: "Not found" });
+    const wfInput = await loadWorkflowInput(id);
+    if (!wfInput) return res.status(404).json({ error: "Not found" });
 
-    const stages = await db.select().from(stagesTable).where(eq(stagesTable.workflowId, id));
-    const scores = calcWorkflowScores(stages);
-    const stoplight = calcStoplight(scores.healthScore);
+    const health = calcWorkflowHealth(wfInput);
 
-    const bottleneck = stages.find((s) => s.isBottleneck);
-    const overdueStages = stages.filter((s) => s.status === "overdue").length;
-    const totalDelayDays = stages.reduce((acc, s) => {
-      if (s.startedAt && (s.status === "blocked" || s.status === "overdue")) {
-        return acc + Math.round((Date.now() - new Date(s.startedAt).getTime()) / 86400000);
-      }
+    // Persist computed scores back to DB so list queries stay fast
+    await db.update(workflowsTable).set({
+      healthScore: health.healthScore,
+      stoplight: health.stoplight,
+      flowScore: health.flow.score,
+      riskScore: health.risk.score,
+      improvementScore: health.improvement.score,
+      executionScore: health.execution.score,
+      updatedAt: new Date(),
+    }).where(eq(workflowsTable.id, id));
+
+    // Find bottleneck stage (most congested)
+    const openItems = wfInput.items.filter((i) => i.status !== "completed");
+    const stageCounts = openItems.reduce((acc, i) => {
+      acc[i.stageId] = (acc[i.stageId] ?? 0) + 1;
       return acc;
-    }, 0);
-
-    let recommendation = "Workflow is on track.";
-    if (scores.healthScore < 50) recommendation = "Critical: multiple stages blocked or overdue. Immediate action required.";
-    else if (scores.healthScore < 75) recommendation = "Warning: bottlenecks detected. Review blocked stages and reassign if needed.";
+    }, {} as Record<number, number>);
+    const maxCount = Math.max(0, ...Object.values(stageCounts));
+    const bottleneckStageId = maxCount >= 2
+      ? Number(Object.keys(stageCounts).find((k) => stageCounts[Number(k)] === maxCount))
+      : null;
+    const bottleneckStage = bottleneckStageId
+      ? wfInput.stages.find((s) => s.id === bottleneckStageId)
+      : null;
 
     res.json({
       workflowId: id,
-      ...scores,
-      stoplight,
-      totalDelayDays,
-      estimatedCostImpact: totalDelayDays * 500,
-      bottleneckStageId: bottleneck?.id ?? null,
-      bottleneckStageName: bottleneck?.name ?? null,
-      recommendation,
+      healthScore: health.healthScore,
+      stoplight: health.stoplight,
+      insight: health.insight,
+      flowScore: health.flow.score,
+      flowStoplight: health.flow.stoplight,
+      flowInsight: health.flow.insight,
+      riskScore: health.risk.score,
+      riskStoplight: health.risk.stoplight,
+      riskInsight: health.risk.insight,
+      improvementScore: health.improvement.score,
+      improvementStoplight: health.improvement.stoplight,
+      improvementInsight: health.improvement.insight,
+      executionScore: health.execution.score,
+      executionStoplight: health.execution.stoplight,
+      executionInsight: health.execution.insight,
+      bottleneckStageId: bottleneckStage?.id ?? null,
+      bottleneckStageName: bottleneckStage?.name ?? null,
+      openItemCount: openItems.length,
+      totalItemCount: wfInput.items.length,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get workflow health");

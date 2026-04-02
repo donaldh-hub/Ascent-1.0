@@ -1,0 +1,411 @@
+# Ascent 1.0 — Phase 1 Build 3 (Scoring + Stoplight Engine Prompt)
+
+**Reference Blueprint:** Continuous Improvement App Core Builds fileciteturn2file0
+**Reference Prompt:** Ascent 1.0 — Phase 1 Build 1 (Foundation Prompt) fileciteturn2file1
+
+---
+
+## BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+```text
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 3.
+
+The current system already has:
+- authentication
+- role-based access
+- app shell
+- workflow engine
+- workflow item movement
+- early dashboard UI
+- early alerts UI
+- early assets UI
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT create fake static scoring.
+Do NOT hardcode health numbers into cards.
+
+This build is the SHARED SCORING + STOPLIGHT ENGINE.
+
+PROJECT NAME:
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+Create the real scoring brain of Ascent 1.0 so workflows, dashboard cards, bottleneck signals, and status colors are driven by actual system data instead of static or loosely inferred values.
+
+This build must turn the app from a smart-looking interface into a true operating system with real health logic.
+
+==================================================
+BUILD REQUIREMENTS
+==================================================
+
+1. SHARED ENGINE ARCHITECTURE
+
+Build a reusable scoring engine layer that sits between raw operational data and UI output.
+
+The architecture must:
+- accept workflow and workflow item data as inputs
+- calculate real component scores
+- calculate stoplight states
+- output workflow-level health
+- output top-level operational health
+- be reusable by dashboard, workflows, alerts, and future modules
+- remain extendable for assets, warranties, documents, FIFO, Kaizen, DMAIC, and risk tools later
+
+Keep this logic separate from UI components.
+
+Preferred structure:
+- pure calculation utilities or service layer
+- stable typed interfaces/models
+- clean aggregation functions
+- no scoring math buried inside page components
+
+2. FOUR CORE SHARED CALCULATORS
+
+Build the four shared calculators defined by the product blueprint:
+
+A. FLOW CALCULATOR
+Use real workflow/workflow item data such as:
+- open item count
+- completed item count
+- time in current stage
+- total cycle time
+- stage congestion
+- blocked or stuck item count if available
+- bottleneck concentration
+
+Outputs required:
+- Flow Score (0–100)
+- Flow Stoplight (green / yellow / red)
+- Supporting insight string
+
+B. RISK CALCULATOR
+Use available real system signals such as:
+- open critical items
+- overdue items if due dates exist
+- longest aging open items
+- stuck items in high-friction stages
+- workflows currently red
+- warning density if alerts already exist
+
+Outputs required:
+- Risk Score (0–100)
+- Risk Stoplight (green / yellow / red)
+- Supporting insight string
+
+Important:
+For risk, higher risk should visually result in worse health. Structure the engine so the displayed health interpretation remains clear and consistent across the UI.
+
+C. IMPROVEMENT CALCULATOR
+For this phase, use lightweight but real inputs such as:
+- workflow recovery movement
+- item completion momentum
+- reduction in congestion over time if enough history exists
+- reduction in longest-aging item burden
+- positive trend in completed vs open item ratio
+
+Outputs required:
+- Improvement Score (0–100)
+- Improvement Stoplight (green / yellow / red)
+- Supporting insight string
+
+If historical depth is limited, create a conservative real-data version rather than fake sophistication.
+
+D. EXECUTION CALCULATOR
+Use available real signals such as:
+- item movement consistency
+- progression through workflow stages
+- completion rate
+- stale item ratio
+- follow-through across active workflows
+- assigned item responsiveness if available
+
+Outputs required:
+- Execution Score (0–100)
+- Execution Stoplight (green / yellow / red)
+- Supporting insight string
+
+3. WORKFLOW-LEVEL HEALTH SCORING
+
+Each workflow must now have a real health score.
+
+Build a workflow health function that combines appropriate weighted inputs from the four core calculators using workflow-specific data.
+
+Required workflow outputs:
+- Workflow Health Score (0–100)
+- Workflow Stoplight (green / yellow / red)
+- Workflow insight summary
+- Component sub-scores for:
+  - flow
+n  - risk
+  - improvement
+  - execution
+
+The workflow list page and workflow detail page must use these real outputs.
+
+Replace any current fake, placeholder, or hardcoded workflow health values.
+
+4. OPERATIONAL HEALTH ENGINE
+
+Build the top-level operational health engine.
+
+This must aggregate across all active workflows in the organization and output:
+- Operational Health Score (0–100)
+- Operational Stoplight (green / yellow / red)
+- Core component scores:
+  - flow
+  - risk
+  - improvement
+  - execution
+- Top-level insight summary
+
+This should drive the main dashboard overview.
+
+The operational score must be based on real workflow data, not arbitrary constants.
+
+5. STOPLIGHT THRESHOLD SYSTEM
+
+Create a shared stoplight threshold system used everywhere.
+
+Minimum requirement:
+- Green = healthy / on track
+- Yellow = risk / caution / threshold approaching
+- Red = blocked / off track / critical
+
+Build consistent threshold helpers so the UI does not interpret colors differently in different places.
+
+If needed, allow different threshold profiles for:
+- component scores
+- workflow health
+- operational health
+
+But keep the system understandable and unified.
+
+6. SCORING INPUT RULES
+
+This build must use REAL current system data.
+
+Use what already exists in the app, including where available:
+- workflow stage counts
+- movement history
+- item age in stage
+- item open time
+- current stage
+- completion counts
+- active workflow counts
+- bottleneck stage detection
+- alert counts if already wired cleanly
+
+If certain data points are not yet present, do NOT invent fake values.
+Instead:
+- calculate from what is real
+- keep scoring conservative
+- return stable fallback outputs with explanatory insight text
+
+Example acceptable insight:
+- “Limited historical data; score based on current stage aging and open item volume.”
+
+7. DASHBOARD WIRING
+
+Replace current dashboard placeholder or static metric behavior with real engine outputs.
+
+At minimum wire these dashboard areas to the new scoring engine:
+- Operational Health Score
+- Flow card
+- Risk card
+- Improvement card
+- Execution card
+- Biggest bottleneck summary
+- Open critical items count
+- Priority/attention summary where applicable
+
+Requirements:
+- no fake hardcoded numbers
+- cards update from real data
+- stoplight colors come from shared engine
+- insight text comes from real calculations
+
+8. WORKFLOW LIST WIRING
+
+Update the workflow list page so each workflow row/card uses:
+- real Workflow Health Score
+- real stoplight color
+- real stage progress and item metrics
+- real bottleneck flag where appropriate
+
+Any existing red/yellow/green label must now come from the scoring engine, not page-local logic.
+
+9. WORKFLOW DETAIL WIRING
+
+Update each workflow detail page so it shows real:
+- Workflow Health Score
+- workflow stoplight
+- flow sub-score
+- risk sub-score
+- improvement sub-score
+- execution sub-score
+- bottleneck insight
+- aging insight
+- completion insight if supported
+
+This should become the first truly intelligent workflow page.
+
+10. BOTTLENECK SCORING INTEGRATION
+
+The workflow engine already surfaces bottleneck signals.
+Now integrate bottleneck severity into the scoring system.
+
+At minimum support:
+- higher congestion lowers flow health
+- longest-aging stage lowers flow health
+- repeated stuck conditions worsen risk
+- bottleneck severity contributes to workflow health
+
+Surface one or two clear explanation lines in the UI such as:
+- “Procurement is the primary bottleneck due to aging and item volume.”
+- “Approval stage is reducing flow health across this workflow.”
+
+11. OPEN CRITICAL ITEMS LOGIC
+
+Define what counts as a critical item for this phase.
+
+Use a real ruleset such as one or more of the following:
+- explicitly critical priority items
+- items stuck beyond severe threshold
+- items in red workflows beyond threshold
+- expired warranty items already connected to workflow/asset signals if cleanly supported
+- unresolved items associated with critical alerts
+
+Then use that ruleset consistently for:
+- dashboard critical item counts
+- risk scoring
+- attention panels
+- alert escalation later
+
+12. TREND FOUNDATION
+
+Begin a light trend foundation using real timestamps/history.
+
+Do NOT overbuild reporting.
+But where history already exists, support basic trend signals such as:
+- improving vs worsening workflow health
+- open item volume up/down
+- congestion increasing/decreasing
+- completion trend improving/worsening
+
+If not enough data exists, show a truthful fallback state.
+
+Example:
+- “Trend not yet available — more workflow history needed.”
+
+13. DATA MODEL / STORAGE SUPPORT
+
+Add or extend only what is needed to support durable scoring.
+
+Possible additions if cleanly needed:
+- score snapshots
+- workflow health snapshot history
+- dashboard snapshot history
+- derived metric records
+
+Important:
+Do NOT create bloated or premature analytics infrastructure.
+Only add persistence if it supports current scoring, future trend display, or alert triggers.
+
+14. ROLE-AWARE VISIBILITY
+
+Respect existing roles.
+
+At minimum:
+- Admin / Supervisor / Manager see full score views
+- Technician sees score information relevant to assigned or visible workflows
+- Viewer sees read-only score visibility
+
+No one should break scoring access rules by route or UI loophole.
+
+15. EXPLAINABILITY REQUIREMENT
+
+Every important score displayed in the UI should be explainable.
+
+That means the system must be able to provide concise text explaining WHY a score is what it is.
+
+Examples:
+- “Health reduced by high open volume and prolonged aging in stage 3.”
+- “Execution strengthened by consistent stage movement and completions.”
+- “Risk elevated due to 2 critical items and one aging bottleneck.”
+
+This is important because users must trust the score.
+
+16. EMPTY / LOW-DATA STATES
+
+This build must handle low-data conditions gracefully.
+
+Required behavior:
+- no divide-by-zero issues
+- no broken cards
+- no fake perfect scores without basis
+- no misleading green when no data exists
+
+Use honest states such as:
+- “Insufficient workflow data to generate reliable trend.”
+- “Health is provisional until more workflow movement is recorded.”
+
+17. CODE QUALITY RULES
+
+DO:
+- build a clean shared engine layer
+- keep scoring testable
+- keep thresholds centralized
+- replace hardcoded score UI with real data wiring
+- keep logic extendable for future assets and alerts integration
+
+DO NOT:
+- bury scoring in components
+- use arbitrary demo values
+- create brittle math that changes unpredictably
+- overcomplicate the first real scoring model
+- build charts before the math is trustworthy
+
+18. SUCCESS STATE FOR THIS BUILD
+
+This build is successful when I can:
+1. Open the dashboard and see real operational health outputs
+2. Open workflows and see real workflow health values
+3. See Flow / Risk / Improvement / Execution scores driven by real data
+4. See red/yellow/green statuses that are consistently calculated
+5. Understand why a workflow is healthy or unhealthy
+6. See bottlenecks actually influence health
+7. Trust that future alerts and reports can now use the same core engine
+
+19. IMPORTANT LIMITS
+
+This build is NOT yet for:
+- full alert automation engine
+- advanced analytics reporting suite
+- OCR intelligence
+- decision trees
+- Kaizen/DMAIC math depth
+- predictive AI recommendations
+- native mobile-specific logic
+
+This build is the SHARED BRAIN.
+
+20. INTERNAL LABEL
+
+Label this internally as:
+“Phase 1 – Build 3: Scoring and Stoplight Engine”
+```
+
+---
+
+## WHY THIS BUILD MATTERS
+
+The blueprint defines the **shared math and scoring engine** as one of the most important parts of the system, including the four core calculators—**Flow, Risk, Improvement, and Execution**—plus operational and workflow health scoring. fileciteturn2file0
+
+Build 1 created the structure.
+
+Build 2 created the movement.
+
+**Build 3 creates the meaning.**
