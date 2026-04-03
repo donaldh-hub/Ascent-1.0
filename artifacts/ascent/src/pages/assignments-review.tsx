@@ -17,6 +17,7 @@ import {
   useReviewQueue, useManualAssign, useRejectAssignment,
   type Assignment,
 } from "@/hooks/use-assignments";
+import { useSystemSync } from "@/hooks/use-system-sync";
 import { useListUnits, useListProperties } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ function ManualAssignForm({
   onDone: () => void;
 }) {
   const { toast } = useToast();
+  const { sync } = useSystemSync();
   const { data: properties = [] } = useListProperties();
   const { data: units = [] } = useListUnits({});
   const manualAssign = useManualAssign();
@@ -67,7 +69,8 @@ function ManualAssignForm({
     if (!selectedUnitId) return;
     try {
       await manualAssign.mutateAsync({ id: assignmentId, unitId: selectedUnitId });
-      toast({ title: "Manually assigned", description: "Record has been linked to the unit." });
+      const unitNumber = units.find((u) => u.id === selectedUnitId)?.unitNumber;
+      sync({ type: "assignment_manual", unitNumber });
       onDone();
     } catch {
       toast({ title: "Failed to assign", variant: "destructive" });
@@ -130,6 +133,7 @@ function ReviewItem({ item }: { item: Assignment }) {
   const [expanded, setExpanded] = useState(false);
   const [showAssignForm, setShowAssignForm] = useState(false);
   const { toast } = useToast();
+  const { sync } = useSystemSync();
   const rejectMutation = useRejectAssignment();
 
   const sourceData = item.sourceData as Record<string, string>;
@@ -138,7 +142,7 @@ function ReviewItem({ item }: { item: Assignment }) {
   async function handleReject() {
     try {
       await rejectMutation.mutateAsync(item.id);
-      toast({ title: "Dismissed", description: "Record has been moved out of the queue." });
+      sync({ type: "assignment_rejected" });
     } catch {
       toast({ title: "Failed to dismiss", variant: "destructive" });
     }

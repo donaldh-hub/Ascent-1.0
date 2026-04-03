@@ -1,0 +1,312 @@
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.8.
+
+DO NOT rebuild the foundation.
+DO NOT redesign the application.
+DO NOT duplicate existing engines (scoring, alerts, documents, assignment).
+DO NOT introduce fake data or UI-only state.
+
+This build is the SYSTEM INTEGRATION + REACTION LAYER.
+
+PROJECT NAME:
+Ascent 1.0
+
+==================================================
+CORE GOAL
+=========
+
+Create a unified integration layer so that when real events occur (assignment, document upload, workflow movement), the entire system updates consistently and immediately across:
+
+* unit profiles
+* workflows
+* documents/evidence
+* alerts
+* dashboard
+
+The system must clearly express CAUSE → EFFECT.
+
+When something changes, users must be able to see:
+
+* what changed
+* where it changed
+* why it matters
+* what to do next
+
+==================================================
+CRITICAL SYSTEM RULE
+====================
+
+All updates MUST:
+
+* use existing shared data models
+* propagate through all dependent modules
+* avoid duplicate calculations or conflicting logic
+* remain explainable and traceable
+* NOT rely on manual refresh to reflect changes
+
+There must be ONE synchronized system state.
+
+==================================================
+INTEGRATION ARCHITECTURE
+========================
+
+Create a centralized integration layer called:
+
+systemIntegrationEngine
+
+Responsibilities:
+
+* listen for system events
+* orchestrate downstream updates
+* trigger recalculations (scoring, alerts, dashboard)
+* update linked entities
+* generate explainable system messages
+
+Keep this logic separate from UI components.
+
+==================================================
+SUPPORTED SYSTEM EVENTS
+=======================
+
+At minimum, handle these events:
+
+1. assignment_created
+2. assignment_confirmed
+3. assignment_updated
+4. document_uploaded
+5. document_attached
+6. workflow_item_created
+7. workflow_item_moved
+8. workflow_item_updated
+
+Each event must trigger a defined reaction chain.
+
+==================================================
+REACTION CHAINS (MANDATORY)
+===========================
+
+A. ASSIGNMENT EVENTS
+
+When assignment is created/confirmed:
+
+* link record to unit/property/asset
+* update unit profile (history + counts)
+* update workflow context if applicable
+* refresh evidence signals (attachment counts)
+* trigger scoring recalculation
+* trigger alert evaluation
+* refresh dashboard aggregates
+
+Add system message example:
+"Record assigned to Unit 3B — workflow and dashboard updated"
+
+---
+
+B. DOCUMENT EVENTS
+
+When document is uploaded or attached:
+
+* update attachment counts on item/workflow
+* update evidence badges (📎 / ⚠)
+* re-evaluate missing documentation alerts
+* update unit profile evidence section
+* trigger alert engine (if critical + no docs resolved)
+* refresh dashboard signals
+
+Add system message example:
+"Document added — evidence status updated"
+
+---
+
+C. WORKFLOW EVENTS
+
+When workflow item is created or moved:
+
+* update workflow stage counts
+* update timing metrics (aging, duration)
+* update bottleneck detection
+* trigger scoring recalculation
+* trigger alert evaluation
+* refresh dashboard
+
+Add system message example:
+"Workflow updated — health and bottleneck recalculated"
+
+==================================================
+SCORING ENGINE INTEGRATION
+==========================
+
+Every relevant event MUST trigger:
+
+* workflow health recalculation
+* operational health recalculation
+* component score updates (flow, risk, improvement, execution)
+
+No duplicated scoring logic.
+Reuse existing scoring engine only.
+
+==================================================
+ALERT ENGINE INTEGRATION
+========================
+
+After any relevant event:
+
+* re-evaluate alert rules
+* update existing alerts (do NOT duplicate)
+* resolve alerts when conditions clear
+* create new alerts only if thresholds are met
+
+Ensure deduplication and lifecycle integrity.
+
+==================================================
+DASHBOARD SYNCHRONIZATION
+=========================
+
+Dashboard must update automatically after events:
+
+* operational health score
+* core health cards
+* priority actions
+* bottleneck panel
+* workflow spotlight
+
+No stale or lagging data.
+
+==================================================
+UNIT PROFILE SYNCHRONIZATION
+============================
+
+After assignment, document, or workflow updates:
+
+* update unit history timeline
+* update document counts
+* update related workflow items
+* update activity timestamps
+
+No duplicated or shadow data.
+
+==================================================
+EVIDENCE SIGNAL INTEGRATION
+===========================
+
+Ensure evidence system updates instantly:
+
+* 📎 count updates immediately
+* ⚠ missing documentation appears/disappears correctly
+* evidence language uses existing standardized system
+
+Do NOT create new logic — reuse existing layers.
+
+==================================================
+SYSTEM FEEDBACK (USER VISIBILITY)
+=================================
+
+Introduce lightweight system feedback messages.
+
+Examples:
+
+* "3 records assigned to Unit 3B"
+* "Workflow updated — health recalculated"
+* "Evidence added — alerts updated"
+
+These can be:
+
+* toast notifications OR
+* inline system messages
+
+Must NOT interrupt workflow.
+
+==================================================
+EXPLAINABILITY REQUIREMENT
+==========================
+
+Every major change must be explainable.
+
+Examples:
+
+* "Health decreased due to aging in HVAC workflow"
+* "Risk increased due to 2 critical unassigned records"
+* "Improvement increased due to recent completions"
+
+==================================================
+DATA CONSISTENCY RULES
+======================
+
+System must:
+
+* prevent conflicting updates
+* avoid race conditions where possible
+* ensure atomic updates when linking entities
+
+==================================================
+PERFORMANCE REQUIREMENTS
+========================
+
+* updates must feel near real-time
+* no blocking UI
+* no full page reload requirements
+* efficient recalculation (avoid unnecessary loops)
+
+==================================================
+ROLE-AWARE BEHAVIOR
+===================
+
+Respect existing role system:
+
+* Admin / Supervisor → full visibility
+* Manager → operational visibility
+* Technician → scoped updates
+* Viewer → read-only
+
+==================================================
+EMPTY / LOW-DATA STATES
+=======================
+
+System must remain stable when:
+
+* no assignments exist
+* no documents exist
+* no workflows exist
+
+Use honest messaging. No fake signals.
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. Assignment updates propagate across system instantly
+2. Document uploads update evidence + alerts immediately
+3. Workflow movement updates scoring + dashboard immediately
+4. No page shows stale or disconnected data
+5. Cause → effect is visible and understandable
+6. System feels like ONE connected operating system
+
+==================================================
+IMPORTANT LIMITS
+================
+
+This build is NOT for:
+
+* predictive AI
+* advanced analytics
+* reporting engine (Build 7)
+* OCR or document intelligence expansion
+
+This is INTEGRATION + SYNCHRONIZATION ONLY.
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Build 1.8: System Integration + Reaction Layer"
+
+==================================================
+END OF PROMPT
+=============

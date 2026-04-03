@@ -90,6 +90,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useSystemSync } from "@/hooks/use-system-sync";
 
 const PRIORITY_CONFIG = {
   low: { label: "Low", color: "text-slate-400", bg: "bg-slate-800", border: "border-slate-700" },
@@ -152,14 +153,20 @@ function ItemCard({
   const moveMutation = useMoveWorkflowItem();
   const deleteMutation = useDeleteWorkflowItem();
   const { toast } = useToast();
+  const { sync } = useSystemSync();
   const otherStages = stages.filter((s) => s.id !== item.stageId);
 
   function handleMove(toStageId: number, e: React.MouseEvent) {
     e.stopPropagation();
+    const fromStage = stages.find((s) => s.id === item.stageId)?.name;
+    const toStage = stages.find((s) => s.id === toStageId)?.name;
     moveMutation.mutate(
       { id: workflowId, itemId: item.id, data: { toStageId } },
       {
-        onSuccess: () => { toast({ title: "Item moved" }); onMoved(); },
+        onSuccess: () => {
+          sync({ type: "workflow_item_moved", workflowId, itemTitle: item.title, fromStage, toStage });
+          onMoved();
+        },
         onError: () => toast({ title: "Error", description: "Failed to move item.", variant: "destructive" }),
       }
     );
@@ -169,7 +176,12 @@ function ItemCard({
     e.stopPropagation();
     deleteMutation.mutate(
       { id: workflowId, itemId: item.id },
-      { onSuccess: () => { toast({ title: "Item deleted" }); onMoved(); } }
+      {
+        onSuccess: () => {
+          sync({ type: "workflow_item_deleted", workflowId });
+          onMoved();
+        },
+      }
     );
   }
 
@@ -265,6 +277,7 @@ function ItemDetailSheet({
   const updateMutation = useUpdateWorkflowItem();
   const moveMutation = useMoveWorkflowItem();
   const { toast } = useToast();
+  const { sync } = useSystemSync();
   const [editMode, setEditMode] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -288,17 +301,27 @@ function ItemDetailSheet({
         data: { title: editTitle, description: editDescription || null, assignedTo: editAssignedTo || null },
       },
       {
-        onSuccess: () => { toast({ title: "Item updated" }); setEditMode(false); onMoved(); },
+        onSuccess: () => {
+          sync({ type: "workflow_item_updated", workflowId, itemTitle: editTitle });
+          setEditMode(false);
+          onMoved();
+        },
       }
     );
   }
 
   function handleMove(toStageId: number) {
     if (!item) return;
+    const fromStage = stages.find((s) => s.id === item.stageId)?.name;
+    const toStage = stages.find((s) => s.id === toStageId)?.name;
     moveMutation.mutate(
       { id: workflowId, itemId: item.id, data: { toStageId } },
       {
-        onSuccess: () => { toast({ title: "Item moved" }); onMoved(); onClose(); },
+        onSuccess: () => {
+          sync({ type: "workflow_item_moved", workflowId, itemTitle: item.title, fromStage, toStage });
+          onMoved();
+          onClose();
+        },
       }
     );
   }
@@ -466,6 +489,7 @@ function CreateItemDialog({
   const [open, setOpen] = useState(false);
   const createMutation = useCreateWorkflowItem();
   const { toast } = useToast();
+  const { sync } = useSystemSync();
 
   const form = useForm<z.infer<typeof createItemSchema>>({
     resolver: zodResolver(createItemSchema),
@@ -487,7 +511,7 @@ function CreateItemDialog({
       },
       {
         onSuccess: () => {
-          toast({ title: "Item created" });
+          sync({ type: "workflow_item_created", workflowId, itemTitle: data.title });
           setOpen(false);
           form.reset({ title: "", description: "", priority: "medium", assignedTo: "", dueDate: "", stageId: defaultStageId });
           onCreated();

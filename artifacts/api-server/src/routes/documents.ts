@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { documentsTable, insertDocumentSchema } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { ObjectStorageService } from "../lib/objectStorage";
+import { onDocumentEvent } from "../engine/system-integration";
 
 const router: IRouter = Router();
 
@@ -181,6 +182,7 @@ router.post("/documents", async (req, res) => {
 
   try {
     const [doc] = await db.insert(documentsTable).values(parse.data).returning();
+    await onDocumentEvent("document_uploaded", doc.id);
     res.status(201).json(doc);
   } catch (err) {
     req.log.error({ err }, "Failed to create document record");
@@ -273,6 +275,7 @@ router.delete("/documents/:id", async (req, res) => {
     }
 
     await db.delete(documentsTable).where(eq(documentsTable.id, id));
+    await onDocumentEvent("document_deleted", id);
     res.status(204).end();
   } catch (err) {
     req.log.error({ err }, "Failed to delete document");

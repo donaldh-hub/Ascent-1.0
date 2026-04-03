@@ -7,6 +7,7 @@ import {
   insertWorkflowItemSchema,
 } from "@workspace/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
+import { onWorkflowItemEvent } from "../engine/system-integration";
 
 const router = Router({ mergeParams: true });
 
@@ -95,6 +96,8 @@ router.post("/", async (req, res) => {
     notes: "Item created",
   });
 
+  await onWorkflowItemEvent("workflow_item_created", workflowId, item.id);
+
   const [stage] = await db.select().from(stagesTable).where(eq(stagesTable.id, item.stageId));
   res.status(201).json(await enrichItem(item, stage));
 });
@@ -161,6 +164,8 @@ router.put("/:itemId", async (req, res) => {
 
   if (!item) return res.status(404).json({ error: "Item not found" });
 
+  await onWorkflowItemEvent("workflow_item_updated", workflowId, itemId);
+
   const [stage] = await db.select().from(stagesTable).where(eq(stagesTable.id, item.stageId));
   res.json(await enrichItem(item, stage));
 });
@@ -180,6 +185,7 @@ router.delete("/:itemId", async (req, res) => {
     .returning();
 
   if (!deleted) return res.status(404).json({ error: "Item not found" });
+  await onWorkflowItemEvent("workflow_item_deleted", workflowId);
   res.status(204).send();
 });
 
@@ -235,6 +241,8 @@ router.post("/:itemId/move", async (req, res) => {
     })
     .where(eq(workflowItemsTable.id, itemId))
     .returning();
+
+  await onWorkflowItemEvent("workflow_item_moved", workflowId, itemId);
 
   res.json(await enrichItem(updated, targetStage));
 });

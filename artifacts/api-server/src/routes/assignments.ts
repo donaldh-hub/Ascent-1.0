@@ -7,6 +7,7 @@ import { db } from "@workspace/db";
 import { assignmentsTable, unitsTable, propertiesTable } from "@workspace/db/schema";
 import { eq, and, inArray, or } from "drizzle-orm";
 import { AssignmentEngine, extractHintsFromRow, type SourceRecord } from "../engine/assignment";
+import { onAssignmentEvent } from "../engine/system-integration";
 import type { AssignmentSourceType } from "@workspace/db/schema";
 
 const router: IRouter = Router();
@@ -199,6 +200,7 @@ router.post("/assignments/:id/confirm", async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
     await AssignmentEngine.confirmAssignment(id);
+    await onAssignmentEvent("assignment_confirmed", id);
     req.log.info({ assignmentId: id }, "Assignment confirmed");
     res.json({ ok: true });
   } catch (err) {
@@ -214,6 +216,7 @@ router.post("/assignments/:id/reject", async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
     await AssignmentEngine.rejectAssignment(id);
+    await onAssignmentEvent("assignment_rejected", id);
     req.log.info({ assignmentId: id }, "Assignment rejected");
     res.json({ ok: true });
   } catch (err) {
@@ -233,6 +236,7 @@ router.post("/assignments/:id/manual", async (req, res) => {
       return;
     }
     await AssignmentEngine.manualAssign(id, unitId);
+    await onAssignmentEvent("assignment_manual", id);
     req.log.info({ assignmentId: id, unitId }, "Assignment manually assigned");
     res.json({ ok: true });
   } catch (err) {

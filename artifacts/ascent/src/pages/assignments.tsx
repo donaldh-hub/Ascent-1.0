@@ -19,6 +19,7 @@ import {
   useProcessAssignments, useConfirmAssignment, useRejectAssignment,
   useAssignments, type ProcessResult, type ProcessSummary,
 } from "@/hooks/use-assignments";
+import { useSystemSync } from "@/hooks/use-system-sync";
 import { cn } from "@/lib/utils";
 
 // ─── Source type config ───────────────────────────────────────────────────────
@@ -219,6 +220,7 @@ export default function Assignments() {
   const processMutation = useProcessAssignments();
   const confirmMutation = useConfirmAssignment();
   const rejectMutation = useRejectAssignment();
+  const { sync } = useSystemSync();
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -248,9 +250,10 @@ export default function Assignments() {
       }));
       setResults(enriched);
       setSummary(response.summary);
-      toast({
-        title: "Processing complete",
-        description: `${response.summary.autoAssigned} auto-assigned, ${response.summary.pendingConfirmation} need confirmation.`,
+      sync({
+        type: "assignment_processed",
+        autoAssigned: response.summary.autoAssigned,
+        pendingConfirmation: response.summary.pendingConfirmation,
       });
     } catch {
       toast({ title: "Processing failed", description: "Please try again.", variant: "destructive" });
@@ -260,12 +263,18 @@ export default function Assignments() {
   async function handleConfirm(id: number, idx: number) {
     try {
       await confirmMutation.mutateAsync(id);
+      const result = results[idx];
       setResults((prev) => prev.map((r, i) => i === idx ? { ...r, status: "assigned" } : r));
       setSummary((prev) => prev ? {
         ...prev,
         autoAssigned: prev.autoAssigned + 1,
         pendingConfirmation: prev.pendingConfirmation - 1,
       } : prev);
+      sync({
+        type: "assignment_confirmed",
+        unitNumber: result?.match?.unit?.unitNumber,
+        sourceType: result?.sourceType,
+      });
     } catch {
       toast({ title: "Failed to confirm", variant: "destructive" });
     }
@@ -280,6 +289,7 @@ export default function Assignments() {
         pendingConfirmation: prev.pendingConfirmation - 1,
         reviewRequired: prev.reviewRequired + 1,
       } : prev);
+      sync({ type: "assignment_rejected" });
     } catch {
       toast({ title: "Failed to reject", variant: "destructive" });
     }

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useSystemSync } from "@/hooks/use-system-sync";
 import {
   Paperclip,
   Upload,
@@ -175,6 +176,7 @@ function UploadForm({
   const createDocMutation = useCreateDocument();
   const { toast } = useToast();
 
+  const { sync } = useSystemSync();
   const { uploadFile, isUploading, progress } = useUpload({
     onError: (err) => {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
@@ -216,7 +218,7 @@ function UploadForm({
       },
       {
         onSuccess: () => {
-          toast({ title: "Document attached", description: selectedFile.name });
+          sync({ type: "document_uploaded", fileName: selectedFile.name, entityType });
           onUploaded();
         },
         onError: () => {
@@ -402,6 +404,7 @@ export function DocumentPanel({
   );
 
   const deleteDocMutation = useDeleteDocument();
+  const { sync: syncSystem } = useSystemSync();
 
   function handleDelete(id: number, name: string, e: React.MouseEvent) {
     e.stopPropagation();
@@ -409,7 +412,7 @@ export function DocumentPanel({
       { id },
       {
         onSuccess: () => {
-          toast({ title: "Document removed", description: name });
+          syncSystem({ type: "document_deleted", fileName: name });
           refetch();
         },
         onError: () => {
