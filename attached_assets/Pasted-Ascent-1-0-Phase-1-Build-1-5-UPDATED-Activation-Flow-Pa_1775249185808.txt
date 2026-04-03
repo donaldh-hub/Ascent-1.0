@@ -1,0 +1,247 @@
+Ascent 1.0 — Phase 1 Build 1.5 (UPDATED Activation Flow Patch Prompt)
+
+Reference Prior Builds:
+
+* Phase 1 — Build 1 (Authentication, Roles, App Shell)
+* Phase 1 — Build 1.5 (Guided System Activation + Unit Intake Layer)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is an UPDATED PATCH for PHASE 1 — BUILD 1.5.
+
+Do NOT rebuild the existing property/unit data model.
+Do NOT replace current onboarding data work.
+Do NOT redesign the app shell.
+Do NOT modify Build 1.6 in this pass.
+Do NOT create duplicate onboarding data structures.
+
+PROJECT NAME:
+Ascent 1.0
+
+CORE GOAL OF THIS PATCH:
+
+Enforce a real first-run activation flow so new users are guided through setup before accessing the main app.
+
+This patch must convert existing setup capability into a REQUIRED, guided experience.
+
+==================================================
+
+CRITICAL SYSTEM RULE
+
+==================================================
+
+* Use existing auth/session system
+* Use existing organization, property, and unit models
+* Persist all data in the core database
+* Do NOT create UI-only or temporary onboarding records
+* Maintain ONE shared source of truth
+
+==================================================
+
+PATCH REQUIREMENTS
+
+==================================================
+
+1. FIRST-RUN SETUP GATING
+
+On authenticated login, check setup completion:
+
+Setup is COMPLETE only if:
+
+* organization exists
+* at least one property exists
+* at least one unit exists
+
+If NOT complete:
+
+* force redirect to /setup
+* block access to dashboard, analytics, workflows, etc.
+
+If complete:
+
+* allow normal app routing
+
+This must apply on:
+
+* login
+* page refresh
+* direct URL navigation
+
+==================================================
+
+2. SETUP COMPLETION STATE
+
+Implement reliable completion detection.
+
+Preferred:
+
+* derive from real data (properties + units)
+
+Optional (if needed):
+
+* add organization field: is_setup_complete (boolean)
+* update to true ONLY after successful setup completion
+
+Do NOT allow manual toggling without real data.
+
+==================================================
+
+3. SETUP ROUTE + FLOW
+
+Create route:
+
+* /setup
+
+This route must be a guided, step-by-step flow.
+
+Steps:
+
+Step 1 — Welcome
+
+* “Let’s set up your system”
+* Button: Start Setup
+
+Step 2 — Property Creation
+
+* Create first property
+* Fields:
+
+  * property name (required)
+  * address (optional)
+
+Step 3 — Unit Intake Choice
+User must choose:
+
+* Upload CSV
+* Manual Entry
+
+Step 4 — Unit Creation
+
+* CSV path:
+
+  * upload file
+  * map fields
+  * preview
+  * confirm import
+* Manual path:
+
+  * add units quickly
+  * minimal friction input
+
+Step 5 — Completion
+
+* show summary:
+
+  * properties created
+  * units created
+* message: “Your system is now active”
+* CTA: Go to Units
+
+==================================================
+
+4. REDIRECTION AFTER SETUP
+
+After completion:
+
+* redirect to /units
+* mark setup as complete (derived or stored)
+
+User must NOT be redirected back to /setup after completion.
+
+==================================================
+
+5. PROTECTED ROUTES UPDATE
+
+Update route guard logic:
+
+If setup incomplete:
+
+* redirect ALL protected routes → /setup
+
+Exceptions:
+
+* /setup
+* logout/auth routes
+
+==================================================
+
+6. UX REQUIREMENTS
+
+Setup must feel:
+
+* fast
+* simple
+* guided
+* confidence-building
+
+User must experience:
+
+* immediate progress
+* clear next step
+* no confusion about where to start
+
+==================================================
+
+7. EMPTY STATE HANDLING
+
+If user has:
+
+* no properties
+* no units
+
+Do NOT show dashboard placeholders.
+Redirect to setup immediately.
+
+==================================================
+
+8. AUDIT + TRACKING
+
+Track:
+
+* setup started
+* property created
+* units created
+* setup completed
+
+==================================================
+
+9. SUCCESS STATE
+
+This patch is complete when:
+
+1. New user logs in
+2. User is forced into /setup
+3. User creates property
+4. User creates or uploads units
+5. User completes setup
+6. User is redirected to /units
+7. User can now access full app normally
+8. Refresh does NOT send user back to setup
+
+==================================================
+
+IMPORTANT LIMITS
+
+This patch is NOT for:
+
+* assignment engine
+* document intelligence
+* workflow linking
+* scoring
+* alerts
+
+This is ACTIVATION ONLY.
+
+==================================================
+
+INTERNAL LABEL
+
+“Phase 1 — Build 1.5 (Activation Flow Patch)”
+
+==================================================
+
+END OF PROMPT

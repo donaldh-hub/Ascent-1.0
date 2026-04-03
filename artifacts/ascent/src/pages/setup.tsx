@@ -1,14 +1,26 @@
+/**
+ * Build 1.5 (Activation Flow Patch)
+ *
+ * Guided first-run setup: Property → Unit intake → Complete.
+ * Completion is derived from real data (via useSetupStatus in App.tsx).
+ * NO localStorage — no manual toggles.
+ */
+
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Building2, Plus, Upload, CheckCircle2, ChevronRight, X, AlertTriangle, FileText, ArrowRight } from "lucide-react";
+import {
+  Activity, Building2, Plus, Upload, CheckCircle2, ChevronRight,
+  X, AlertTriangle, FileText, ArrowRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useListProperties, useCreateProperty, useListUnits, useCreateUnit, useImportUnits } from "@workspace/api-client-react";
+import {
+  useListProperties, useCreateProperty,
+  useListUnits, useCreateUnit, useImportUnits,
+} from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-
-const STORAGE_KEY = "ascent_onboarding_complete";
 
 type Step = "welcome" | "property" | "units" | "complete";
 type UnitMethod = "manual" | "csv";
@@ -16,14 +28,6 @@ type UnitMethod = "manual" | "csv";
 interface ParsedRow {
   unitNumber: string;
   [key: string]: string;
-}
-
-export function markOnboardingComplete() {
-  localStorage.setItem(STORAGE_KEY, "true");
-}
-
-export function isOnboardingComplete(): boolean {
-  return localStorage.getItem(STORAGE_KEY) === "true";
 }
 
 function parseCSV(text: string): { headers: string[]; rows: Record<string, string>[] } {
@@ -38,6 +42,14 @@ function parseCSV(text: string): { headers: string[]; rows: Record<string, strin
   });
   return { headers, rows };
 }
+
+// ─── Audit helpers (extensible) ───────────────────────────────────────────────
+
+function trackEvent(event: string, meta?: Record<string, unknown>) {
+  console.info(`[Ascent Setup] ${event}`, meta ?? "");
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Setup() {
   const [, navigate] = useLocation();
@@ -64,23 +76,31 @@ export default function Setup() {
   const createProperty = useCreateProperty();
   const createUnit = useCreateUnit();
   const importUnits = useImportUnits();
+
   const { data: allUnits } = useListUnits(
     { propertyId: createdPropertyId ?? undefined },
     { query: { enabled: step === "complete" && createdPropertyId !== null } }
   );
 
+  // ── Step: Create property ──────────────────────────────────────────────────
+
   async function handleCreateProperty() {
     if (!propertyName.trim()) return;
     try {
-      const prop = await createProperty.mutateAsync({ data: { name: propertyName.trim(), address: propertyAddress.trim() || undefined } });
+      const prop = await createProperty.mutateAsync({
+        data: { name: propertyName.trim(), address: propertyAddress.trim() || undefined },
+      });
       setCreatedPropertyId(prop.id);
       setCreatedPropertyName(prop.name);
       queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      trackEvent("property_created", { propertyId: prop.id, name: prop.name });
       setStep("units");
     } catch {
       toast({ title: "Error", description: "Failed to create property. Please try again.", variant: "destructive" });
     }
   }
+
+  // ── Step: CSV import ───────────────────────────────────────────────────────
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -105,16 +125,20 @@ export default function Setup() {
     if (!createdPropertyId || !csvMapping) return;
     const units = csvRows
       .map((row) => ({ unitNumber: row[csvMapping]?.trim() }))
-      .filter((u) => u.unitNumber);
+      .filter((u): u is { unitNumber: string } => !!u.unitNumber);
     try {
       const result = await importUnits.mutateAsync({ data: { propertyId: createdPropertyId, units } });
       setUnitsCreatedCount(result.imported);
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      trackEvent("units_created", { method: "csv", count: result.imported });
       setStep("complete");
+      trackEvent("setup_completed");
     } catch {
       toast({ title: "Error", description: "Failed to import units.", variant: "destructive" });
     }
   }
+
+  // ── Step: Manual units ─────────────────────────────────────────────────────
 
   async function handleManualSubmit() {
     if (!createdPropertyId) return;
@@ -129,29 +153,37 @@ export default function Setup() {
         await createUnit.mutateAsync({ data: { propertyId: createdPropertyId, unitNumber } });
         count++;
       } catch {
-        // skip duplicates
+        // skip duplicates silently
       }
     }
     setUnitsCreatedCount(count);
     queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+    trackEvent("units_created", { method: "manual", count });
     setStep("complete");
+    trackEvent("setup_completed");
   }
 
-  function handleSkipUnits() {
-    setUnitsCreatedCount(0);
-    setStep("complete");
-  }
+  // ── Finish ─────────────────────────────────────────────────────────────────
 
   function handleFinish() {
-    markOnboardingComplete();
+    // Completion is derived from real data in useSetupStatus — no localStorage needed.
+    // Invalidate queries so the gate check reflects the new state immediately.
+    queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/units"] });
     navigate("/units");
   }
 
   const totalUnits = allUnits?.length ?? unitsCreatedCount;
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  const STEPS: Step[] = ["welcome", "property", "units", "complete"];
+  const stepIdx = STEPS.indexOf(step);
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
+
         {/* Logo */}
         <div className="flex items-center gap-2 justify-center mb-8">
           <Activity className="h-7 w-7 text-primary" />
@@ -160,19 +192,25 @@ export default function Setup() {
           </span>
         </div>
 
-        {/* Progress dots */}
+        {/* Progress indicator */}
         <div className="flex justify-center gap-2 mb-8">
-          {(["welcome", "property", "units", "complete"] as Step[]).map((s, i) => (
+          {STEPS.map((s, i) => (
             <div
               key={s}
               className={`h-2 rounded-full transition-all duration-300 ${
-                s === step ? "w-6 bg-primary" : i < (["welcome","property","units","complete"] as Step[]).indexOf(step) ? "w-2 bg-primary/60" : "w-2 bg-border"
+                s === step
+                  ? "w-6 bg-primary"
+                  : i < stepIdx
+                  ? "w-2 bg-primary/60"
+                  : "w-2 bg-border"
               }`}
             />
           ))}
         </div>
 
         <AnimatePresence mode="wait">
+
+          {/* ── Welcome ── */}
           {step === "welcome" && (
             <motion.div
               key="welcome"
@@ -187,12 +225,17 @@ export default function Setup() {
                 We'll walk you through creating your first property and adding your units.
                 This becomes the foundation everything else connects to.
               </p>
-              <Button size="lg" className="w-full" onClick={() => setStep("property")}>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => { trackEvent("setup_started"); setStep("property"); }}
+              >
                 Start Setup <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </motion.div>
           )}
 
+          {/* ── Property ── */}
           {step === "property" && (
             <motion.div
               key="property"
@@ -210,7 +253,9 @@ export default function Setup() {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Property name <span className="text-destructive">*</span></label>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Property name <span className="text-destructive">*</span>
+                  </label>
                   <Input
                     placeholder="e.g. Riverside Apartments"
                     value={propertyName}
@@ -220,11 +265,14 @@ export default function Setup() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Address <span className="text-muted-foreground font-normal">(optional)</span></label>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Address <span className="text-muted-foreground font-normal">(optional)</span>
+                  </label>
                   <Input
                     placeholder="e.g. 123 Main Street, Springfield"
                     value={propertyAddress}
                     onChange={(e) => setPropertyAddress(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateProperty()}
                   />
                 </div>
               </div>
@@ -234,24 +282,29 @@ export default function Setup() {
                 disabled={!propertyName.trim() || createProperty.isPending}
                 onClick={handleCreateProperty}
               >
-                {createProperty.isPending ? "Creating..." : "Continue"} <ChevronRight className="ml-2 h-4 w-4" />
+                {createProperty.isPending ? "Creating..." : "Continue"}
+                <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </motion.div>
           )}
 
+          {/* ── Units ── */}
           {step === "units" && (
             <motion.div
               key="units"
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
               className="bg-card border border-border rounded-xl p-8 shadow-xl"
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-6">
                 <h2 className="text-xl font-bold">Add units to {createdPropertyName}</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  At least one unit is required to activate your system.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">How would you like to add your units?</p>
 
+              {/* Method selector */}
               {!unitMethod && (
-                <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setUnitMethod("csv")}
                     className="border border-border rounded-lg p-4 text-left hover:border-primary/50 hover:bg-primary/5 transition-colors group"
@@ -271,10 +324,14 @@ export default function Setup() {
                 </div>
               )}
 
+              {/* CSV flow */}
               {unitMethod === "csv" && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <button onClick={() => { setUnitMethod(null); setCsvRows([]); setCsvHeaders([]); }} className="text-muted-foreground hover:text-foreground">
+                    <button
+                      onClick={() => { setUnitMethod(null); setCsvRows([]); setCsvHeaders([]); }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                     <span className="text-sm font-medium">CSV Upload</span>
@@ -288,7 +345,13 @@ export default function Setup() {
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm font-medium">Click to upload a CSV file</p>
                       <p className="text-xs text-muted-foreground mt-1">Accepts any CSV or spreadsheet export</p>
-                      <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileChange} />
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept=".csv,.txt"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -299,7 +362,9 @@ export default function Setup() {
                       </div>
 
                       <div>
-                        <label className="text-sm font-medium mb-1.5 block">Which column is the unit number?</label>
+                        <label className="text-sm font-medium mb-1.5 block">
+                          Which column is the unit number?
+                        </label>
                         <select
                           value={csvMapping}
                           onChange={(e) => setCsvMapping(e.target.value)}
@@ -319,12 +384,20 @@ export default function Setup() {
                           <div className="divide-y divide-border">
                             {csvRows.slice(0, 5).map((row, i) => (
                               <div key={i} className="px-3 py-2 text-sm flex items-center gap-2">
-                                <span className="font-medium">{row[csvMapping] || <span className="text-muted-foreground italic">empty</span>}</span>
-                                {!row[csvMapping] && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />}
+                                <span className="font-medium">
+                                  {row[csvMapping] || (
+                                    <span className="text-muted-foreground italic">empty</span>
+                                  )}
+                                </span>
+                                {!row[csvMapping] && (
+                                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                                )}
                               </div>
                             ))}
                             {csvRows.length > 5 && (
-                              <div className="px-3 py-2 text-xs text-muted-foreground">…and {csvRows.length - 5} more</div>
+                              <div className="px-3 py-2 text-xs text-muted-foreground">
+                                …and {csvRows.length - 5} more
+                              </div>
                             )}
                           </div>
                         </div>
@@ -332,7 +405,7 @@ export default function Setup() {
 
                       {!csvPreviewConfirmed ? (
                         <Button className="w-full" onClick={() => setCsvPreviewConfirmed(true)}>
-                          Looks good — import {csvRows.filter(r => r[csvMapping]?.trim()).length} units
+                          Looks good — import {csvRows.filter((r) => r[csvMapping]?.trim()).length} units
                         </Button>
                       ) : (
                         <Button
@@ -349,15 +422,19 @@ export default function Setup() {
                 </div>
               )}
 
+              {/* Manual flow */}
               {unitMethod === "manual" && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <button onClick={() => setUnitMethod(null)} className="text-muted-foreground hover:text-foreground">
+                    <button
+                      onClick={() => setUnitMethod(null)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
                       <X className="h-4 w-4" />
                     </button>
                     <span className="text-sm font-medium">Manual entry</span>
                   </div>
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  <div id="manual-unit-inputs" className="space-y-2 max-h-64 overflow-y-auto pr-1">
                     {manualUnits.map((u, i) => (
                       <div key={i} className="flex items-center gap-2">
                         <Input
@@ -403,23 +480,17 @@ export default function Setup() {
                     disabled={createUnit.isPending || manualUnits.filter((u) => u.trim()).length === 0}
                     onClick={handleManualSubmit}
                   >
-                    {createUnit.isPending ? "Saving..." : `Add ${manualUnits.filter((u) => u.trim()).length} unit${manualUnits.filter((u) => u.trim()).length !== 1 ? "s" : ""}`}
+                    {createUnit.isPending
+                      ? "Saving..."
+                      : `Add ${manualUnits.filter((u) => u.trim()).length} unit${manualUnits.filter((u) => u.trim()).length !== 1 ? "s" : ""}`}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               )}
-
-              {!unitMethod && (
-                <button
-                  onClick={handleSkipUnits}
-                  className="w-full text-center text-sm text-muted-foreground hover:text-foreground mt-2 transition-colors"
-                >
-                  Skip for now — I'll add units later
-                </button>
-              )}
             </motion.div>
           )}
 
+          {/* ── Complete ── */}
           {step === "complete" && (
             <motion.div
               key="complete"
@@ -451,6 +522,7 @@ export default function Setup() {
               </Button>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </div>

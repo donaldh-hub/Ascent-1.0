@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
 import Layout from "@/components/layout";
+import { Activity } from "lucide-react";
+import { useSetupStatus } from "@/hooks/use-setup-status";
 
 // Pages
 import Dashboard from "@/pages/dashboard";
@@ -19,12 +21,41 @@ import Setup from "@/pages/setup";
 
 const queryClient = new QueryClient();
 
-function Router() {
-  const [location] = useLocation();
-  const isSetup = location === "/setup" || location.startsWith("/setup?");
+// ─── Gate loader ──────────────────────────────────────────────────────────────
 
-  if (isSetup) {
+function SetupCheckLoader() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <Activity className="h-5 w-5 text-primary animate-pulse" />
+        <span className="text-sm">Loading...</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+
+function Router() {
+  const [location, navigate] = useLocation();
+  const isSetupRoute = location === "/setup" || location.startsWith("/setup?");
+
+  const { isComplete, isLoading } = useSetupStatus();
+
+  // /setup is always accessible
+  if (isSetupRoute) {
     return <Setup />;
+  }
+
+  // Hold rendering while we check real data
+  if (isLoading) {
+    return <SetupCheckLoader />;
+  }
+
+  // Setup incomplete — gate ALL protected routes
+  if (!isComplete) {
+    // Use an effect-based redirect to avoid render-phase side effects
+    return <SetupRedirect navigate={navigate} />;
   }
 
   return (
@@ -43,6 +74,15 @@ function Router() {
     </Layout>
   );
 }
+
+function SetupRedirect({ navigate }: { navigate: (path: string) => void }) {
+  useEffect(() => {
+    navigate("/setup");
+  }, [navigate]);
+  return <SetupCheckLoader />;
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
 
 function App() {
   useEffect(() => {
