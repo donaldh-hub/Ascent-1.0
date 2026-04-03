@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, LayoutDashboard, GitBranch, Server, TrendingUp, Bell, Building2, FileText } from "lucide-react";
+import { Activity, LayoutDashboard, GitBranch, Server, TrendingUp, Bell, Building2, FileText, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useListAlerts } from "@workspace/api-client-react";
 
@@ -13,6 +13,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { href: "/workflows", label: "Workflows", icon: GitBranch },
     { href: "/units", label: "Units", icon: Building2 },
     { href: "/documents", label: "Documents", icon: FileText },
+    { href: "/assignments", label: "Assignments", icon: ClipboardCheck },
     { href: "/assets", label: "Assets", icon: Server },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
     { 

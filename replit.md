@@ -30,6 +30,7 @@ A continuous improvement operational intelligence platform — an air traffic co
 5. **Alert Engine** — Automated 6-rule evaluator (critical items, overdue, aging, bottleneck, health score drops, unassigned high-priority) with deduplication via ruleKey, lifecycle management (active → acknowledged → resolved), category/level filters, per-workflow alert badges
 6. **Analytics & Trends** — Score trend charts, workflow performance tables
 7. **Document Engine** — Link documents/evidence to workflows, stages, and assets
+8. **Assignment Engine** — CSV/work-order ingestion, Levenshtein matching against units/properties, confidence scoring (high→auto-assign, medium→confirm, low→review queue), manual assignment fallback, unit history integration
 
 ### Calculation Engine
 

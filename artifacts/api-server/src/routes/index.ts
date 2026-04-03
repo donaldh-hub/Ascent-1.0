@@ -8,6 +8,7 @@ import analyticsRouter from "./analytics";
 import itemsRouter from "./items";
 import documentsRouter from "./documents";
 import propertiesRouter from "./properties";
+import assignmentsRouter from "./assignments";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(alertsRouter);
 router.use(analyticsRouter);
 router.use(documentsRouter);
 router.use(propertiesRouter);
+router.use(assignmentsRouter);
 
 export default router;

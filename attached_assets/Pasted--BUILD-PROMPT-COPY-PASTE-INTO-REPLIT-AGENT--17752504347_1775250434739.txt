@@ -1,0 +1,340 @@
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.7.
+
+DO NOT rebuild the foundation.
+DO NOT redesign the application.
+DO NOT create duplicate data models.
+DO NOT create fake or UI-only assignment results.
+
+This build is the ASSIGNMENT ENGINE LOGIC.
+
+PROJECT NAME:
+Ascent 1.0
+
+==================================================
+CORE GOAL
+=========
+
+Create a centralized assignment engine that takes structured input data
+(CSV uploads, work orders, service logs, warranty records, turn logs)
+and connects each record to the correct:
+
+* organization
+* property
+* unit
+* asset (if applicable)
+* workflow or workflow item (if applicable)
+
+All assignments must become REAL, persistent, visible system relationships.
+
+==================================================
+CRITICAL SYSTEM RULE
+====================
+
+All assignment results MUST:
+
+* attach to existing records (no temporary objects)
+* persist in the core database
+* appear immediately in unit profiles and related views
+* update dashboard, workflows, and alerts where applicable
+* NOT exist as UI-only or session-only data
+
+There must be ONE shared system truth.
+
+==================================================
+ASSIGNMENT ENGINE ARCHITECTURE
+==============================
+
+Create a centralized service layer called:
+
+assignmentEngine
+
+Responsibilities:
+
+* accept structured input records
+* normalize incoming data
+* evaluate match candidates
+* calculate confidence levels
+* assign or return suggestions
+* persist confirmed assignments
+* return explainable results
+
+This logic MUST NOT live inside UI components.
+
+==================================================
+SUPPORTED INPUT TYPES
+=====================
+
+Support assignment for:
+
+* work orders
+* warranty records
+* service logs
+* turn / make-ready records
+* CSV row imports
+
+Do NOT build OCR or AI parsing.
+
+==================================================
+DATA NORMALIZATION
+==================
+
+Before matching, normalize all inputs:
+
+* trim whitespace
+* standardize casing (upper/lower)
+* remove special characters where needed
+* normalize unit formats (e.g., "3B" vs "Unit 3B")
+* normalize property names
+
+This step is REQUIRED before any matching logic runs.
+
+==================================================
+MATCHING SIGNALS
+================
+
+PRIMARY SIGNALS:
+
+* unit name / number
+* property name
+* organization
+
+SECONDARY SIGNALS:
+
+* model number
+* serial number
+* address
+* keywords in description
+
+Matching must prioritize PRIMARY signals first.
+
+==================================================
+CONFIDENCE LEVEL SYSTEM
+=======================
+
+Each assignment must return a confidence level:
+
+HIGH CONFIDENCE:
+
+* exact match on unit + property
+* auto-assign immediately
+
+MEDIUM CONFIDENCE:
+
+* strong but not exact match
+* requires user confirmation
+
+LOW CONFIDENCE:
+
+* weak or no reliable match
+* must go to review queue
+
+Each result MUST include explanation text:
+
+Examples:
+
+* "Matched by exact unit and property"
+* "Matched by similar unit name and property"
+* "No reliable match found"
+
+==================================================
+AUTO-ASSIGNMENT RULES
+=====================
+
+ONLY auto-assign HIGH confidence matches.
+
+When auto-assigned:
+
+* create real database linkage
+* attach to unit/property/asset
+* make visible in unit profile immediately
+* log assignment event in audit log
+
+==================================================
+SUGGESTION FLOW (MEDIUM CONFIDENCE)
+===================================
+
+For medium confidence matches:
+
+* show suggested match
+* show explanation
+* allow user to CONFIRM or REJECT
+
+On confirm:
+
+* persist assignment
+
+On reject:
+
+* send to review queue
+
+==================================================
+REVIEW QUEUE (LOW CONFIDENCE)
+=============================
+
+Create route:
+
+/assignments/review
+
+Requirements:
+
+* list all unmatched records
+* show reason for no match
+* allow manual assignment
+* persist result after assignment
+
+==================================================
+DATA MODEL EXTENSIONS
+=====================
+
+Add assignment tracking fields:
+
+* source_record_id
+* source_type
+* target_entity_type
+* target_entity_id
+* confidence_level
+* assignment_method (auto / suggested / manual)
+* status (assigned / pending / rejected)
+* explanation
+* created_at
+* updated_at
+
+Do NOT create unnecessary tables.
+
+==================================================
+UNIT PROFILE INTEGRATION (CRITICAL)
+===================================
+
+When a record is assigned:
+
+* it MUST appear in the unit profile
+* it MUST appear in the unit history timeline
+* it MUST show in related work / documents / assets
+
+NO duplication of data.
+
+==================================================
+WORKFLOW INTEGRATION
+====================
+
+If applicable:
+
+* link assigned records to workflow items
+* maintain shared references
+
+Do NOT create fake workflow links.
+
+==================================================
+DOCUMENT INTEGRATION
+====================
+
+If input includes documents:
+
+* attach using existing document engine
+* maintain correct context
+* DO NOT create separate document storage
+
+==================================================
+DEDUPLICATION RULES
+===================
+
+System must:
+
+* prevent duplicate assignments
+* prevent cross-organization assignment
+* maintain data integrity
+
+==================================================
+EXPLAINABILITY REQUIREMENT
+==========================
+
+Every assignment MUST explain:
+
+* why it matched
+* why it failed
+
+==================================================
+ROLE BEHAVIOR
+=============
+
+Admin / Supervisor:
+
+* full control
+
+Manager:
+
+* confirm suggestions
+
+Technician:
+
+* limited scope visibility
+
+Viewer:
+
+* read-only
+
+==================================================
+AUDIT LOG
+=========
+
+Track:
+
+* assignment created
+* suggestion generated
+* assignment confirmed
+* assignment rejected
+* manual assignment
+
+==================================================
+UX REQUIREMENTS
+===============
+
+System must feel:
+
+* intelligent
+* fast
+* trustworthy
+* explainable
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. I can upload structured data
+2. System attempts assignment automatically
+3. High confidence records auto-assign
+4. Medium confidence records require confirmation
+5. Low confidence records appear in review queue
+6. Assigned data appears in unit profile immediately
+7. Assignments persist and are accurate
+
+==================================================
+IMPORTANT LIMITS
+================
+
+This build is NOT for:
+
+* predictive AI
+* advanced analytics
+* recurring issue detection
+* preventative maintenance intelligence
+
+This is MATCHING + ATTACHMENT ONLY.
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Build 1.7: Assignment Engine Logic"
+
+==================================================
+END OF PROMPT
+=============

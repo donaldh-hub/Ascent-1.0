@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { propertiesTable, unitsTable, documentsTable } from "@workspace/db/schema";
+import { propertiesTable, unitsTable, documentsTable, assignmentsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -149,12 +149,20 @@ router.get("/units/:id/history", async (req, res) => {
     const [unit] = await db.select().from(unitsTable).where(eq(unitsTable.id, id));
     if (!unit) { res.status(404).json({ error: "Unit not found" }); return; }
 
-    const docs = await db.select().from(documentsTable)
-      .where(and(eq(documentsTable.linkedEntityType, "unit"), eq(documentsTable.linkedEntityId, id)));
+    const [docs, assignments] = await Promise.all([
+      db.select().from(documentsTable)
+        .where(and(eq(documentsTable.linkedEntityType, "unit"), eq(documentsTable.linkedEntityId, id))),
+      db.select().from(assignmentsTable)
+        .where(and(
+          eq(assignmentsTable.targetEntityType, "unit"),
+          eq(assignmentsTable.targetEntityId, id),
+          eq(assignmentsTable.status, "assigned")
+        )),
+    ]);
 
     type HistoryEvent = {
       id: string;
-      eventType: "unit_created" | "document_uploaded";
+      eventType: "unit_created" | "document_uploaded" | "record_assigned";
       title: string;
       description: string;
       timestamp: string;
@@ -187,6 +195,26 @@ router.get("/units/:id/history", async (req, res) => {
           fileName: doc.fileName,
           documentType: doc.documentType,
           objectPath: doc.objectPath,
+        },
+      });
+    }
+
+    for (const asgn of assignments) {
+      const sourceLabel = asgn.sourceType.replace(/_/g, " ");
+      const method = asgn.assignmentMethod ?? "auto";
+      events.push({
+        id: `assignment_${asgn.id}`,
+        eventType: "record_assigned",
+        title: `${sourceLabel.charAt(0).toUpperCase() + sourceLabel.slice(1)} assigned`,
+        description: asgn.explanation,
+        timestamp: asgn.createdAt.toISOString(),
+        actor: method === "manual" ? "User" : method === "suggested" ? "User (confirmed)" : "Assignment Engine",
+        meta: {
+          assignmentId: asgn.id,
+          sourceType: asgn.sourceType,
+          confidenceLevel: asgn.confidenceLevel,
+          assignmentMethod: method,
+          sourceData: asgn.sourceData,
         },
       });
     }

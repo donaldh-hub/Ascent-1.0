@@ -18,6 +18,8 @@ import Alerts from "@/pages/alerts";
 import Units from "@/pages/units";
 import UnitDetail from "@/pages/unit-detail";
 import Documents from "@/pages/documents";
+import Assignments from "@/pages/assignments";
+import AssignmentsReview from "@/pages/assignments-review";
 import Setup from "@/pages/setup";
 
 const queryClient = new QueryClient();
@@ -71,6 +73,8 @@ function Router() {
         <Route path="/units" component={Units} />
         <Route path="/units/:id" component={UnitDetail} />
         <Route path="/documents" component={Documents} />
+        <Route path="/assignments" component={Assignments} />
+        <Route path="/assignments/review" component={AssignmentsReview} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
