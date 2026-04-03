@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { propertiesTable, unitsTable, documentsTable, assignmentsTable } from "@workspace/db/schema";
+import { propertiesTable, unitsTable, documentsTable, assignmentsTable, assetsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -149,7 +149,7 @@ router.get("/units/:id/history", async (req, res) => {
     const [unit] = await db.select().from(unitsTable).where(eq(unitsTable.id, id));
     if (!unit) { res.status(404).json({ error: "Unit not found" }); return; }
 
-    const [docs, assignments] = await Promise.all([
+    const [docs, assignments, assets] = await Promise.all([
       db.select().from(documentsTable)
         .where(and(eq(documentsTable.linkedEntityType, "unit"), eq(documentsTable.linkedEntityId, id))),
       db.select().from(assignmentsTable)
@@ -158,6 +158,7 @@ router.get("/units/:id/history", async (req, res) => {
           eq(assignmentsTable.targetEntityId, id),
           eq(assignmentsTable.status, "assigned")
         )),
+      db.select({ id: assetsTable.id }).from(assetsTable).where(eq(assetsTable.unitId, id)),
     ]);
 
     type HistoryEvent = {
@@ -226,7 +227,7 @@ router.get("/units/:id/history", async (req, res) => {
       events,
       documentCount: docs.length,
       workItemCount: 0,
-      assetCount: 0,
+      assetCount: assets.length,
       latestActivityAt: events[0]?.timestamp ?? null,
     });
   } catch (err) {

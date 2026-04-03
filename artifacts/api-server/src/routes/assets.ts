@@ -1,10 +1,13 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { assetsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { assetsTable, unitsTable, propertiesTable } from "@workspace/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
 import { CreateAssetBody, UpdateAssetBody, ListAssetsQueryParams } from "@workspace/api-zod";
+import { onAssetEvent } from "../engine/system-integration";
 
 const router: IRouter = Router();
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcWarrantyDays(warrantyExpiration: string | null): number | null {
   if (!warrantyExpiration) return null;
@@ -17,11 +20,52 @@ function enrichAsset(asset: typeof assetsTable.$inferSelect) {
   return { ...asset, warrantyDaysRemaining, createdAt: asset.createdAt.toISOString() };
 }
 
+// ─── Resolve unitId + propertyId from context fields ─────────────────────────
+// Returns { unitId, propertyId, linkageStatus, location } given property/unit strings.
+
+async function resolveUnitLinkage(propertyName: string, unitNumber: string): Promise<{
+  unitId: number | null;
+  propertyId: number | null;
+  linkageStatus: string;
+  location: string;
+}> {
+  const location = `${propertyName}, Unit ${unitNumber}`;
+
+  const [property] = await db
+    .select()
+    .from(propertiesTable)
+    .where(eq(propertiesTable.name, propertyName));
+
+  if (!property) {
+    return { unitId: null, propertyId: null, linkageStatus: "unlinked", location };
+  }
+
+  const [unit] = await db
+    .select()
+    .from(unitsTable)
+    .where(and(eq(unitsTable.propertyId, property.id), eq(unitsTable.unitNumber, unitNumber)));
+
+  if (!unit) {
+    return { unitId: null, propertyId: property.id, linkageStatus: "unlinked", location };
+  }
+
+  return { unitId: unit.id, propertyId: property.id, linkageStatus: "linked", location };
+}
+
+// ─── GET /assets ──────────────────────────────────────────────────────────────
+
 router.get("/assets", async (req, res) => {
   try {
     const query = ListAssetsQueryParams.parse(req.query);
+    const { unitId, propertyId, linkageStatus } = req.query as Record<string, string>;
+
     let rows = await db.select().from(assetsTable);
+
     if (query.status) rows = rows.filter((a) => a.status === query.status);
+    if (unitId) rows = rows.filter((a) => a.unitId === parseInt(unitId));
+    if (propertyId) rows = rows.filter((a) => a.propertyId === parseInt(propertyId));
+    if (linkageStatus) rows = rows.filter((a) => a.linkageStatus === linkageStatus);
+
     res.json(rows.map(enrichAsset));
   } catch (err) {
     req.log.error({ err }, "Failed to list assets");
@@ -29,16 +73,24 @@ router.get("/assets", async (req, res) => {
   }
 });
 
-router.post("/assets", async (req, res) => {
+// ─── GET /assets/unit/:unitId ─────────────────────────────────────────────────
+
+router.get("/assets/unit/:unitId", async (req, res) => {
   try {
-    const body = CreateAssetBody.parse(req.body);
-    const [asset] = await db.insert(assetsTable).values(body).returning();
-    res.status(201).json(enrichAsset(asset));
+    const unitId = parseInt(req.params.unitId, 10);
+    if (isNaN(unitId)) {
+      res.status(400).json({ error: "Invalid unit ID" });
+      return;
+    }
+    const rows = await db.select().from(assetsTable).where(eq(assetsTable.unitId, unitId));
+    res.json(rows.map(enrichAsset));
   } catch (err) {
-    req.log.error({ err }, "Failed to create asset");
+    req.log.error({ err }, "Failed to list unit assets");
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ─── GET /assets/warranties ───────────────────────────────────────────────────
 
 router.get("/assets/warranties", async (req, res) => {
   try {
@@ -69,6 +121,8 @@ router.get("/assets/warranties", async (req, res) => {
         daysRemaining,
         status,
         stoplight,
+        unitId: a.unitId,
+        propertyId: a.propertyId,
       };
     });
     res.json(result);
@@ -77,6 +131,203 @@ router.get("/assets/warranties", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ─── POST /assets ─────────────────────────────────────────────────────────────
+// Standard single-asset creation with optional context resolution.
+
+router.post("/assets", async (req, res) => {
+  try {
+    const body = CreateAssetBody.parse(req.body);
+    const { propertyName, unitNumber, ...rest } = body as typeof body & {
+      propertyName?: string;
+      unitNumber?: string;
+    };
+
+    let linkageFields: Partial<typeof assetsTable.$inferInsert> = {};
+    if (propertyName && unitNumber) {
+      const resolved = await resolveUnitLinkage(propertyName, unitNumber);
+      linkageFields = {
+        unitId: resolved.unitId ?? undefined,
+        propertyId: resolved.propertyId ?? undefined,
+        linkageStatus: resolved.linkageStatus,
+        location: resolved.location,
+      };
+    }
+
+    const [asset] = await db.insert(assetsTable).values({ ...rest, ...linkageFields }).returning();
+
+    // Fire event ONLY after confirmed persistence
+    await onAssetEvent("asset_created", asset.id);
+
+    res.status(201).json(enrichAsset(asset));
+  } catch (err) {
+    req.log.error({ err }, "Failed to create asset");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── POST /assets/import ─────────────────────────────────────────────────────
+// Batch ingestion pipeline: normalize → match → deduplicate → persist → event.
+
+router.post("/assets/import", async (req, res) => {
+  try {
+    const { records } = req.body as {
+      records: Array<{
+        name: string;
+        serial?: string;
+        assetType?: string;
+        propertyName?: string;
+        unitNumber?: string;
+        installDate?: string;
+        warrantyExpiration?: string;
+        lifeExpectancyYears?: number;
+        status?: string;
+      }>;
+    };
+
+    if (!Array.isArray(records) || records.length === 0) {
+      res.status(400).json({ error: "records array is required" });
+      return;
+    }
+
+    const results = {
+      created: 0,
+      skipped_duplicate: 0,
+      linked: 0,
+      unlinked: 0,
+      errors: [] as string[],
+    };
+
+    for (const record of records) {
+      try {
+        // Step 1: Normalize
+        const name = (record.name ?? "").trim();
+        if (!name) { results.errors.push("Missing name"); continue; }
+
+        const serial = record.serial?.trim() || null;
+
+        // Step 2: Deduplication — skip if serial already exists for this unit
+        if (serial) {
+          const existing = await db
+            .select()
+            .from(assetsTable)
+            .where(eq(assetsTable.serial, serial));
+          if (existing.length > 0) {
+            results.skipped_duplicate++;
+            continue;
+          }
+        }
+
+        // Step 3: Match to unit/property context
+        let linkageFields: Partial<typeof assetsTable.$inferInsert> = { linkageStatus: "unlinked" };
+        if (record.propertyName && record.unitNumber) {
+          const resolved = await resolveUnitLinkage(record.propertyName, record.unitNumber);
+          linkageFields = {
+            unitId: resolved.unitId ?? undefined,
+            propertyId: resolved.propertyId ?? undefined,
+            linkageStatus: resolved.linkageStatus,
+            location: resolved.location,
+          };
+        }
+
+        // Step 4: Compute health + stoplight from warranty dates
+        const TODAY = new Date();
+        const SIX_MONTHS = new Date(TODAY.getTime() + 90 * 24 * 60 * 60 * 1000);
+        let status = "active";
+        let stoplight = "green";
+        let healthScore = 100;
+
+        if (record.warrantyExpiration) {
+          const exp = new Date(record.warrantyExpiration);
+          const install = record.installDate ? new Date(record.installDate) : TODAY;
+          const totalMs = exp.getTime() - install.getTime();
+          const remainingMs = exp.getTime() - TODAY.getTime();
+
+          if (exp < TODAY) {
+            status = "at_risk"; stoplight = "red"; healthScore = 0;
+          } else if (exp < SIX_MONTHS) {
+            stoplight = "yellow";
+            healthScore = Math.max(0, Math.round((remainingMs / totalMs) * 100));
+          } else {
+            healthScore = Math.max(0, Math.min(100, Math.round((remainingMs / totalMs) * 100)));
+          }
+        }
+
+        // Step 5: Persist — only create after all validation passes
+        const [asset] = await db.insert(assetsTable).values({
+          name,
+          serial,
+          assetType: record.assetType ?? null,
+          status,
+          stoplight,
+          healthScore,
+          installDate: record.installDate ?? null,
+          warrantyExpiration: record.warrantyExpiration ?? null,
+          lifeExpectancyYears: record.lifeExpectancyYears ?? null,
+          ...linkageFields,
+        }).returning();
+
+        // Step 6: Fire event ONLY after persistence confirmed
+        await onAssetEvent("asset_created", asset.id);
+
+        results.created++;
+        if (linkageFields.linkageStatus === "linked") results.linked++;
+        else results.unlinked++;
+
+      } catch (recordErr: any) {
+        results.errors.push(recordErr.message ?? "Unknown error");
+      }
+    }
+
+    res.status(201).json(results);
+  } catch (err) {
+    req.log.error({ err }, "Failed to import assets");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── POST /assets/reconcile ───────────────────────────────────────────────────
+// Backfill linkage for any assets missing unitId/propertyId.
+
+router.post("/assets/reconcile", async (req, res) => {
+  try {
+    const unlinked = await db
+      .select()
+      .from(assetsTable)
+      .where(isNull(assetsTable.unitId));
+
+    let fixed = 0;
+    const LOCATION_RE = /^(.+),\s*Unit\s+(\S+)$/i;
+
+    for (const asset of unlinked) {
+      if (!asset.location) continue;
+      const m = LOCATION_RE.exec(asset.location);
+      if (!m) continue;
+
+      const propertyName = m[1].trim();
+      const unitNumber = m[2].trim();
+      const resolved = await resolveUnitLinkage(propertyName, unitNumber);
+
+      if (resolved.unitId) {
+        await db.update(assetsTable)
+          .set({
+            unitId: resolved.unitId,
+            propertyId: resolved.propertyId ?? undefined,
+            linkageStatus: "linked",
+          })
+          .where(eq(assetsTable.id, asset.id));
+        fixed++;
+      }
+    }
+
+    res.json({ scanned: unlinked.length, fixed });
+  } catch (err) {
+    req.log.error({ err }, "Failed to reconcile assets");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /assets/:id ─────────────────────────────────────────────────────────
 
 router.get("/assets/:id", async (req, res) => {
   try {
@@ -90,6 +341,8 @@ router.get("/assets/:id", async (req, res) => {
   }
 });
 
+// ─── PUT /assets/:id ──────────────────────────────────────────────────────────
+
 router.put("/assets/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -102,6 +355,8 @@ router.put("/assets/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ─── DELETE /assets/:id ───────────────────────────────────────────────────────
 
 router.delete("/assets/:id", async (req, res) => {
   try {

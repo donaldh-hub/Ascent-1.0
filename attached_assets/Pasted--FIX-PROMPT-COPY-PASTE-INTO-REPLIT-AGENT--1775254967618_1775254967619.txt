@@ -1,0 +1,199 @@
+==================================================
+FIX PROMPT (COPY + PASTE INTO REPLIT AGENT)
+===========================================
+
+We are repairing a critical gap in Ascent 1.0.
+
+The system currently REACTS (dashboard, alerts, scoring) but does NOT reliably
+INGEST → ASSIGN → PERSIST asset and document data.
+
+This fix must ensure that ALL asset and document inputs become REAL, linked,
+persistent records BEFORE any system reaction occurs.
+
+DO NOT rebuild the app.
+DO NOT redesign UI.
+DO NOT duplicate engines.
+
+We are FIXING the ingestion → assignment → persistence chain.
+
+PROJECT NAME:
+Ascent 1.0
+
+==================================================
+CORE GOAL
+=========
+
+For ASSETS and DOCUMENTS:
+
+1. Ingest data
+2. Normalize
+3. Match to unit/property/asset context
+4. Create records
+5. Persist to database
+6. Attach to correct entities
+7. THEN trigger system reactions
+
+No reaction without verified linkage.
+
+==================================================
+CRITICAL RULE
+=============
+
+SYSTEM REACTIONS (alerts, scoring, dashboard updates)
+MUST NOT execute unless the source record is:
+
+* created
+* assigned
+* persisted
+* linked to a valid entity
+
+If linkage fails → no reaction.
+
+==================================================
+PART 1 — ASSET INGESTION PIPELINE
+=================================
+
+Create or repair asset ingestion flow:
+
+Function: processAssetImport(inputRecords)
+
+Steps:
+
+1. Normalize fields
+2. Match using assignmentEngine (unit + property priority)
+3. HIGH confidence → create + link + persist
+4. MEDIUM → review queue (no orphan creation)
+5. LOW → review queue only
+6. Attach to unit profile
+7. Emit event ONLY AFTER persistence: asset_created
+
+==================================================
+PART 2 — DOCUMENT INGESTION PIPELINE
+====================================
+
+Function: processDocumentUpload(files, metadata)
+
+Steps:
+
+1. Create document records
+2. Store file references
+3. Match context using assignmentEngine
+4. HIGH → attach to unit/asset/workflow
+5. MEDIUM → mark unassigned
+6. Persist ALL
+7. Emit event ONLY AFTER persistence: document_created
+
+==================================================
+PART 3 — INTEGRATION ENGINE GUARDRAIL
+=====================================
+
+Before any reaction:
+
+* validate record exists
+* validate linkage exists
+
+If not:
+
+* BLOCK reaction
+* log error
+
+==================================================
+PART 4 — UNIT PROFILE SYNCHRONIZATION
+=====================================
+
+Ensure unit profile reflects:
+
+* assets
+* documents
+* timestamps
+
+==================================================
+PART 5 — DOCUMENTS PAGE FIX
+===========================
+
+Documents page must show:
+
+* all persisted documents
+* correct filters
+
+==================================================
+PART 6 — DEDUPLICATION
+======================
+
+Prevent duplicates for:
+
+* assets
+* documents
+
+==================================================
+PART 7 — BACKFILL + RECONCILIATION (CRITICAL)
+=============================================
+
+AFTER PATCH IS APPLIED:
+
+System MUST automatically process EXISTING data already uploaded.
+
+1. Scan existing asset data:
+
+   * find records not linked to units
+   * re-run assignmentEngine
+   * attach to correct unit/property
+   * persist links
+
+2. Scan existing document uploads:
+
+   * find stored files with no document records
+   * create missing document records
+   * run assignmentEngine for context
+   * attach to unit/asset/workflow
+
+3. Fix orphaned relationships:
+
+   * ensure no asset exists without unit linkage (unless in review)
+   * ensure no document exists without reference
+
+4. Refresh system state:
+
+   * unit profiles update
+   * asset registry update
+   * documents page update
+
+5. ONLY AFTER reconciliation:
+
+   * trigger systemIntegrationEngine
+   * recalc alerts, scoring, dashboard
+
+This must happen automatically.
+NO re-upload required.
+NO manual action required.
+
+==================================================
+PART 8 — TEST CONDITIONS
+========================
+
+After fix:
+
+* Existing uploaded assets should appear in units
+* Existing uploaded documents should appear in documents page
+* Dashboard should reflect corrected state
+
+==================================================
+SUCCESS STATE
+=============
+
+* Assets ingest, assign, persist correctly
+* Documents ingest, assign, persist correctly
+* Existing broken data is repaired automatically
+* System reacts ONLY after real linkage
+
+==================================================
+FINAL INTENT
+============
+
+The system must SEE before it THINKS.
+
+And it must FIX what it already saw.
+
+==================================================
+END OF PROMPT
+=============

@@ -2,13 +2,44 @@ import { useParams, useLocation } from "wouter";
 import {
   ArrowLeft, Hash, Building2, Calendar, FileText, Briefcase, Server,
   Clock, PlusCircle, Upload, AlertCircle, Info, ChevronRight,
+  Shield, ShieldOff, ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
 import { useListUnits, useListProperties, useListDocuments } from "@workspace/api-client-react";
 import { useUnitHistory, type UnitHistoryEvent } from "@/hooks/use-unit-history";
 import { DocumentPanel } from "@/components/document-panel";
 import { cn } from "@/lib/utils";
+
+// ─── Unit assets hook ─────────────────────────────────────────────────────────
+
+interface UnitAsset {
+  id: number;
+  name: string;
+  assetType: string | null;
+  serial: string | null;
+  status: string;
+  stoplight: string;
+  healthScore: number;
+  installDate: string | null;
+  warrantyExpiration: string | null;
+  warrantyDaysRemaining: number | null;
+  location: string | null;
+}
+
+function useUnitAssets(unitId: number) {
+  return useQuery<UnitAsset[]>({
+    queryKey: ["assets", "unit", unitId],
+    queryFn: async () => {
+      const res = await fetch(`/api/assets/unit/${unitId}`);
+      if (!res.ok) throw new Error("Failed to fetch unit assets");
+      return res.json();
+    },
+    enabled: unitId > 0,
+    staleTime: 60_000,
+  });
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -159,6 +190,7 @@ export default function UnitDetail() {
     { entityType: "unit", entityId: unitId },
     { query: { queryKey: ["documents", "unit", unitId] } }
   );
+  const { data: unitAssets = [], isLoading: assetsLoading } = useUnitAssets(unitId);
 
   const unit = units.find((u) => u.id === unitId);
   const property = properties.find((p) => p.id === unit?.propertyId);
@@ -304,16 +336,86 @@ export default function UnitDetail() {
       </Section>
 
       {/* ── Assets ── */}
-      <Section title="Assets" icon={Server}>
-        <EmptySection
-          message="No assets linked to this unit yet"
-          sub="Assets tracked in this unit will appear here."
-        />
-        <div className="px-5 pb-4">
-          <Button variant="outline" size="sm" onClick={() => navigate("/assets")} className="w-full">
-            View All Assets <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+      <Section title={`Assets${unitAssets.length > 0 ? ` (${unitAssets.length})` : ""}`} icon={Server}>
+        {assetsLoading ? (
+          <div className="px-5 py-6 text-sm text-muted-foreground">Loading assets…</div>
+        ) : unitAssets.length === 0 ? (
+          <>
+            <EmptySection
+              message="No assets linked to this unit"
+              sub="Assets tracked for this unit will appear here once registered."
+            />
+            <div className="px-5 pb-4">
+              <Button variant="outline" size="sm" onClick={() => navigate("/assets")} className="w-full">
+                View All Assets <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="divide-y divide-border">
+            {unitAssets.map((asset) => {
+              const warrantyExpired = asset.warrantyDaysRemaining !== null && asset.warrantyDaysRemaining < 0;
+              const warrantyExpiringSoon = !warrantyExpired && asset.warrantyDaysRemaining !== null && asset.warrantyDaysRemaining <= 90;
+              const WarrantyIcon = warrantyExpired ? ShieldOff : warrantyExpiringSoon ? ShieldAlert : Shield;
+              const warrantyColor = warrantyExpired
+                ? "text-red-400"
+                : warrantyExpiringSoon
+                ? "text-yellow-400"
+                : "text-green-400";
+
+              return (
+                <div key={asset.id} className="flex items-center gap-4 px-5 py-4">
+                  <div className={cn(
+                    "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                    asset.stoplight === "red" ? "bg-red-500/10" :
+                    asset.stoplight === "yellow" ? "bg-yellow-500/10" : "bg-green-500/10"
+                  )}>
+                    <Server className={cn("h-4 w-4",
+                      asset.stoplight === "red" ? "text-red-400" :
+                      asset.stoplight === "yellow" ? "text-yellow-400" : "text-green-400"
+                    )} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{asset.assetType ?? asset.name}</span>
+                      {asset.serial && (
+                        <span className="text-xs text-muted-foreground font-mono">{asset.serial}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <WarrantyIcon className={cn("h-3 w-3", warrantyColor)} />
+                        {warrantyExpired
+                          ? `Warranty expired ${Math.abs(asset.warrantyDaysRemaining!)}d ago`
+                          : asset.warrantyDaysRemaining !== null
+                          ? `${asset.warrantyDaysRemaining}d warranty remaining`
+                          : "No warranty data"}
+                      </span>
+                      {asset.healthScore !== undefined && (
+                        <span>Health {asset.healthScore}/100</span>
+                      )}
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={cn("text-xs shrink-0",
+                      warrantyExpired ? "border-red-500/30 text-red-400" :
+                      warrantyExpiringSoon ? "border-yellow-500/30 text-yellow-400" :
+                      "border-green-500/30 text-green-400"
+                    )}
+                  >
+                    {warrantyExpired ? "At Risk" : warrantyExpiringSoon ? "Expiring Soon" : "Active"}
+                  </Badge>
+                </div>
+              );
+            })}
+            <div className="px-5 py-3">
+              <Button variant="outline" size="sm" onClick={() => navigate("/assets")} className="w-full">
+                View All Assets <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Section>
 
     </div>

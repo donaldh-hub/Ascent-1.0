@@ -1,4 +1,4 @@
-import { pgTable, serial, text, real, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, real, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -16,6 +16,10 @@ export const assetsTable = pgTable("assets", {
   lifeExpectancyYears: real("life_expectancy_years"),
   maintenanceSchedule: text("maintenance_schedule"),
   location: text("location"),
+  unitId: integer("unit_id"),
+  propertyId: integer("property_id"),
+  assetType: text("asset_type"),
+  linkageStatus: text("linkage_status").notNull().default("linked"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
