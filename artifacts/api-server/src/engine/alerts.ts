@@ -9,7 +9,7 @@
  */
 
 import { db } from "@workspace/db";
-import { alertsTable, documentsTable } from "@workspace/db/schema";
+import { alertsTable, documentsTable, assetsTable } from "@workspace/db/schema";
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { loadAllWorkflowInputs } from "./loader";
 import { calcWorkflowHealth } from "./scoring";
@@ -335,6 +335,75 @@ function evaluateMissingDocsCritical(
 }
 
 // ─────────────────────────────────────────────
+// Asset Warranty Rule Evaluators
+// ─────────────────────────────────────────────
+
+type AssetRow = typeof assetsTable.$inferSelect;
+
+function evaluateWarrantyExpired(assets: AssetRow[]): AlertCandidate[] {
+  const today = new Date();
+  return assets
+    .filter((a) => a.warrantyExpiration && new Date(a.warrantyExpiration) < today)
+    .map((a) => ({
+      ruleKey: `warranty_expired_${a.id}`,
+      type: "risk_alert",
+      category: "risk_alert" as AlertCategory,
+      level: "critical" as AlertLevel,
+      severity: "critical",
+      title: `Warranty expired: ${a.name}`,
+      message: `The warranty for "${a.name}" (${a.location ?? "unknown location"}) expired on ${a.warrantyExpiration}. Asset is now operating without coverage — review for repair/replacement.`,
+      actionPath: `/assets`,
+      workflowId: null,
+      linkedItemId: null,
+      linkedStageId: null,
+      metadata: {
+        assetId: a.id,
+        assetName: a.name,
+        warrantyExpiration: a.warrantyExpiration,
+        location: a.location,
+        serial: a.serial,
+      },
+    }));
+}
+
+function evaluateWarrantyExpiringSoon(assets: AssetRow[]): AlertCandidate[] {
+  const today = new Date();
+  const ninetyDays = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+  return assets
+    .filter((a) => {
+      if (!a.warrantyExpiration) return false;
+      const exp = new Date(a.warrantyExpiration);
+      return exp >= today && exp <= ninetyDays;
+    })
+    .map((a) => {
+      const daysLeft = Math.round(
+        (new Date(a.warrantyExpiration!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return {
+        ruleKey: `warranty_expiring_${a.id}`,
+        type: "risk_alert",
+        category: "risk_alert" as AlertCategory,
+        level: "warning" as AlertLevel,
+        severity: "warning",
+        title: `Warranty expiring in ${daysLeft} days: ${a.name}`,
+        message: `The warranty for "${a.name}" (${a.location ?? "unknown location"}) expires on ${a.warrantyExpiration} — ${daysLeft} days from now. Schedule inspection or renewal before coverage lapses.`,
+        actionPath: `/assets`,
+        workflowId: null,
+        linkedItemId: null,
+        linkedStageId: null,
+        metadata: {
+          assetId: a.id,
+          assetName: a.name,
+          warrantyExpiration: a.warrantyExpiration,
+          daysRemaining: daysLeft,
+          location: a.location,
+          serial: a.serial,
+        },
+      };
+    });
+}
+
+// ─────────────────────────────────────────────
 // Active Rule Keys — which ruleKeys should be ACTIVE right now
 // ─────────────────────────────────────────────
 
@@ -354,7 +423,10 @@ export interface AlertEvaluationResult {
 }
 
 export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
-  const workflowInputs = await loadAllWorkflowInputs();
+  const [workflowInputs, allAssets] = await Promise.all([
+    loadAllWorkflowInputs(),
+    db.select().from(assetsTable),
+  ]);
   const activeWorkflows = workflowInputs.filter((w) => w.status === "active" || w.status === "paused");
 
   // Pre-load doc counts for all critical open items (rule 7)
@@ -378,6 +450,12 @@ export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
       ...evaluateMissingDocsCritical(wf, criticalItemDocCounts)
     );
   }
+
+  // Asset warranty rules (rules 8 & 9)
+  allCandidates.push(
+    ...evaluateWarrantyExpired(allAssets),
+    ...evaluateWarrantyExpiringSoon(allAssets)
+  );
 
   // Deduplicate candidates by ruleKey (keep highest level if same key from different evaluators)
   const candidateMap = new Map<string, AlertCandidate>();
