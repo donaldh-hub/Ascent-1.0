@@ -1,0 +1,425 @@
+Ascent 1.0 — Phase 1 Build 1.6 (Unit Profile + Immediate History View Prompt)
+
+Reference Blueprint: Continuous Improvement App Core Builds
+Reference Prior Builds:
+
+* Phase 1 — Build 1 (Authentication, Roles, and App Foundation)
+* Phase 1 — Build 1.5 (Guided System Activation + Unit Intake Layer)
+* Phase 1 — Build 2 (Core Workflow Engine)
+* Phase 1 — Build 6 (Document + Evidence Engine)
+* Phase 1 — Build 6.5 (Evidence Visibility Layer)
+* Phase 1 — Build 6.6 (Signal Strength + Language Layer)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.6.
+
+The system already has:
+
+* authentication
+* organization structure
+* user roles
+* protected routes
+* app shell
+* settings foundation
+* workflow engine
+* document + evidence engine
+* evidence visibility layer
+* signal strength + language layer
+* guided system activation + unit intake layer
+* units page foundation
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT create a second data model for unit history.
+Do NOT create fake work history or placeholder-only insight text.
+Do NOT create unit pages that are visually separate from real system records.
+
+This build is the UNIT PROFILE + IMMEDIATE HISTORY VIEW.
+
+PROJECT NAME:
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Create a real unit-centered profile page that allows the user to click a unit and immediately see the work, documents, assets, and history already connected to that unit.
+
+This build must make the system feel real immediately after onboarding.
+
+The user should be able to say:
+
+“I clicked the unit… and now I can actually see what has happened there.”
+
+This build is NOT advanced intelligence yet.
+This build is immediate visibility, context, and trust.
+
+==================================================
+
+CRITICAL SYSTEM RULE
+
+==================================================
+
+This build MUST read from the existing shared system structure.
+
+That means:
+
+* unit records must come from Build 1.5 data
+* workflow history shown here must come from real workflow/item records if linked
+* documents shown here must come from the existing document/evidence engine
+* evidence badges/signals must reuse the existing evidence visibility + language layer
+* no detached unit-profile-only data objects
+* no shadow copies of documents or work history
+
+This build must strengthen the SINGLE SOURCE OF TRUTH.
+
+==================================================
+
+BUILD REQUIREMENTS
+
+==================================================
+
+1. UNIT LIST PAGE UPGRADE
+
+Upgrade the /units page from Build 1.5.
+
+Requirements:
+
+* list all units for the organization
+* search units
+* filter by property if cleanly supported
+* each unit row/card must be clickable
+* click opens dedicated unit detail route
+
+Route:
+
+* /units/:unitId
+
+Each unit row/card should show at minimum:
+
+* unit name / number
+* property name
+* created date
+* document/evidence signal if available
+* simple work/history count if available
+
+Do NOT clutter the units page.
+Keep it clean and operational.
+
+==================================================
+
+2. UNIT PROFILE PAGE
+
+Build a dedicated Unit Profile page.
+
+The page must show the selected unit as a real operational record.
+
+Required top section:
+
+A. Unit Header
+
+* unit name / number
+* property name
+* created date
+* optional metadata if available
+
+B. Quick Snapshot
+Show simple real counts only if they exist:
+
+* related work items count
+* related documents count
+* related assets count
+* latest activity date
+
+If counts do not exist yet, show truthful empty or low-data states.
+
+==================================================
+
+3. UNIT HISTORY TIMELINE
+
+Build an immediate history section for the unit.
+
+This is a key requirement.
+
+The timeline must surface real history connected to the unit where available.
+
+Acceptable timeline event types:
+
+* workflow item created for this unit
+* workflow item moved stages for this unit
+* document uploaded and linked to this unit
+* document attached to a unit-linked workflow item
+* asset created and linked to this unit
+* manual unit setup/import event if little else exists yet
+
+Each event should show:
+
+* event type
+* short title
+* timestamp
+* linked record reference if appropriate
+* actor or system source if available
+
+Behavior requirements:
+
+* newest first
+* clear empty state if no activity exists yet
+* no fake historical summaries
+
+This timeline should help the user immediately understand what has happened in the unit.
+
+==================================================
+
+4. UNIT DOCUMENTS / EVIDENCE SECTION
+
+Add a dedicated documents/evidence section to the Unit Profile.
+
+This section must read from the existing document engine.
+
+Requirements:
+
+* show documents directly linked to the unit if supported
+* also show documents linked to workflow items associated with the unit if available
+* reuse existing evidence signals and language patterns
+* show attachment count
+* allow click to preview using existing preview behavior
+* do NOT force the user to leave the unit context just to understand the evidence
+
+Display at minimum:
+
+* file name
+* document type if tagged
+* upload timestamp
+* uploader if available
+* evidence state label using shared language system
+
+If no documents exist:
+
+* show clear empty state
+* do not imply missing documentation unless a real rule from existing layers applies
+
+==================================================
+
+5. UNIT WORK / ISSUE SECTION
+
+Build a unit-level work section.
+
+This section should aggregate real workflow items associated with the unit.
+
+Requirements:
+
+* show related workflow items if they exist
+* show workflow name
+* item title
+* priority
+* current stage
+* current status if available
+* updated date
+
+User must be able to click into the workflow item or related workflow from the unit page.
+
+If no workflow items are linked yet:
+
+* show truthful empty state
+* do not fabricate issue summaries
+
+This section is not advanced issue intelligence yet.
+This is a visibility layer over real linked work.
+
+==================================================
+
+6. UNIT ASSETS SECTION
+
+Add a unit assets section.
+
+This section should show assets linked to the unit if assets already exist in the system.
+
+Requirements:
+
+* list linked assets
+* asset name or type
+* manufacturer if available
+* model/serial if available
+* status if available
+* created or install date if available
+
+No advanced lifecycle intelligence yet.
+No predictive maintenance logic yet.
+
+If no assets exist:
+
+* show empty state
+
+==================================================
+
+7. SIMPLE UNIT INSIGHT STRIP
+
+Add a lightweight insight strip near the top of the Unit Profile.
+
+This must use ONLY real currently available data.
+
+Examples of acceptable insight types:
+
+* “3 related work items recorded for this unit.”
+* “2 documents are attached to unit-related activity.”
+* “No work history has been recorded yet.”
+* “Latest activity was a document upload.”
+
+Do NOT create advanced pattern detection.
+Do NOT imply recurring issues unless there is real repeated linked data.
+Do NOT invent summary language.
+
+==================================================
+
+8. DATA LINKING REQUIREMENTS
+
+This build must support and respect shared linking fields.
+
+Where cleanly needed, ensure records can relate through:
+
+* organization_id
+* property_id
+* unit_id
+* linked_workflow_id
+* linked_workflow_item_id
+* linked_entity_type
+* linked_entity_id
+
+If some upstream records are not yet fully unit-linked, do NOT invent fake links.
+Instead:
+
+* use what is real now
+* keep structure ready for Build 1.7 assignment logic
+
+==================================================
+
+9. NAVIGATION + CONTEXT BEHAVIOR
+
+The user must be able to:
+
+* go from Units list to Unit Profile
+* open related workflow or workflow item from the Unit Profile
+* open document preview from the Unit Profile
+* stay oriented inside the app shell
+
+Do NOT make the unit page feel like a detached app.
+It must feel native to the existing system.
+
+==================================================
+
+10. ROLE BEHAVIOR
+
+Respect existing role access.
+
+Admin / Supervisor:
+
+* full view
+
+Manager:
+
+* view unit profile, linked work, documents, assets
+
+Technician:
+
+* view accessible units and linked activity within their scope
+
+Viewer:
+
+* read-only
+
+Do NOT create role loopholes.
+
+==================================================
+
+11. AUDIT + ACTIVITY SUPPORT
+
+Extend audit behavior if needed to track:
+
+* unit profile viewed
+* unit-linked document preview viewed
+* navigation from unit to workflow if already tracked cleanly
+
+Do NOT overbuild analytics.
+This is just foundational traceability if needed.
+
+==================================================
+
+12. EMPTY / LOW-DATA STATES
+
+This build must handle new customers cleanly.
+
+Required empty states:
+
+* no work history yet
+* no documents yet
+* no assets yet
+* no recent activity yet
+
+Required behavior:
+
+* no fake green or positive health implication
+* no misleading “all clear” language
+* no broken cards or empty shells with no explanation
+
+Use clear, honest language.
+
+==================================================
+
+13. UX REQUIREMENTS
+
+The unit profile must feel:
+
+* clear
+* grounded
+* trustworthy
+* immediately useful
+
+The user should understand the page in seconds.
+
+The point of this build is not visual flash.
+The point is confidence.
+
+==================================================
+
+14. SUCCESS STATE
+
+This build is complete when I can:
+
+1. Open the Units page
+2. Click a unit
+3. View a real Unit Profile page
+4. See any real linked work history available
+5. See any real linked documents/evidence available
+6. See any real linked assets available
+7. Open related records without leaving system context
+8. Trust that the unit page is reading the shared system truth
+
+==================================================
+
+15. IMPORTANT LIMITS
+
+This build is NOT for:
+
+* assignment engine logic
+* advanced repeat issue detection
+* predictive maintenance
+* unit health scoring
+* recurring issue AI
+* automatic matching of uploads
+
+Those come later.
+
+This build is VISIBILITY ONLY.
+
+==================================================
+
+INTERNAL LABEL
+
+“Phase 1 — Build 1.6: Unit Profile + Immediate History View”
+
+==================================================
+
+END OF PROMPT

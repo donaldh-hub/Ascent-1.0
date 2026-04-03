@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Search, Building2, Hash, Calendar, Plus, ChevronRight, Layers } from "lucide-react";
+import { Search, Building2, Hash, Calendar, Plus, ChevronRight, Layers, Paperclip } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useListUnits, useListProperties } from "@workspace/api-client-react";
+import { useDocCounts } from "@/hooks/use-doc-counts";
+import { cn } from "@/lib/utils";
 
 export default function Units() {
   const [, navigate] = useLocation();
@@ -11,6 +13,9 @@ export default function Units() {
 
   const { data: units = [], isLoading: unitsLoading } = useListUnits({});
   const { data: properties = [] } = useListProperties();
+
+  const unitIds = units.map((u) => u.id);
+  const { data: docCounts = {} } = useDocCounts("unit", unitIds, { enabled: unitIds.length > 0 });
 
   const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
 
@@ -49,7 +54,7 @@ export default function Units() {
             {units.length} unit{units.length !== 1 ? "s" : ""} across {properties.length} {properties.length !== 1 ? "properties" : "property"}
           </p>
         </div>
-        <Button onClick={() => navigate("/setup?add=units")}>
+        <Button onClick={() => navigate("/setup")}>
           <Plus className="h-4 w-4 mr-2" /> Add Units
         </Button>
       </div>
@@ -112,27 +117,48 @@ export default function Units() {
 
                 {/* Unit rows */}
                 <div className="divide-y divide-border">
-                  {propUnits.map((unit) => (
-                    <button
-                      key={unit.id}
-                      onClick={() => navigate(`/units/${unit.id}`)}
-                      className="w-full flex items-center px-5 py-3.5 hover:bg-secondary/20 transition-colors text-left group"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                          <Hash className="h-3.5 w-3.5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm">{unit.unitNumber}</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Calendar className="h-3 w-3" />
-                            Added {formatDate(unit.createdAt)}
+                  {propUnits.map((unit) => {
+                    const docs = docCounts[unit.id];
+                    const hasDoc = docs?.hasDocuments;
+                    const docCount = docs?.count ?? 0;
+                    return (
+                      <button
+                        key={unit.id}
+                        onClick={() => navigate(`/units/${unit.id}`)}
+                        className="w-full flex items-center px-5 py-3.5 hover:bg-secondary/20 transition-colors text-left group"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <Hash className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{unit.unitNumber}</div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Added {formatDate(unit.createdAt)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                  ))}
+                        {/* Doc signal */}
+                        {hasDoc ? (
+                          <span className={cn(
+                            "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mr-2",
+                            "bg-primary/10 text-primary"
+                          )}>
+                            <Paperclip className="h-3 w-3" />
+                            {docCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/50 mr-2 flex items-center gap-1">
+                            <Paperclip className="h-3 w-3" />
+                          </span>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );

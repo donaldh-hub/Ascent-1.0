@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
-import { propertiesTable, unitsTable } from "@workspace/db/schema";
+import { propertiesTable, unitsTable, documentsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -12,6 +12,8 @@ function enrichProperty(p: typeof propertiesTable.$inferSelect) {
 function enrichUnit(u: typeof unitsTable.$inferSelect) {
   return { ...u, createdAt: u.createdAt.toISOString() };
 }
+
+// ─── Properties ──────────────────────────────────────────────────────────────
 
 router.get("/properties", async (req, res) => {
   try {
@@ -41,10 +43,7 @@ router.post("/properties", async (req, res) => {
 router.delete("/properties/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      res.status(400).json({ error: "Invalid property id" });
-      return;
-    }
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid property id" }); return; }
     await db.delete(unitsTable).where(eq(unitsTable.propertyId, id));
     await db.delete(propertiesTable).where(eq(propertiesTable.id, id));
     res.status(204).send();
@@ -53,6 +52,8 @@ router.delete("/properties/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ─── Units ───────────────────────────────────────────────────────────────────
 
 router.get("/units", async (req, res) => {
   try {
@@ -117,13 +118,101 @@ router.post("/units/import", async (req, res) => {
   }
 });
 
+// ─── Single unit (must come after /units/import POST) ────────────────────────
+
+router.get("/units/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid unit id" }); return; }
+    const [unit] = await db.select().from(unitsTable).where(eq(unitsTable.id, id));
+    if (!unit) { res.status(404).json({ error: "Unit not found" }); return; }
+    const [property] = unit.propertyId
+      ? await db.select().from(propertiesTable).where(eq(propertiesTable.id, unit.propertyId))
+      : [];
+    res.json({
+      unit: enrichUnit(unit),
+      property: property ? enrichProperty(property) : null,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get unit");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Unit history timeline ────────────────────────────────────────────────────
+
+router.get("/units/:id/history", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid unit id" }); return; }
+
+    const [unit] = await db.select().from(unitsTable).where(eq(unitsTable.id, id));
+    if (!unit) { res.status(404).json({ error: "Unit not found" }); return; }
+
+    const docs = await db.select().from(documentsTable)
+      .where(and(eq(documentsTable.linkedEntityType, "unit"), eq(documentsTable.linkedEntityId, id)));
+
+    type HistoryEvent = {
+      id: string;
+      eventType: "unit_created" | "document_uploaded";
+      title: string;
+      description: string;
+      timestamp: string;
+      actor: string;
+      meta: Record<string, unknown>;
+    };
+
+    const events: HistoryEvent[] = [];
+
+    events.push({
+      id: `unit_created_${unit.id}`,
+      eventType: "unit_created",
+      title: "Unit added to system",
+      description: `Unit ${unit.unitNumber} was added to the property roster.`,
+      timestamp: unit.createdAt.toISOString(),
+      actor: "System",
+      meta: { unitId: unit.id, unitNumber: unit.unitNumber },
+    });
+
+    for (const doc of docs) {
+      events.push({
+        id: `doc_${doc.id}`,
+        eventType: "document_uploaded",
+        title: `Document uploaded`,
+        description: `${doc.fileName} (${doc.documentType}) was uploaded.`,
+        timestamp: doc.uploadedAt.toISOString(),
+        actor: doc.uploadedBy ?? "System",
+        meta: {
+          documentId: doc.id,
+          fileName: doc.fileName,
+          documentType: doc.documentType,
+          objectPath: doc.objectPath,
+        },
+      });
+    }
+
+    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    res.json({
+      unitId: id,
+      events,
+      documentCount: docs.length,
+      workItemCount: 0,
+      assetCount: 0,
+      latestActivityAt: events[0]?.timestamp ?? null,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get unit history");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Delete unit ──────────────────────────────────────────────────────────────
+
 router.delete("/units/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      res.status(400).json({ error: "Invalid unit id" });
-      return;
-    }
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid unit id" }); return; }
     await db.delete(unitsTable).where(eq(unitsTable.id, id));
     res.status(204).send();
   } catch (err) {

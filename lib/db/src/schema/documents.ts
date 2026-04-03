@@ -46,6 +46,7 @@ export const LINKED_ENTITY_TYPES = [
   "workflow_item",
   "workflow_stage",
   "asset",
+  "unit",
 ] as const;
 
 export type LinkedEntityType = (typeof LINKED_ENTITY_TYPES)[number];
