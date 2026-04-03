@@ -1159,3 +1159,74 @@ export const GetWorkflowPerformanceResponseItem = zod.object({
 export const GetWorkflowPerformanceResponse = zod.array(
   GetWorkflowPerformanceResponseItem,
 );
+
+/**
+ * @summary List all properties
+ */
+export const ListPropertiesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  address: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem);
+
+/**
+ * @summary Create a property
+ */
+export const CreatePropertyBody = zod.object({
+  name: zod.string(),
+  address: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a property and its units
+ */
+export const DeletePropertyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary List all units (optionally filtered by property)
+ */
+export const ListUnitsQueryParams = zod.object({
+  propertyId: zod.coerce.number().optional(),
+});
+
+export const ListUnitsResponseItem = zod.object({
+  id: zod.number(),
+  propertyId: zod.number(),
+  unitNumber: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
+  createdAt: zod.string(),
+});
+export const ListUnitsResponse = zod.array(ListUnitsResponseItem);
+
+/**
+ * @summary Create a single unit
+ */
+export const CreateUnitBody = zod.object({
+  propertyId: zod.number(),
+  unitNumber: zod.string(),
+  metadata: zod.object({}).passthrough().nullish(),
+});
+
+/**
+ * @summary Bulk import units (CSV-parsed rows) into a property
+ */
+export const ImportUnitsBody = zod.object({
+  propertyId: zod.number(),
+  units: zod.array(
+    zod.object({
+      unitNumber: zod.string(),
+      metadata: zod.object({}).passthrough().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Delete a unit
+ */
+export const DeleteUnitParams = zod.object({
+  id: zod.coerce.number(),
+});

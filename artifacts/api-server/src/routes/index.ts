@@ -7,6 +7,7 @@ import dashboardRouter from "./dashboard";
 import analyticsRouter from "./analytics";
 import itemsRouter from "./items";
 import documentsRouter from "./documents";
+import propertiesRouter from "./properties";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(assetsRouter);
 router.use(alertsRouter);
 router.use(analyticsRouter);
 router.use(documentsRouter);
+router.use(propertiesRouter);
 
 export default router;

@@ -874,6 +874,125 @@ paths:
                 items:
                   $ref: "#/components/schemas/WorkflowPerformance"
 
+  /properties:
+    get:
+      operationId: listProperties
+      tags: [properties]
+      summary: List all properties
+      responses:
+        "200":
+          description: List of properties
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Property"
+    post:
+      operationId: createProperty
+      tags: [properties]
+      summary: Create a property
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePropertyBody"
+      responses:
+        "201":
+          description: Created property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
+
+  /properties/{id}:
+    delete:
+      operationId: deleteProperty
+      tags: [properties]
+      summary: Delete a property and its units
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /units:
+    get:
+      operationId: listUnits
+      tags: [properties]
+      summary: List all units (optionally filtered by property)
+      parameters:
+        - name: propertyId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of units
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Unit"
+    post:
+      operationId: createUnit
+      tags: [properties]
+      summary: Create a single unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUnitBody"
+      responses:
+        "201":
+          description: Created unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Unit"
+
+  /units/import:
+    post:
+      operationId: importUnits
+      tags: [properties]
+      summary: Bulk import units (CSV-parsed rows) into a property
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportUnitsBody"
+      responses:
+        "201":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportUnitsResult"
+
+  /units/{id}:
+    delete:
+      operationId: deleteUnit
+      tags: [properties]
+      summary: Delete a unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -2180,3 +2299,102 @@ components:
         - bottleneckItemCount
         - insights
         - stageSummary
+
+    Property:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - createdAt
+
+    CreatePropertyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+      required:
+        - name
+
+    Unit:
+      type: object
+      properties:
+        id:
+          type: integer
+        propertyId:
+          type: integer
+        unitNumber:
+          type: string
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - propertyId
+        - unitNumber
+        - createdAt
+
+    CreateUnitBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        unitNumber:
+          type: string
+        metadata:
+          type: object
+          nullable: true
+      required:
+        - propertyId
+        - unitNumber
+
+    ImportUnitsBody:
+      type: object
+      properties:
+        propertyId:
+          type: integer
+        units:
+          type: array
+          items:
+            type: object
+            properties:
+              unitNumber:
+                type: string
+              metadata:
+                type: object
+                nullable: true
+            required:
+              - unitNumber
+      required:
+        - propertyId
+        - units
+
+    ImportUnitsResult:
+      type: object
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/Unit"
+      required:
+        - imported
+        - skipped
+        - units

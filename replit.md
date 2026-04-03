@@ -73,6 +73,8 @@ artifacts-monorepo/
 - `assets` — Assets with warranty, health, maintenance data
 - `alerts` — System alerts with severity levels
 - `documents` — Evidence/documents linked to workflows/assets
+- `properties` — Properties (buildings/locations) with optional address
+- `units` — Units belonging to properties with optional JSON metadata
 
 ## Scoring Engine (Phase 1 – Build 3)
 
@@ -144,6 +146,8 @@ GCS object storage with a full document management pipeline:
 | Alerts | `GET /api/alerts` (with filters: level/category/status/isActive/workflowId), `GET /api/alerts/summary`, `POST /api/alerts/evaluate`, `PATCH /api/alerts/:id/read`, `PATCH /api/alerts/:id/acknowledge`, `PATCH /api/alerts/:id/resolve` |
 | Documents | `GET /api/documents` (with filters: entityType/entityId/workflowId), `POST /api/documents`, `DELETE /api/documents/:id`, `POST /api/documents/upload-url`, `GET /api/storage/objects/{*objectPath}` |
 | Analytics | `GET /api/analytics/trends`, `/workflow-performance` |
+| Properties | `GET /api/properties`, `POST /api/properties`, `DELETE /api/properties/:id` |
+| Units | `GET /api/units` (with filter: propertyId), `POST /api/units`, `POST /api/units/import` (bulk with dupe-skip), `DELETE /api/units/:id` |
 
 ## Development Commands
 

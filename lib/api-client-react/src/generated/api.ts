@@ -24,7 +24,9 @@ import type {
   Bottleneck,
   CreateAssetBody,
   CreateDocumentBody,
+  CreatePropertyBody,
   CreateStageBody,
+  CreateUnitBody,
   CreateWorkflowBody,
   CreateWorkflowItemBody,
   DashboardIntelligence,
@@ -32,17 +34,22 @@ import type {
   Document,
   GetAnalyticsTrendsParams,
   HealthStatus,
+  ImportUnitsBody,
+  ImportUnitsResult,
   ListAlertsParams,
   ListAssetsParams,
   ListDocumentsParams,
+  ListUnitsParams,
   ListWorkflowItemsParams,
   ListWorkflowsParams,
   MoveWorkflowItemBody,
   PriorityAction,
+  Property,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   Stage,
   TrendData,
+  Unit,
   UpdateAssetBody,
   UpdateStageBody,
   UpdateWorkflowBody,
@@ -3680,3 +3687,598 @@ export function useGetWorkflowPerformance<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all properties
+ */
+export const getListPropertiesUrl = () => {
+  return `/api/properties`;
+};
+
+export const listProperties = async (
+  options?: RequestInit,
+): Promise<Property[]> => {
+  return customFetch<Property[]>(getListPropertiesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPropertiesQueryKey = () => {
+  return [`/api/properties`] as const;
+};
+
+export const getListPropertiesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProperties>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProperties>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPropertiesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProperties>>> = ({
+    signal,
+  }) => listProperties({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProperties>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPropertiesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProperties>>
+>;
+export type ListPropertiesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all properties
+ */
+
+export function useListProperties<
+  TData = Awaited<ReturnType<typeof listProperties>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProperties>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPropertiesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a property
+ */
+export const getCreatePropertyUrl = () => {
+  return `/api/properties`;
+};
+
+export const createProperty = async (
+  createPropertyBody: CreatePropertyBody,
+  options?: RequestInit,
+): Promise<Property> => {
+  return customFetch<Property>(getCreatePropertyUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createPropertyBody),
+  });
+};
+
+export const getCreatePropertyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProperty>>,
+    TError,
+    { data: BodyType<CreatePropertyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProperty>>,
+  TError,
+  { data: BodyType<CreatePropertyBody> },
+  TContext
+> => {
+  const mutationKey = ["createProperty"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProperty>>,
+    { data: BodyType<CreatePropertyBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProperty(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePropertyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProperty>>
+>;
+export type CreatePropertyMutationBody = BodyType<CreatePropertyBody>;
+export type CreatePropertyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a property
+ */
+export const useCreateProperty = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProperty>>,
+    TError,
+    { data: BodyType<CreatePropertyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProperty>>,
+  TError,
+  { data: BodyType<CreatePropertyBody> },
+  TContext
+> => {
+  return useMutation(getCreatePropertyMutationOptions(options));
+};
+
+/**
+ * @summary Delete a property and its units
+ */
+export const getDeletePropertyUrl = (id: number) => {
+  return `/api/properties/${id}`;
+};
+
+export const deleteProperty = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePropertyUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePropertyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProperty>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProperty>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteProperty"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProperty>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteProperty(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePropertyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProperty>>
+>;
+
+export type DeletePropertyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a property and its units
+ */
+export const useDeleteProperty = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProperty>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProperty>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeletePropertyMutationOptions(options));
+};
+
+/**
+ * @summary List all units (optionally filtered by property)
+ */
+export const getListUnitsUrl = (params?: ListUnitsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/units?${stringifiedParams}`
+    : `/api/units`;
+};
+
+export const listUnits = async (
+  params?: ListUnitsParams,
+  options?: RequestInit,
+): Promise<Unit[]> => {
+  return customFetch<Unit[]>(getListUnitsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUnitsQueryKey = (params?: ListUnitsParams) => {
+  return [`/api/units`, ...(params ? [params] : [])] as const;
+};
+
+export const getListUnitsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUnits>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUnitsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUnits>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUnitsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listUnits>>> = ({
+    signal,
+  }) => listUnits(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUnits>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUnitsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUnits>>
+>;
+export type ListUnitsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all units (optionally filtered by property)
+ */
+
+export function useListUnits<
+  TData = Awaited<ReturnType<typeof listUnits>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListUnitsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listUnits>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUnitsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a single unit
+ */
+export const getCreateUnitUrl = () => {
+  return `/api/units`;
+};
+
+export const createUnit = async (
+  createUnitBody: CreateUnitBody,
+  options?: RequestInit,
+): Promise<Unit> => {
+  return customFetch<Unit>(getCreateUnitUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createUnitBody),
+  });
+};
+
+export const getCreateUnitMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createUnit>>,
+    TError,
+    { data: BodyType<CreateUnitBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createUnit>>,
+  TError,
+  { data: BodyType<CreateUnitBody> },
+  TContext
+> => {
+  const mutationKey = ["createUnit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createUnit>>,
+    { data: BodyType<CreateUnitBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createUnit(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateUnitMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createUnit>>
+>;
+export type CreateUnitMutationBody = BodyType<CreateUnitBody>;
+export type CreateUnitMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a single unit
+ */
+export const useCreateUnit = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createUnit>>,
+    TError,
+    { data: BodyType<CreateUnitBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createUnit>>,
+  TError,
+  { data: BodyType<CreateUnitBody> },
+  TContext
+> => {
+  return useMutation(getCreateUnitMutationOptions(options));
+};
+
+/**
+ * @summary Bulk import units (CSV-parsed rows) into a property
+ */
+export const getImportUnitsUrl = () => {
+  return `/api/units/import`;
+};
+
+export const importUnits = async (
+  importUnitsBody: ImportUnitsBody,
+  options?: RequestInit,
+): Promise<ImportUnitsResult> => {
+  return customFetch<ImportUnitsResult>(getImportUnitsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importUnitsBody),
+  });
+};
+
+export const getImportUnitsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importUnits>>,
+    TError,
+    { data: BodyType<ImportUnitsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importUnits>>,
+  TError,
+  { data: BodyType<ImportUnitsBody> },
+  TContext
+> => {
+  const mutationKey = ["importUnits"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importUnits>>,
+    { data: BodyType<ImportUnitsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importUnits(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportUnitsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importUnits>>
+>;
+export type ImportUnitsMutationBody = BodyType<ImportUnitsBody>;
+export type ImportUnitsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bulk import units (CSV-parsed rows) into a property
+ */
+export const useImportUnits = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importUnits>>,
+    TError,
+    { data: BodyType<ImportUnitsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importUnits>>,
+  TError,
+  { data: BodyType<ImportUnitsBody> },
+  TContext
+> => {
+  return useMutation(getImportUnitsMutationOptions(options));
+};
+
+/**
+ * @summary Delete a unit
+ */
+export const getDeleteUnitUrl = (id: number) => {
+  return `/api/units/${id}`;
+};
+
+export const deleteUnit = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteUnitUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteUnitMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteUnit>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteUnit>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteUnit"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteUnit>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteUnit(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteUnitMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteUnit>>
+>;
+
+export type DeleteUnitMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a unit
+ */
+export const useDeleteUnit = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteUnit>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteUnit>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteUnitMutationOptions(options));
+};

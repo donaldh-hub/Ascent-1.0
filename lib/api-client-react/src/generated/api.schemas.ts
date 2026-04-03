@@ -711,6 +711,56 @@ export interface WorkflowBottleneckAnalysis {
   stageSummary: WorkflowBottleneckAnalysisStageSummaryItem[];
 }
 
+export interface Property {
+  id: number;
+  name: string;
+  address?: string | null;
+  createdAt: string;
+}
+
+export interface CreatePropertyBody {
+  name: string;
+  address?: string | null;
+}
+
+export type UnitMetadata = { [key: string]: unknown } | null;
+
+export interface Unit {
+  id: number;
+  propertyId: number;
+  unitNumber: string;
+  metadata?: UnitMetadata;
+  createdAt: string;
+}
+
+export type CreateUnitBodyMetadata = { [key: string]: unknown } | null;
+
+export interface CreateUnitBody {
+  propertyId: number;
+  unitNumber: string;
+  metadata?: CreateUnitBodyMetadata;
+}
+
+export type ImportUnitsBodyUnitsItemMetadata = {
+  [key: string]: unknown;
+} | null;
+
+export type ImportUnitsBodyUnitsItem = {
+  unitNumber: string;
+  metadata?: ImportUnitsBodyUnitsItemMetadata;
+};
+
+export interface ImportUnitsBody {
+  propertyId: number;
+  units: ImportUnitsBodyUnitsItem[];
+}
+
+export interface ImportUnitsResult {
+  imported: number;
+  skipped: number;
+  units: Unit[];
+}
+
 export type ListWorkflowsParams = {
   status?: ListWorkflowsStatus;
   stoplight?: ListWorkflowsStoplight;
@@ -830,4 +880,8 @@ export const ListAlertsStatus = {
 
 export type GetAnalyticsTrendsParams = {
   days?: number;
+};
+
+export type ListUnitsParams = {
+  propertyId?: number;
 };

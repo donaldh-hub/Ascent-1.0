@@ -1,0 +1,328 @@
+Ascent 1.0 — Phase 1 Build 1.5 (Guided System Activation + Unit Intake Layer Prompt)
+
+Reference Blueprint: Continuous Improvement App Core Builds
+Reference Prior Builds: Phase 1 — Build 1 (Auth + Roles + App Shell)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.5.
+
+The system already has:
+
+* authentication
+* organization structure
+* user roles
+* protected routes
+* app shell
+* settings foundation
+* database foundation
+
+Do NOT rebuild the foundation.
+Do NOT redesign the application.
+Do NOT create duplicate data models.
+Do NOT create placeholder-only onboarding screens.
+
+This build is the GUIDED SYSTEM ACTIVATION + UNIT INTAKE LAYER.
+
+PROJECT NAME:
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Create a guided onboarding and intake system that allows a new customer to:
+
+1. Set up their organization structure
+2. Create properties and units
+3. Upload a roster (CVA / CSV) OR manually enter data
+4. Establish the core structure that all future workflows, documents, assets, and intelligence will attach to
+
+This build must RESULT in real, persistent, structured data that powers the rest of the system.
+
+This is NOT just onboarding.
+This is the creation of the system’s SOURCE OF TRUTH.
+
+==================================================
+
+CRITICAL SYSTEM RULE
+
+==================================================
+
+All data created in this build MUST:
+
+* use the existing organization/user model
+* persist in the core database
+* be reusable by workflows, documents, assets, scoring, and alerts
+* NOT exist as temporary onboarding-only data
+
+There must be ONE shared data model.
+
+==================================================
+
+BUILD REQUIREMENTS
+
+==================================================
+
+1. GUIDED ONBOARDING FLOW
+
+Create a structured, step-by-step onboarding flow that runs AFTER signup.
+
+This flow must be:
+
+* sequential (step-by-step)
+* persistent (resume if interrupted)
+* progress-tracked
+
+Steps:
+
+Step 1 — Welcome / Activation
+
+* Simple message: “Let’s set up your system”
+* Button: Start Setup
+
+Step 2 — Organization Confirmation
+
+* Show org name
+* Allow edit if needed
+
+Step 3 — Property Setup
+
+* Create at least one property
+* Fields:
+
+  * property name
+  * address (optional but supported)
+
+Step 4 — Unit Intake Choice
+User must choose ONE:
+
+A. Upload CSV (CVA / roster)
+B. Manual Entry
+
+Step 5 — Completion + Immediate Feedback
+
+* Show summary:
+
+  * properties created
+  * units created
+* Message: “Your system is now active”
+* CTA: Go to Units
+
+==================================================
+
+2. PROPERTY + UNIT DATA MODEL
+
+Create or extend data model to support:
+
+Entities:
+
+* properties
+* units
+
+Property fields:
+
+* id
+* organization_id
+* name
+* address (optional)
+* created_at
+
+Unit fields:
+
+* id
+* organization_id
+* property_id
+* unit_name / unit_number
+* optional metadata (JSON)
+* created_at
+
+Relationships:
+
+* property → many units
+* organization → many properties
+
+All units MUST belong to:
+
+* an organization
+* a property
+
+==================================================
+
+3. CSV / CVA UPLOAD SYSTEM
+
+Build a CSV upload and parsing system.
+
+Requirements:
+
+* Accept CSV file
+* Parse rows
+* Detect headers dynamically
+* Allow user to map fields:
+
+  * unit number
+  * property (if present)
+
+If property not provided:
+
+* assign all units to selected property
+
+Preview screen REQUIRED:
+
+* show parsed rows
+* allow user to confirm before import
+
+Import behavior:
+
+* create units
+* prevent duplicates (based on unit + property)
+* log import activity
+
+==================================================
+
+4. MANUAL UNIT ENTRY
+
+Provide manual entry path.
+
+User must be able to:
+
+* add units one-by-one
+* add multiple units quickly
+
+Fields:
+
+* unit name/number
+* property (pre-selected)
+
+UI requirement:
+
+* fast entry (no heavy form friction)
+
+==================================================
+
+5. DATA VALIDATION + DUPLICATE HANDLING
+
+System must:
+
+* prevent exact duplicate units within same property
+* allow same unit name across different properties
+* surface duplicate warning before import
+
+==================================================
+
+6. ONBOARDING COMPLETION STATE
+
+After onboarding:
+
+* mark onboarding as complete in user profile
+* redirect user to Units page
+
+User must NOT see onboarding again after completion.
+
+==================================================
+
+7. UNITS PAGE (FOUNDATION FOR BUILD 1.6)
+
+Create Units page:
+
+Route:
+
+* /units
+
+Requirements:
+
+* list all units
+* show property grouping (optional but clean)
+* search units
+* click into unit (placeholder for now)
+
+Each unit row must show:
+
+* unit name
+* property name
+* created date
+
+==================================================
+
+8. AUDIT + ACTIVITY LOG
+
+Track:
+
+* onboarding started
+* property created
+* units created (manual + import)
+* CSV upload
+
+==================================================
+
+9. ROLE BEHAVIOR
+
+Admin / Supervisor:
+
+* full access
+
+Manager:
+
+* view
+
+Technician:
+
+* limited visibility if needed
+
+Viewer:
+
+* read-only
+
+==================================================
+
+10. UX REQUIREMENTS
+
+System must feel:
+
+* simple
+* guided
+* fast
+* confidence-building
+
+User must feel progress immediately.
+
+==================================================
+
+11. SUCCESS STATE
+
+This build is complete when I can:
+
+1. Sign up
+2. Enter onboarding
+3. Create a property
+4. Upload a CSV OR manually create units
+5. See units created in the system
+6. Navigate to /units
+7. Click a unit (placeholder page OK)
+8. Confirm data persists and is structured correctly
+
+==================================================
+
+12. IMPORTANT LIMITS
+
+This build is NOT for:
+
+* assignment engine logic
+* document intelligence
+* workflow linking
+* scoring
+* alerts
+
+This is STRUCTURE ONLY.
+
+==================================================
+
+INTERNAL LABEL
+
+“Phase 1 — Build 1.5: Guided System Activation + Unit Intake Layer”
+
+==================================================
+
+END OF PROMPT
