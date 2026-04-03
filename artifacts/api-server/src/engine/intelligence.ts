@@ -254,7 +254,7 @@ export async function buildActionPanel(limit = 6): Promise<IntelligenceAction[]>
     }
 
     // Severely aging items (>14 days in stage)
-    for (const item of openItems.filter((i) => daysSince(i.stageEnteredAt) > 14 && !isCritical(item))) {
+    for (const item of openItems.filter((i) => daysSince(i.stageEnteredAt) > 14 && !isCritical(i))) {
       const stage = wf.stages.find((s) => s.id === item.stageId);
       const daysInStage = Math.round(daysSince(item.stageEnteredAt));
       actions.push({

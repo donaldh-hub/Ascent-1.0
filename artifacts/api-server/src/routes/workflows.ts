@@ -37,6 +37,8 @@ router.get("/workflows", async (req, res) => {
     const { calcWorkflowHealth } = await import("../engine/scoring");
 
     const allWorkflowInputs = await loadAllWorkflowInputs();
+    const allWorkflowRows = await db.select({ id: workflowsTable.id, description: workflowsTable.description }).from(workflowsTable);
+    const descriptionMap = Object.fromEntries(allWorkflowRows.map((w) => [w.id, w.description ?? null]));
 
     const result = allWorkflowInputs
       .map((wfInput) => {
@@ -44,6 +46,7 @@ router.get("/workflows", async (req, res) => {
         return {
           id: wfInput.id,
           title: wfInput.title,
+          description: descriptionMap[wfInput.id] ?? null,
           status: wfInput.status,
           healthScore: health.healthScore,
           stoplight: health.stoplight,
