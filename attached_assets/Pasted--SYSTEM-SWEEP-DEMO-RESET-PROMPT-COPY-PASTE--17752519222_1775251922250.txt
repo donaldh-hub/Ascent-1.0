@@ -1,0 +1,197 @@
+==================================================
+SYSTEM SWEEP / DEMO RESET PROMPT
+(COPY + PASTE INTO REPLIT AGENT)
+================================
+
+We are preparing Ascent 1.0 for controlled demo and testing.
+
+This is a SYSTEM SWEEP / RESET operation.
+
+DO NOT rebuild the application.
+DO NOT alter system architecture.
+DO NOT delete core structure.
+DO NOT remove any engines or logic.
+
+This operation is ONLY to clear existing test/demo data
+while preserving the full working system.
+
+==================================================
+CORE GOAL
+=========
+
+Reset the system to a CLEAN operational state so that:
+
+* all existing demo/test data is removed
+* all system engines remain intact
+* the platform behaves exactly the same
+* new mock data becomes the ONLY tracked data
+
+This prepares the system for accurate demo, testing, and validation.
+
+==================================================
+CRITICAL SAFETY RULES
+=====================
+
+NEVER DELETE OR MODIFY:
+
+* authentication system
+* users and login access
+* organizations
+* roles and permissions
+* properties and units (STRUCTURE ONLY)
+* database schema
+* routing
+* app shell / UI structure
+* workflow engine logic
+* scoring engine
+* alert engine
+* document/evidence engine
+* assignment engine
+* system integration engine
+
+Preserve ALL system behavior.
+
+==================================================
+CLEAR ONLY DATA (NOT STRUCTURE)
+===============================
+
+Remove ALL non-essential data from the following:
+
+1. WORKFLOWS
+
+* delete all workflows created for testing
+* delete all workflow stages (if not system-defined)
+* delete all workflow items
+* delete workflow item history
+
+2. ALERTS
+
+* delete all active alerts
+* delete all historical alerts
+
+3. DOCUMENTS / EVIDENCE
+
+* delete all uploaded files
+* delete all document records
+* remove all attachment links
+
+4. ASSIGNMENTS
+
+* delete all assignment records
+* clear review queue
+* remove all suggested/confirmed matches
+
+5. DASHBOARD DERIVED DATA
+
+* clear any cached metrics
+* clear derived summaries if stored
+
+6. UNIT HISTORY
+
+* clear unit timelines of events
+* remove activity logs tied to demo data
+
+7. REVIEW QUEUES
+
+* clear assignment review queue
+* clear any unresolved records
+
+==================================================
+OPTIONAL: TARGETED CLEANUP TAGGING (IF SUPPORTED)
+=================================================
+
+If system supports tagging or metadata:
+
+Only remove records tagged as:
+
+* "demo"
+* "test"
+* "sample"
+* "placeholder"
+
+If tagging is NOT implemented:
+Proceed with full data clearing as defined above.
+
+==================================================
+DATA INTEGRITY RULES
+====================
+
+After cleanup:
+
+* no orphan records must remain
+* no broken references must exist
+* all foreign keys must remain valid
+* system must not throw errors due to missing data
+
+==================================================
+POST-SWEEP STATE REQUIREMENTS
+=============================
+
+After reset is complete:
+
+1. System loads normally
+2. Dashboard shows empty or low-data state (NOT fake data)
+3. No workflows exist
+4. No alerts exist
+5. No documents exist
+6. No assignments exist
+7. Unit profiles exist but show no history
+8. All engines remain functional
+
+==================================================
+EMPTY STATE REQUIREMENTS
+========================
+
+System must display clear, honest messages such as:
+
+* "No workflows created yet"
+* "No documents attached"
+* "No activity recorded"
+* "No alerts at this time"
+
+NO fake positive signals.
+NO misleading green states.
+
+==================================================
+AUDIT LOG HANDLING
+==================
+
+Option A (Preferred):
+
+* retain audit log but mark pre-reset entries as archived
+
+Option B:
+
+* clear audit log entirely
+
+==================================================
+PERFORMANCE REQUIREMENTS
+========================
+
+* sweep must complete without breaking app
+* no manual intervention required after execution
+* system must be immediately usable after reset
+
+==================================================
+SUCCESS STATE
+=============
+
+This operation is complete when:
+
+1. All test/demo data is removed
+2. System structure remains fully intact
+3. No stale data appears anywhere in UI
+4. No errors occur due to missing data
+5. System is ready to accept fresh mock dataset
+
+==================================================
+FINAL INTENT
+============
+
+Preserve the machine.
+Clear the old data.
+Prepare for a clean, controlled demo environment.
+
+==================================================
+END OF PROMPT
+=============
