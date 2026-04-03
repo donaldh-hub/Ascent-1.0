@@ -1,0 +1,272 @@
+Ascent 1.0 — Phase 1 Build 1.6.5 (Local Wiring + Continuity Pass Prompt)
+
+Reference Prior Builds:
+
+* Phase 1 — Build 1 (Auth + Roles + App Shell)
+* Phase 1 — Build 1.5 (Guided Activation + Unit Intake)
+* Phase 1 — Build 1.6 (Unit Profile + Immediate History)
+* Phase 1 — Build 2 (Workflow Engine)
+* Phase 1 — Build 3 (Scoring + Stoplight)
+* Phase 1 — Build 4 (Alerts)
+* Phase 1 — Build 5 (Dashboard Intelligence)
+* Phase 1 — Build 6 (Documents + Evidence)
+* Phase 1 — Build 6.5 (Evidence Visibility)
+* Phase 1 — Build 6.6 (Signal Strength + Language)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.6.5.
+
+This is NOT a new feature build.
+This is a LOCAL WIRING + CONTINUITY PASS for Builds 1 through 1.6.
+
+Do NOT rebuild existing systems.
+Do NOT redesign UI.
+Do NOT create duplicate data models.
+Do NOT introduce new business logic layers.
+
+PROJECT NAME:
+Ascent 1.0
+
+CORE GOAL OF THIS BUILD:
+
+Make all existing layers (1 → 1.6) reachable, visible, and consistent so the user can actually USE what has already been built.
+
+This build must ensure:
+
+* navigation works
+* routes resolve correctly
+* data renders in the right places
+* entities remain connected
+* there is ONE shared truth across the system
+
+==================================================
+
+CRITICAL SYSTEM RULE
+
+==================================================
+
+All wiring must use existing shared data models and services.
+
+* No shadow copies of data
+* No UI-only placeholder states masking real data
+* No duplicate entity linkage systems
+
+Everything must read/write to the same core structure.
+
+==================================================
+
+WIRING REQUIREMENTS
+
+==================================================
+
+1. AUTH + ROUTE GATING (FROM BUILD 1 + 1.5)
+
+* Enforce first-run setup gating:
+  IF no property OR no unit → redirect to /setup
+* Block access to dashboard/workflows/units until setup complete
+* Allow normal routing after setup complete
+
+Ensure behavior works on:
+
+* login
+* refresh
+* direct URL navigation
+
+==================================================
+
+2. SETUP → UNITS HANDOFF (BUILD 1.5)
+
+After setup completion:
+
+* redirect user to /units
+* confirm units persist and render immediately
+
+Ensure:
+
+* no empty dashboard redirect
+* no broken state after onboarding
+
+==================================================
+
+3. UNITS PAGE → UNIT PROFILE (BUILD 1.6)
+
+* Make each unit row/card clickable
+* Route to: /units/:unitId
+
+Ensure:
+
+* route resolves correctly
+* unit data loads from real API
+* no placeholder-only rendering
+
+==================================================
+
+4. UNIT PROFILE DATA WIRING (BUILD 1.6)
+
+Confirm Unit Profile pulls real data:
+
+* header → unit + property info
+* history → real events if exist
+* documents → from document engine
+* work → from workflow items if linked
+* assets → from asset structure if present
+
+If no data exists:
+
+* show truthful empty states
+* no fake summaries
+
+==================================================
+
+5. DOCUMENT CONTINUITY (BUILD 6, 6.5, 6.6)
+
+Ensure:
+
+* documents remain linked to real entities
+* attachment counts match actual data
+* evidence badges use shared language system
+* document preview opens correctly
+
+No duplicate document queries across components.
+
+==================================================
+
+6. WORKFLOW → UNIT RELATIONSHIP (BUILD 2 + 1.6 PREP)
+
+Ensure workflow items can reference:
+
+* property_id
+* unit_id (if available)
+
+If unit linkage not yet fully implemented:
+
+* preserve structure
+* do NOT fabricate links
+
+==================================================
+
+7. DASHBOARD CONTINUITY (BUILD 3, 4, 5)
+
+Ensure dashboard uses:
+
+* real scoring outputs
+* real alert counts
+* real workflow data
+
+No hardcoded values.
+
+==================================================
+
+8. NAVIGATION CONSISTENCY
+
+Sidebar must clearly expose:
+
+* Dashboard
+* Workflows
+* Units
+* Documents
+* Alerts
+
+Units must be a primary, obvious entry point.
+
+==================================================
+
+9. DATA INTEGRITY RULES
+
+System must:
+
+* prevent duplicate unit/property records
+* maintain org-scoped data isolation
+* avoid cross-entity contamination
+
+==================================================
+
+10. EMPTY STATE CONSISTENCY
+
+All empty states must be:
+
+* honest
+* explanatory
+* non-misleading
+
+Examples:
+
+* "No units created yet"
+* "No documents attached"
+* "No workflow activity recorded"
+
+==================================================
+
+11. AUDIT + TRACEABILITY
+
+Ensure existing audit logs capture:
+
+* onboarding events
+* unit creation
+* navigation into unit profile (if clean)
+
+Do NOT overbuild analytics.
+
+==================================================
+
+12. UX REQUIREMENTS
+
+System must feel:
+
+* connected
+* predictable
+* navigable
+* real
+
+User must be able to:
+
+* understand where they are
+* understand what to click next
+
+==================================================
+
+SUCCESS STATE
+
+==================================================
+
+This build is complete when I can:
+
+1. Sign up and log in
+2. Be forced into setup if no data exists
+3. Create property and units
+4. Land on /units after setup
+5. Click a unit
+6. Open a real Unit Profile page
+7. See real or truthful empty data
+8. Navigate between dashboard, workflows, units without confusion
+9. Confirm no duplicate or fake data layers exist
+
+==================================================
+
+IMPORTANT LIMITS
+
+==================================================
+
+This build is NOT for:
+
+* assignment engine logic
+* advanced analytics
+* predictive systems
+* new feature modules
+
+This is CONNECTIVITY ONLY.
+
+==================================================
+
+INTERNAL LABEL
+
+"Phase 1 — Build 1.6.5: Local Wiring + Continuity Pass"
+
+==================================================
+
+END OF PROMPT

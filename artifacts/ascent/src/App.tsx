@@ -17,6 +17,7 @@ import Analytics from "@/pages/analytics";
 import Alerts from "@/pages/alerts";
 import Units from "@/pages/units";
 import UnitDetail from "@/pages/unit-detail";
+import Documents from "@/pages/documents";
 import Setup from "@/pages/setup";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ function Router() {
         <Route path="/alerts" component={Alerts} />
         <Route path="/units" component={Units} />
         <Route path="/units/:id" component={UnitDetail} />
+        <Route path="/documents" component={Documents} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
