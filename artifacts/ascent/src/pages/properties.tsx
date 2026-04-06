@@ -142,18 +142,30 @@ function PropertyCard({ card }: { card: PropertyPortfolioCard }) {
           )}
         </div>
 
-        {/* Evidence line */}
+        {/* Documentation signal — corrected to show financial risk */}
         {card.missingDocsCount > 0 ? (
-          <div className="flex items-center gap-1.5 text-xs text-status-yellow mb-2">
-            <FileWarning className="h-3.5 w-3.5 shrink-0" />
-            Missing docs ({card.missingDocsCount} critical asset{card.missingDocsCount !== 1 ? "s" : ""})
+          <div className="flex items-start gap-1.5 text-xs text-status-red mb-2 leading-snug">
+            <FileWarning className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              Documentation: <span className="font-bold">MISSING</span>
+              <span className="text-status-red/80"> (CRITICAL — cannot verify warranty or tenant liability)</span>
+            </span>
           </div>
         ) : card.documentCount > 0 ? (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-            <FileCheck2 className="h-3.5 w-3.5 shrink-0 text-status-green" />
-            {card.documentCount} documents on file
+          <div className="flex items-center gap-1.5 text-xs text-status-green mb-2">
+            <FileCheck2 className="h-3.5 w-3.5 shrink-0" />
+            Documentation: <span className="font-bold ml-1">VERIFIED</span>
+            <span className="text-muted-foreground ml-1">· {card.documentCount} on file</span>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-start gap-1.5 text-xs text-status-yellow mb-2 leading-snug">
+            <FileWarning className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              Documentation: <span className="font-bold">INCOMPLETE</span>
+              <span className="text-status-yellow/80"> — partial coverage, some exposure exists</span>
+            </span>
+          </div>
+        )}
 
         {/* Insight */}
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 border-t border-border/25 pt-2.5">

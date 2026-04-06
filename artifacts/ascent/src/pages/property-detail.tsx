@@ -1,24 +1,30 @@
 /**
  * Property Control Tower
  * Per-property health view — reuses portfolio data, scoped to one property.
+ * Clickable dimension cards with full diagnostic reveal (mirrors main Control Tower).
  */
 
+import type React from "react";
 import { useLocation } from "wouter";
 import {
   Building2, ArrowLeft, Activity, Shield, Zap, BarChart2,
   AlertTriangle, Clock, FileWarning, FileCheck2, Hash,
   TrendingUp, TrendingDown, Minus, Mail, Copy, CheckCircle2,
-  User, ArrowRight, Server, Layers,
+  User, ArrowRight, Layers, ChevronDown, X, ShieldAlert,
+  Package, Target, Workflow,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePortfolio, type PropertyPortfolioCard } from "@/hooks/use-portfolio";
 import { useListUnits } from "@workspace/api-client-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type MetricKey = "flow" | "risk" | "execution" | "improvement";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -59,6 +65,62 @@ function ScoreBar({ score, color }: { score: number; color: string }) {
   );
 }
 
+function severityLabel(value: number, type: "score" | "count" | "age" | "coverage"): string {
+  if (type === "score") {
+    if (value < 40) return "CRITICAL";
+    if (value < 60) return "SEVERE";
+    if (value < 75) return "HIGH";
+    if (value < 88) return "MODERATE";
+    return "LOW";
+  }
+  if (type === "age") {
+    if (value > 200) return "SEVERE — systemic slowdown";
+    if (value > 90)  return "HIGH — escalation required";
+    if (value > 30)  return "MODERATE — review needed";
+    return "LOW";
+  }
+  if (type === "coverage") {
+    if (value < 50) return "CRITICAL — high exposure";
+    if (value < 75) return "HIGH — gaps detected";
+    if (value < 90) return "MODERATE";
+    return "GOOD";
+  }
+  // count
+  if (value === 0) return "CLEAR";
+  if (value > 20) return "SEVERE";
+  if (value > 10) return "HIGH";
+  if (value > 5)  return "MODERATE";
+  return "LOW";
+}
+
+// ── Documentation status helper (corrected to show financial risk) ─────────────
+
+function docStatus(card: PropertyPortfolioCard): {
+  level: "red" | "yellow" | "green";
+  label: string;
+  detail: string;
+} {
+  if (card.missingDocsCount > 0) {
+    return {
+      level: "red",
+      label: "MISSING",
+      detail: `CRITICAL — cannot verify warranty or tenant liability on ${card.missingDocsCount} critical asset${card.missingDocsCount !== 1 ? "s" : ""}`,
+    };
+  }
+  if (card.documentCount === 0) {
+    return {
+      level: "yellow",
+      label: "INCOMPLETE",
+      detail: "Partial coverage — some exposure exists, unable to fully verify warranty status",
+    };
+  }
+  return {
+    level: "green",
+    label: "VERIFIED",
+    detail: `${card.documentCount} document${card.documentCount !== 1 ? "s" : ""} on file — warranty and tenant liability verifiable`,
+  };
+}
+
 // ── Health gauge ──────────────────────────────────────────────────────────────
 
 function HealthGauge({ card }: { card: PropertyPortfolioCard }) {
@@ -96,11 +158,425 @@ function HealthGauge({ card }: { card: PropertyPortfolioCard }) {
   );
 }
 
+// ── Reveal card shell ──────────────────────────────────────────────────────────
+
+function RevealCard({ label, icon: Icon, children }: {
+  label: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg bg-background/70 border border-border/40 px-4 py-3">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Per-metric reveal content (scoped to this property) ───────────────────────
+
+function FlowReveal({ card }: { card: PropertyPortfolioCard }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Top Bottleneck" icon={Activity}>
+        <p className="font-semibold text-sm">{card.topBottleneck}</p>
+        {card.bottleneckAging > 0 && (
+          <div className="mt-1.5 space-y-0.5">
+            <p className="text-xs">
+              <span className="text-status-red font-semibold">{card.bottleneckAging}d</span>
+              <span className="text-muted-foreground ml-1">aging</span>
+            </p>
+            <p className="text-[10px] font-bold uppercase text-status-red/80 tracking-wide">
+              {severityLabel(card.bottleneckAging, "age")}
+            </p>
+          </div>
+        )}
+      </RevealCard>
+
+      <RevealCard label="Asset Exposure" icon={Package}>
+        <p className="text-2xl font-bold tabular-nums">
+          {card.atRiskAssets}
+          <span className="text-sm font-normal text-muted-foreground ml-1">/ {card.totalAssets}</span>
+        </p>
+        <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+          {severityLabel(card.atRiskAssets, "count")} — expired warranty
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">assets with expired warranty contributing to bottleneck</p>
+      </RevealCard>
+
+      <RevealCard label="Unit Coverage" icon={Layers}>
+        <p className="text-2xl font-bold tabular-nums">{card.unitCoverage}%</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+          {severityLabel(card.unitCoverage, "coverage")}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">of units have active asset coverage</p>
+      </RevealCard>
+    </div>
+  );
+}
+
+function RiskReveal({ card }: { card: PropertyPortfolioCard }) {
+  const doc = docStatus(card);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Critical Items" icon={ShieldAlert}>
+        <p className="text-2xl font-bold text-status-red tabular-nums">{card.criticalItemsCount}</p>
+        <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+          {severityLabel(card.criticalItemsCount, "count")}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">open critical-priority items at this property</p>
+      </RevealCard>
+
+      <RevealCard label="Expired Warranty" icon={Clock}>
+        <p className="text-2xl font-bold text-status-yellow tabular-nums">{card.atRiskAssets}</p>
+        <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+          {severityLabel(card.atRiskAssets, "count")} — expired
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">assets past warranty expiry</p>
+        {card.expiringSoonAssets > 0 && (
+          <p className="text-xs text-status-yellow/80 mt-1.5">
+            +{card.expiringSoonAssets} expiring within 90 days
+          </p>
+        )}
+      </RevealCard>
+
+      <RevealCard label="Documentation Risk" icon={doc.level === "red" ? FileWarning : FileCheck2}>
+        <p className={cn(
+          "text-sm font-bold tracking-wide",
+          doc.level === "red" ? "text-status-red"
+          : doc.level === "yellow" ? "text-status-yellow"
+          : "text-status-green"
+        )}>
+          {doc.label}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1.5 leading-snug">
+          Documentation: {doc.label} ({doc.detail})
+        </p>
+      </RevealCard>
+    </div>
+  );
+}
+
+function ExecutionReveal({ card }: { card: PropertyPortfolioCard }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Execution Score" icon={Target}>
+        <p className="text-2xl font-bold tabular-nums">{card.executionScore}</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+          {severityLabel(100 - card.executionScore, "score")} pressure
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">completion rate and response effectiveness</p>
+      </RevealCard>
+
+      <RevealCard label="Critical Backlog" icon={AlertTriangle}>
+        <p className="text-2xl font-bold tabular-nums">{card.criticalItemsCount}</p>
+        <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+          {severityLabel(card.criticalItemsCount, "count")} backlog
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">unresolved critical items reducing execution capacity</p>
+      </RevealCard>
+
+      <RevealCard label="Bottleneck Stage" icon={Workflow}>
+        <p className="font-semibold text-sm">{card.topBottleneck}</p>
+        {card.bottleneckAging > 0 && (
+          <>
+            <p className="text-xs text-muted-foreground mt-1">longest aging: <span className="text-status-yellow font-medium">{card.bottleneckAging}d</span></p>
+          </>
+        )}
+        <p className="text-xs text-muted-foreground mt-1 leading-snug">primary stage slowing execution throughput</p>
+      </RevealCard>
+    </div>
+  );
+}
+
+function ImprovementReveal({ card }: { card: PropertyPortfolioCard }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Trend Direction" icon={TrendingUp}>
+        <div className="flex items-center gap-2 mb-1">
+          {card.trendDirection === "up" ? (
+            <TrendingUp className="h-5 w-5 text-status-green" />
+          ) : card.trendDirection === "down" ? (
+            <TrendingDown className="h-5 w-5 text-status-red" />
+          ) : (
+            <Minus className="h-5 w-5 text-muted-foreground" />
+          )}
+          <span className="font-semibold text-sm capitalize">{card.trendDirection}</span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-snug">
+          {card.trendDirection === "up"
+            ? "Property health is improving — maintain momentum"
+            : card.trendDirection === "down"
+            ? "Health declining — address critical items to reverse"
+            : "Stable performance — push near-complete items to completion"}
+        </p>
+      </RevealCard>
+
+      <RevealCard label="Recovery Signal" icon={Activity}>
+        <p className="text-2xl font-bold tabular-nums">{card.improvementScore}</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+          {severityLabel(100 - card.improvementScore, "score")} recovery drag
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {card.improvementScore >= 80
+            ? "Strong recovery momentum at this property"
+            : "Recovery below target — review asset expiry backlog"}
+        </p>
+      </RevealCard>
+
+      <RevealCard label="Expiry Outlook" icon={Clock}>
+        <p className="text-2xl font-bold tabular-nums text-status-yellow">{card.expiringSoonAssets}</p>
+        <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+          expiring in 90 days
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {card.expiringSoonAssets > 0
+            ? "Address before expiry to prevent risk score from falling"
+            : "No near-term expirations — good recovery window"}
+        </p>
+      </RevealCard>
+    </div>
+  );
+}
+
+// ── Property Metric Reveal Section ────────────────────────────────────────────
+
+function PropertyMetricRevealSection({
+  metric,
+  card,
+  onClose,
+}: {
+  metric: MetricKey;
+  card: PropertyPortfolioCard;
+  onClose: () => void;
+}) {
+  const doc = docStatus(card);
+
+  const config: Record<MetricKey, {
+    title: string;
+    accentClass: string;
+    borderClass: string;
+    bgClass: string;
+    headerColor: string;
+  }> = {
+    flow: {
+      title: "FLOW — Why Movement is Constrained",
+      accentClass: "bg-blue-500",
+      borderClass: "border-blue-500/50",
+      bgClass: "bg-blue-500/5",
+      headerColor: "text-blue-400",
+    },
+    risk: {
+      title: "RISK — Why Exposure is Elevated",
+      accentClass: "bg-red-500",
+      borderClass: "border-red-500/50",
+      bgClass: "bg-red-500/5",
+      headerColor: "text-red-400",
+    },
+    execution: {
+      title: "EXECUTION — Why Progress is Low",
+      accentClass: "bg-violet-500",
+      borderClass: "border-violet-500/50",
+      bgClass: "bg-violet-500/5",
+      headerColor: "text-violet-400",
+    },
+    improvement: {
+      title: "IMPROVEMENT — Trend Analysis",
+      accentClass: "bg-emerald-500",
+      borderClass: "border-emerald-500/50",
+      bgClass: "bg-emerald-500/5",
+      headerColor: "text-emerald-400",
+    },
+  };
+
+  const cfg = config[metric];
+
+  // ── PRIMARY CAUSE (derived from property data) ──
+  let primaryCause = "";
+  let recommendedAction = "";
+
+  if (metric === "flow") {
+    if (card.bottleneckAging > 0) {
+      primaryCause = `${card.atRiskAssets} expired-warranty assets creating "${card.topBottleneck}" bottleneck — ${card.bottleneckAging}d max age accumulating`;
+    } else {
+      primaryCause = `"${card.topBottleneck}" is the primary flow constraint — ${card.atRiskAssets} expired assets contributing to slowdown`;
+    }
+    recommendedAction = `Escalate the "${card.topBottleneck}" stage at ${card.propertyName} — address the ${Math.min(card.atRiskAssets, 5)} highest-priority expired-warranty assets first to restore flow`;
+  } else if (metric === "risk") {
+    if (card.missingDocsCount > 0) {
+      primaryCause = `Missing documentation on ${card.missingDocsCount} critical asset${card.missingDocsCount !== 1 ? "s" : ""} — unable to verify warranty or tenant liability`;
+    } else {
+      primaryCause = `${card.atRiskAssets} assets with expired warranty — ${card.criticalItemsCount} critical items open at ${card.propertyName}`;
+    }
+    if (card.missingDocsCount > 0) {
+      recommendedAction = `Address documentation gaps first — upload warranty and service records for ${card.missingDocsCount} critical asset${card.missingDocsCount !== 1 ? "s" : ""} to restore liability coverage`;
+    } else {
+      recommendedAction = `Review ${card.atRiskAssets} expired-warranty assets and initiate renewal for the highest-risk items — prioritize ${card.criticalItemsCount} critical items`;
+    }
+  } else if (metric === "execution") {
+    primaryCause = `${card.executionScore}/100 execution score at ${card.propertyName} — ${card.criticalItemsCount} critical items and "${card.topBottleneck}" stage creating completion drag`;
+    recommendedAction = `Assign ownership to all open items — resolve "${card.topBottleneck}" stage congestion and clear ${card.criticalItemsCount} critical backlog items`;
+  } else if (metric === "improvement") {
+    const trendText = card.trendDirection === "down" ? "declining" : card.trendDirection === "up" ? "improving" : "stable";
+    primaryCause = `${card.propertyName} trend is ${trendText} (${card.improvementScore}/100 improvement score) — ${card.expiringSoonAssets} assets expiring in 90 days represent forward risk`;
+    if (card.trendDirection === "down") {
+      recommendedAction = "Prioritize clearing the critical backlog to reverse declining trend — complete near-ready items and address expiring assets before they become failures";
+    } else if (card.trendDirection === "stable") {
+      recommendedAction = "Push 2–3 near-complete items to resolution and renew expiring warranties to build positive momentum";
+    } else {
+      recommendedAction = "Maintain current momentum — lock in gains by addressing expiring warranties before they impact future scores";
+    }
+  }
+
+  // Insight text based on metric
+  const insightText = metric === "risk" && card.missingDocsCount > 0
+    ? `Documentation: MISSING (CRITICAL — cannot verify warranty or tenant liability). ${card.insightSummary}`
+    : card.insightSummary;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22 }}
+      className={cn("rounded-xl border-2 overflow-hidden shadow-md", cfg.borderClass, cfg.bgClass)}
+    >
+      <div className={cn("h-1 w-full", cfg.accentClass)} />
+      <div className="p-5 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className={cn("text-sm font-bold tracking-wide", cfg.headerColor)}>
+            {cfg.title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 border border-border/40 rounded-md px-2 py-1 shrink-0 ml-4"
+          >
+            <X className="h-3 w-3" /> Close
+          </button>
+        </div>
+
+        {/* PRIMARY CAUSE */}
+        <div className={cn(
+          "rounded-lg border px-4 py-3 flex items-start gap-3",
+          cfg.borderClass.replace("/50", "/30"),
+          "bg-background/70",
+        )}>
+          <div className="shrink-0 mt-0.5">
+            <div className={cn("w-2 h-2 rounded-full mt-1", cfg.accentClass)} />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
+              Primary Cause
+            </p>
+            <p className="text-sm font-semibold text-foreground leading-snug">{primaryCause}</p>
+          </div>
+        </div>
+
+        {/* Insight context */}
+        <div className="rounded-lg bg-background/50 border border-border/25 px-4 py-2.5">
+          <p className="text-xs text-muted-foreground leading-relaxed">{insightText}</p>
+        </div>
+
+        {/* Per-metric reveal rows */}
+        {metric === "flow" && <FlowReveal card={card} />}
+        {metric === "risk" && <RiskReveal card={card} />}
+        {metric === "execution" && <ExecutionReveal card={card} />}
+        {metric === "improvement" && <ImprovementReveal card={card} />}
+
+        {/* RECOMMENDED ACTION */}
+        {recommendedAction && (
+          <div className="rounded-lg bg-background/80 border border-border/50 px-4 py-3 flex items-start gap-3">
+            <Zap className={cn("h-4 w-4 shrink-0 mt-0.5", cfg.headerColor)} />
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
+                Recommended Action
+              </p>
+              <p className="text-sm text-foreground/90 leading-snug">{recommendedAction}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Clickable dimension card ───────────────────────────────────────────────────
+
+function DimCard({
+  metricKey,
+  label,
+  score,
+  icon: Icon,
+  colorClass,
+  barColor,
+  desc,
+  isActive,
+  onClick,
+}: {
+  metricKey: MetricKey;
+  label: string;
+  score: number;
+  icon: React.ElementType;
+  colorClass: string;
+  barColor: string;
+  desc: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-xl border bg-card p-4 text-left w-full cursor-pointer transition-all duration-200 select-none",
+        isActive
+          ? "border-primary/60 ring-1 ring-primary/20 shadow-md"
+          : "border-border/40 hover:border-primary/40 hover:shadow-md",
+      )}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className={cn("p-1.5 rounded-md bg-muted/50", colorClass)}>
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+          <span className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+            {label}
+          </span>
+        </div>
+        <span className={cn(
+          "transition-transform duration-200",
+          isActive ? "rotate-180" : "rotate-0",
+        )}>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </span>
+      </div>
+      <div className="flex items-baseline gap-1.5 mb-2">
+        <span className="text-3xl font-bold tabular-nums">{score}</span>
+        <span className="text-sm text-muted-foreground">/100</span>
+      </div>
+      <ScoreBar score={score} color={barColor} />
+      <p className="text-[10px] text-muted-foreground mt-1.5">{desc}</p>
+      {!isActive && (
+        <p className="text-[10px] text-primary/50 mt-2 font-medium">Click to reveal drivers →</p>
+      )}
+      {isActive && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary/60 rounded-b pointer-events-none" />
+      )}
+    </button>
+  );
+}
+
 // ── Supervisor block ──────────────────────────────────────────────────────────
 
 function SupervisorBlock({ card }: { card: PropertyPortfolioCard }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+
+  const doc = docStatus(card);
 
   const subject = encodeURIComponent(`${card.propertyName} — ${card.topBottleneck} / Risk Alert`);
   const body = encodeURIComponent(
@@ -109,7 +585,7 @@ function SupervisorBlock({ card }: { card: PropertyPortfolioCard }) {
     `Current Status: ${card.healthScore}/100 (${card.stoplight.toUpperCase()})\n` +
     `Active Risk: ${card.atRiskAssets} assets with expired warranty\n` +
     `Critical Alerts: ${card.criticalItemsCount}\n` +
-    `Missing Documentation: ${card.missingDocsCount} critical assets\n\n` +
+    `Documentation: ${doc.label} (${doc.detail})\n\n` +
     `Insight: ${card.insightSummary}\n\n` +
     `— Sent from Ascent 1.0`,
   );
@@ -162,12 +638,19 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
   const [, navigate] = useLocation();
   const { data: allUnits = [] } = useListUnits({});
   const propertyUnits = allUnits.filter((u) => u.propertyId === propertyId);
+  const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
 
-  const dims = [
-    { label: "Flow",        score: card.flowScore,       icon: Activity,  color: "bg-blue-500",    desc: "Stage movement & throughput" },
-    { label: "Risk",        score: card.riskScore,        icon: Shield,    color: "bg-status-red",  desc: "Asset exposure & critical items" },
-    { label: "Execution",   score: card.executionScore,   icon: Zap,       color: "bg-violet-500",  desc: "Completion rate & responsiveness" },
-    { label: "Improvement", score: card.improvementScore, icon: BarChart2, color: "bg-emerald-500", desc: "Recovery trend & momentum" },
+  const doc = docStatus(card);
+
+  function toggleMetric(key: MetricKey) {
+    setActiveMetric((prev) => (prev === key ? null : key));
+  }
+
+  const dimCards = [
+    { key: "flow"        as MetricKey, label: "Flow",        score: card.flowScore,        icon: Activity,  colorClass: "text-blue-400",    barColor: "bg-blue-500",    desc: "Stage movement & throughput" },
+    { key: "risk"        as MetricKey, label: "Risk",        score: card.riskScore,        icon: Shield,    colorClass: "text-red-400",     barColor: "bg-status-red",  desc: "Asset exposure & critical items" },
+    { key: "execution"   as MetricKey, label: "Execution",   score: card.executionScore,   icon: Zap,       colorClass: "text-violet-400",  barColor: "bg-violet-500",  desc: "Completion rate & responsiveness" },
+    { key: "improvement" as MetricKey, label: "Improvement", score: card.improvementScore, icon: BarChart2, colorClass: "text-emerald-400", barColor: "bg-emerald-500", desc: "Recovery trend & momentum" },
   ] as const;
 
   return (
@@ -215,7 +698,7 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
         </div>
       </div>
 
-      {/* Top row: gauge + 4 dimensions */}
+      {/* Top row: gauge + 4 dimension score cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Gauge card */}
         <div className="rounded-xl border border-border/50 bg-card p-5 flex flex-col items-center justify-center">
@@ -223,30 +706,72 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
           <p className="text-xs text-muted-foreground mt-3 text-center leading-relaxed line-clamp-3">
             {card.insightSummary}
           </p>
+          {/* Driven-by block */}
+          <div className="mt-4 w-full rounded-lg bg-secondary/50 border border-border/40 px-3 py-3 text-left">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">
+              Driven By
+            </p>
+            <ul className="space-y-1.5">
+              <li className="flex items-start gap-2 text-xs">
+                <span className="text-status-red font-bold mt-0.5">•</span>
+                <span className="text-foreground/80">
+                  <span className="font-semibold text-status-red">{card.atRiskAssets} expired warranty</span>
+                  <span className="text-muted-foreground"> assets</span>
+                </span>
+              </li>
+              {card.criticalItemsCount > 0 && (
+                <li className="flex items-start gap-2 text-xs">
+                  <span className="text-status-red font-bold mt-0.5">•</span>
+                  <span className="text-foreground/80">
+                    <span className="font-semibold text-status-red">{card.criticalItemsCount} critical items</span>
+                    <span className="text-muted-foreground"> open</span>
+                  </span>
+                </li>
+              )}
+              <li className="flex items-start gap-2 text-xs">
+                <span className="text-status-yellow font-bold mt-0.5">•</span>
+                <span className="text-foreground/80">
+                  <span className="font-semibold text-status-yellow">{card.topBottleneck}</span>
+                  <span className="text-muted-foreground">
+                    {card.bottleneckAging > 0 ? ` (${card.bottleneckAging}d aging)` : " bottleneck"}
+                  </span>
+                </span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        {/* Dimension grid */}
+        {/* Clickable dimension cards */}
         <div className="md:col-span-2 grid grid-cols-2 gap-3">
-          {dims.map((d) => (
-            <div key={d.label} className="rounded-xl border border-border/40 bg-card p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className={cn("p-1.5 rounded-md", d.color.replace("bg-", "bg-") + "/20")}>
-                  <d.icon className={cn("h-3.5 w-3.5", d.color.replace("bg-", "text-"))} />
-                </div>
-                <span className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
-                  {d.label}
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1.5 mb-2">
-                <span className="text-3xl font-bold tabular-nums">{d.score}</span>
-                <span className="text-sm text-muted-foreground">/100</span>
-              </div>
-              <ScoreBar score={d.score} color={d.color} />
-              <p className="text-[10px] text-muted-foreground mt-1.5">{d.desc}</p>
+          {dimCards.map((d) => (
+            <div key={d.key} className="relative">
+              <DimCard
+                metricKey={d.key}
+                label={d.label}
+                score={d.score}
+                icon={d.icon}
+                colorClass={d.colorClass}
+                barColor={d.barColor}
+                desc={d.desc}
+                isActive={activeMetric === d.key}
+                onClick={() => toggleMetric(d.key)}
+              />
             </div>
           ))}
         </div>
       </div>
+
+      {/* Inline metric reveal section */}
+      <AnimatePresence initial={false}>
+        {activeMetric && (
+          <PropertyMetricRevealSection
+            key={activeMetric}
+            metric={activeMetric}
+            card={card}
+            onClose={() => setActiveMetric(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Asset health row */}
       <div className="rounded-xl border border-border/50 bg-card p-5">
@@ -268,9 +793,9 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
         </div>
       </div>
 
-      {/* Signals + bottleneck */}
+      {/* Signals + supervisor */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Operational signals */}
+        {/* Operational signals with corrected doc risk */}
         <div className="rounded-xl border border-border/50 bg-card p-5">
           <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-4">
             Operational Signals
@@ -303,18 +828,32 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
                 <span className="font-semibold text-status-yellow">{card.bottleneckAging}d</span>
               </div>
             )}
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                {card.missingDocsCount > 0
-                  ? <FileWarning className="h-4 w-4 shrink-0 text-status-yellow" />
-                  : <FileCheck2 className="h-4 w-4 shrink-0 text-status-green" />}
-                <span>Documentation</span>
+
+            {/* Corrected documentation signal */}
+            <div className="border-t border-border/20 pt-3 mt-1">
+              <div className="flex items-start justify-between gap-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                  {doc.level === "red"
+                    ? <FileWarning className="h-4 w-4 shrink-0 text-status-red" />
+                    : doc.level === "yellow"
+                    ? <FileWarning className="h-4 w-4 shrink-0 text-status-yellow" />
+                    : <FileCheck2 className="h-4 w-4 shrink-0 text-status-green" />}
+                  <span>Documentation</span>
+                </div>
+                <div className="text-right">
+                  <span className={cn(
+                    "font-bold text-xs uppercase tracking-wide",
+                    doc.level === "red" ? "text-status-red"
+                    : doc.level === "yellow" ? "text-status-yellow"
+                    : "text-status-green",
+                  )}>
+                    {doc.label}
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[200px] leading-snug text-right">
+                    {doc.detail}
+                  </p>
+                </div>
               </div>
-              <span className={cn("font-medium text-xs", card.missingDocsCount > 0 ? "text-status-yellow" : "text-status-green")}>
-                {card.missingDocsCount > 0
-                  ? `${card.missingDocsCount} missing`
-                  : `${card.documentCount} on file`}
-              </span>
             </div>
           </div>
         </div>

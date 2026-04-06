@@ -1,0 +1,171 @@
+Ascent 1.0 — PHASE 1 ADD-ON
+PROPERTY CONTROL TOWER INTERACTION + DOCUMENTATION SIGNAL UPGRADE
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are upgrading the PROPERTY-LEVEL CONTROL TOWER.
+
+This is NOT a redesign.
+This is NOT new logic.
+
+This build does TWO things:
+
+1. Makes property-level metric cards clickable with diagnostic reveal
+2. Corrects documentation signal to reflect financial risk
+
+==================================================
+CORE GOAL
+=========
+
+Ensure property-level view behaves exactly like main control tower:
+
+* Click → Explain → Act
+
+And ensure documentation reflects:
+
+* Revenue protection status
+
+==================================================
+SECTION 1 — PROPERTY METRIC CARD INTERACTION
+============================================
+
+Enable click interaction for:
+
+* Flow
+* Risk
+* Execution
+* Improvement
+
+CURRENT ISSUE:
+Cards display data but do not reveal deeper explanation.
+
+REQUIRED BEHAVIOR:
+
+On click:
+
+* Expand inline diagnostic panel
+* OR scroll to diagnostic section
+
+DO NOT:
+
+* navigate away
+* reload page
+
+==================================================
+DIAGNOSTIC PANEL REQUIREMENTS
+=============================
+
+Each metric must reveal:
+
+1. PRIMARY CAUSE (top line)
+2. Supporting drivers
+3. Severity context (HIGH / SEVERE / etc.)
+4. RECOMMENDED ACTION
+
+Must reuse existing Reveal Engine.
+
+Must be scoped ONLY to selected property.
+
+==================================================
+SECTION 2 — DOCUMENTATION SIGNAL CORRECTION
+===========================================
+
+Update documentation status logic across:
+
+* Property cards
+* Property control tower
+* Diagnostic panels
+
+==================================================
+DOCUMENTATION STATUS RULES
+==========================
+
+GREEN:
+
+* Required documentation present
+* Warranty, service, and history verifiable
+
+YELLOW:
+
+* Partial documentation
+* Some exposure exists
+
+RED:
+
+* Missing critical documentation
+* Cannot verify warranty
+* Cannot verify tenant responsibility
+
+==================================================
+REQUIRED TEXT OUTPUT
+====================
+
+Documentation signal must include risk language:
+
+Example:
+
+"Documentation: MISSING (CRITICAL — cannot verify warranty or tenant liability)"
+
+==================================================
+DIAGNOSTIC INTEGRATION
+======================
+
+Documentation issues must appear inside:
+
+* Risk diagnostic
+* Primary cause statements when applicable
+
+Example:
+
+"PRIMARY CAUSE:
+Missing documentation on 6 critical items — unable to verify warranty or tenant liability"
+
+==================================================
+SECTION 3 — CONSISTENCY RULE
+============================
+
+Property Control Tower must match main Control Tower behavior:
+
+* Same interaction model
+* Same reveal structure
+* Same explanation format
+
+Only difference:
+
+* Data is filtered to ONE property
+
+==================================================
+SUCCESS STATE
+=============
+
+System is complete when:
+
+1. All four metric cards are clickable at property level
+2. Clicking reveals full diagnostic explanation
+3. Documentation signal correctly reflects risk (red/yellow/green)
+4. Documentation includes financial exposure language
+5. Experience is identical to main dashboard, but scoped
+
+==================================================
+IMPORTANT LIMITS
+================
+
+DO NOT:
+
+* change scoring logic
+* create new engines
+* duplicate logic
+
+This is INTERACTION + SIGNAL CORRECTION ONLY.
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Property Interaction + Documentation Risk Upgrade"
+
+==================================================
+END OF PROMPT
+=============
