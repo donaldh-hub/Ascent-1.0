@@ -1,0 +1,232 @@
+Ascent 1.0 — PHASE 1 ADD-ON BUILD
+PORTFOLIO CONTROL TOWER — INTERACTION + REVEAL LAYER UPGRADE
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are extending Ascent 1.0.
+
+This build upgrades INTERACTION BEHAVIOR.
+
+This is NOT a redesign.
+This is NOT new intelligence.
+This is NOT new scoring logic.
+
+This build ensures:
+
+* Every metric explains itself
+* Every click reveals meaning
+* No UI element is decorative
+
+==================================================
+CORE GOAL
+=========
+
+Transform the dashboard into an INTERACTIVE DIAGNOSTIC SURFACE.
+
+CRITICAL RULE:
+
+If it lights up → it must explain itself.
+
+Clicks are for REVEAL and ACTION — not navigation.
+
+==================================================
+SECTION 1 — CLICKABLE METRIC CARDS (TOP STRIP)
+==============================================
+
+The following cards must be interactive:
+
+* Flow
+* Risk
+* Execution
+* Improvement
+
+CURRENT ISSUE:
+Cards highlight but do nothing.
+
+REQUIRED FIX:
+Each card must REVEAL its drivers.
+
+==================================================
+INTERACTION BEHAVIOR (MANDATORY)
+================================
+
+Clicking a metric card must:
+
+EITHER:
+
+* expand a detail panel directly below the card
+
+OR:
+
+* scroll to a dedicated section on the same page
+
+DO NOT:
+
+* navigate to a new page
+* reload the screen
+
+==================================================
+METRIC REVEAL CONTENT
+=====================
+
+FLOW MUST SHOW:
+
+* top bottleneck stage
+* number of stuck items
+* aging time
+* affected workflows
+
+RISK MUST SHOW:
+
+* critical items (count + age)
+* overdue items
+* red workflows
+* missing documentation tied to critical items
+
+EXECUTION MUST SHOW:
+
+* movement consistency
+* stale items
+* completion rate
+* responsiveness issues
+
+IMPROVEMENT MUST SHOW:
+
+* trend direction (up/down)
+* recovery vs decline
+* completion momentum
+
+Each reveal section must include:
+
+* short headline (WHY)
+* supporting bullet points
+
+==================================================
+SECTION 2 — PROPERTY CARD INTERACTION UPGRADE
+=============================================
+
+Each property card must behave as a MINI CONTROL TOWER.
+
+==================================================
+DEFAULT STATE (COLLAPSED)
+=========================
+
+Show:
+
+* property name
+* health score + stoplight
+* flow / risk / improvement / execution
+* signals (critical items, bottleneck, docs)
+* insight text
+* supervisor action block (visible)
+
+==================================================
+EXPANDED STATE (ON CLICK)
+=========================
+
+Clicking the card must:
+
+* expand inline (NO navigation)
+* transform into detailed control view
+
+Expanded content must include:
+
+* TOP ISSUE (primary problem)
+* WORKFLOW BREAKDOWN (health drivers)
+* AFFECTED UNITS (list)
+* DOCUMENT WARNINGS (evidence gaps)
+* WORKFLOW-LEVEL HEALTH
+
+SupervisorActionBlock remains visible.
+
+==================================================
+SECTION 3 — SCROLL + LAYOUT FLOW
+================================
+
+Structure the page as follows:
+
+1. Executive Snapshot (top)
+2. Metric Cards (Flow / Risk / Execution / Improvement)
+3. Metric Reveal Sections (triggered by click)
+4. Property Control Tower (ranked cards)
+5. Expanded Property (inline)
+
+This must feel like a vertical decision flow:
+
+System → Cause → Location → Action
+
+==================================================
+SECTION 4 — INTERACTION RULES
+=============================
+
+GLOBAL RULES:
+
+* No dead clicks
+* No decorative UI
+* No hidden logic
+
+Every clickable element must:
+
+* reveal data
+* explain context
+* guide next action
+
+==================================================
+SECTION 5 — UI COMPONENT STRUCTURE (LIGHT)
+==========================================
+
+Use these components:
+
+* MetricCard
+* MetricRevealSection
+* PortfolioControlTowerSection
+* PropertyCard
+* PropertyExpandedView
+* WorkflowBreakdownSection
+* UnitImpactSection
+* DocumentWarningSection
+* SupervisorActionBlock
+
+DO NOT:
+
+* add new logic layers
+* overengineer UI
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. Clicking Flow shows WHY flow score exists
+2. Clicking Risk shows risk drivers
+3. Clicking Execution shows execution gaps
+4. Clicking Improvement shows trend drivers
+5. Property cards expand inline
+6. Expanded view shows full context
+7. No clicks lead to dead ends
+8. Dashboard feels like a decision tool
+
+==================================================
+IMPORTANT LIMITS
+================
+
+DO NOT build:
+
+* new scoring math
+* new alert logic
+* new backend engines
+
+This is INTERACTION ONLY.
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Portfolio Control Tower Interaction Layer (Pre-Build 1.8)"
+
+==================================================
+END OF PROMPT
+=============

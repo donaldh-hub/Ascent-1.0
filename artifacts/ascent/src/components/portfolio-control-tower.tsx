@@ -243,6 +243,72 @@ function SupervisorActionBlock({ card }: { card: PropertyPortfolioCard }) {
   );
 }
 
+// ── SupervisorActionSlim — visible in default collapsed card state ─────────────
+
+function SupervisorActionSlim({ card }: { card: PropertyPortfolioCard }) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const subject = encodeURIComponent(
+    `${card.propertyName} — ${card.topBottleneck} / Risk Alert`,
+  );
+  const body = encodeURIComponent(
+    `Hi ${card.supervisorName ?? "Supervisor"},\n\n` +
+    `I'm reaching out regarding ${card.propertyName}.\n\n` +
+    `Current Status: ${card.healthScore}/100 (${card.stoplight.toUpperCase()})\n` +
+    `Active Risk: ${card.atRiskAssets} assets with expired warranty\n` +
+    `Critical Alerts: ${card.criticalItemsCount}\n` +
+    `Missing Documentation: ${card.missingDocsCount} critical assets\n\n` +
+    `Insight: ${card.insightSummary}\n\n` +
+    `Please review and provide an update on:\n` +
+    `1. ${card.topBottleneck} — cause and current status\n` +
+    `2. Documentation status for flagged assets\n` +
+    `3. Resolution timeline\n\n` +
+    `— Sent from Ascent 1.0`,
+  );
+  const mailtoHref = `mailto:${card.supervisorEmail}?subject=${subject}&body=${body}`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(card.communicationSummary).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ description: "Summary copied to clipboard" });
+    });
+  }
+
+  if (!card.supervisorName && !card.supervisorEmail) return null;
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground truncate">
+          <span className="font-medium text-foreground/80">{card.supervisorName}</span>
+          <span className="ml-1 text-muted-foreground/60">· Supervisor</span>
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <a href={mailtoHref}>
+          <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-primary/30 text-primary hover:bg-primary/10 px-2.5">
+            <Mail className="h-3 w-3" />
+            Email
+          </Button>
+        </a>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-[11px] gap-1 border-border/40 px-2.5"
+          onClick={handleCopy}
+        >
+          {copied
+            ? <><CheckCircle2 className="h-3 w-3 text-status-green" /> Copied</>
+            : <><Copy className="h-3 w-3" /> Copy</>}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── PropertyExpandedView ──────────────────────────────────────────────────────
 
 function PropertyExpandedView({ card }: { card: PropertyPortfolioCard }) {
@@ -341,15 +407,18 @@ function PropertyCard({ card }: { card: PropertyPortfolioCard }) {
       <PropertyEvidenceLine card={card} />
       <PropertyInsightText text={card.insightSummary} />
 
+      {/* Supervisor action — always visible in collapsed state */}
+      <SupervisorActionSlim card={card} />
+
       {/* Expand toggle */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+        className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1 border-t border-border/20 pt-2.5"
       >
         {expanded ? (
           <><ChevronUp className="h-3.5 w-3.5" /> Collapse</>
         ) : (
-          <><ChevronDown className="h-3.5 w-3.5" /> View details & outreach</>
+          <><ChevronDown className="h-3.5 w-3.5" /> Asset breakdown & full outreach</>
         )}
       </button>
 

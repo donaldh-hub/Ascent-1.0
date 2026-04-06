@@ -1,3 +1,5 @@
+import { useState } from "react";
+import type React from "react";
 import {
   useGetDashboardIntelligence,
   useGetDashboardSummary,
@@ -30,10 +32,14 @@ import {
   ShieldAlert,
   Package,
   Users,
+  ChevronDown,
+  X,
+  BarChart2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -98,8 +104,13 @@ function HealthGaugeSkeleton() {
 export default function Dashboard() {
   const { data: intel, isLoading } = useGetDashboardIntelligence();
   const { data: summary } = useGetDashboardSummary();
+  const [activeMetric, setActiveMetric] = useState<"flow" | "risk" | "execution" | "improvement" | null>(null);
 
   const snap = intel?.executiveSnapshot;
+
+  function toggleMetric(key: "flow" | "risk" | "execution" | "improvement") {
+    setActiveMetric((prev) => (prev === key ? null : key));
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full pb-8">
@@ -193,46 +204,71 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* 4 Dimension Score Cards */}
+        {/* 4 Dimension Score Cards — clickable */}
         <div className="col-span-1 md:col-span-8 grid grid-cols-2 gap-4">
           <ScoreCard
             title="Flow"
+            metricKey="flow"
             score={summary?.flowScore}
             stoplight={summary?.flowStoplight}
             insight={summary?.flowInsight}
             icon={Workflow}
             isLoading={isLoading}
             colorClass="text-blue-400"
+            isActive={activeMetric === "flow"}
+            onClick={() => toggleMetric("flow")}
           />
           <ScoreCard
             title="Risk"
+            metricKey="risk"
             score={summary?.riskScore}
             stoplight={summary?.riskStoplight}
             insight={summary?.riskInsight}
             icon={AlertTriangle}
             isLoading={isLoading}
             colorClass="text-red-400"
+            isActive={activeMetric === "risk"}
+            onClick={() => toggleMetric("risk")}
           />
           <ScoreCard
             title="Execution"
+            metricKey="execution"
             score={summary?.executionScore}
             stoplight={summary?.executionStoplight}
             insight={summary?.executionInsight}
             icon={Target}
             isLoading={isLoading}
             colorClass="text-green-400"
+            isActive={activeMetric === "execution"}
+            onClick={() => toggleMetric("execution")}
           />
           <ScoreCard
             title="Improvement"
+            metricKey="improvement"
             score={summary?.improvementScore}
             stoplight={summary?.improvementStoplight}
             insight={summary?.improvementInsight}
             icon={Activity}
             isLoading={isLoading}
             colorClass="text-purple-400"
+            isActive={activeMetric === "improvement"}
+            onClick={() => toggleMetric("improvement")}
           />
         </div>
       </div>
+
+      {/* ─── Metric Reveal Section (inline, below score cards) ─── */}
+      <AnimatePresence initial={false}>
+        {activeMetric && (
+          <MetricRevealSection
+            key={activeMetric}
+            metric={activeMetric}
+            intel={intel ?? null}
+            summary={summary ?? null}
+            onClose={() => setActiveMetric(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ─── Row 2: Trend Signals ─── */}
       <TrendSignalStrip trends={intel?.trends ?? []} isLoading={isLoading} />
@@ -339,15 +375,37 @@ function StatPill({
 
 function ScoreCard({
   title,
+  metricKey,
   score,
   stoplight,
   insight,
   icon: Icon,
   isLoading,
   colorClass,
-}: any) {
+  isActive,
+  onClick,
+}: {
+  title: string;
+  metricKey: string;
+  score?: number;
+  stoplight?: string;
+  insight?: string;
+  icon: React.ElementType;
+  isLoading: boolean;
+  colorClass: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   return (
-    <Card className="bg-card border-border/50 shadow-sm relative overflow-hidden group hover:border-primary/50 transition-colors">
+    <Card
+      onClick={!isLoading ? onClick : undefined}
+      className={cn(
+        "bg-card shadow-sm relative overflow-hidden transition-all duration-200 cursor-pointer select-none",
+        isActive
+          ? "border-primary/60 ring-1 ring-primary/20 shadow-md"
+          : "border-border/50 hover:border-primary/40 hover:shadow-md",
+      )}
+    >
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -358,7 +416,15 @@ function ScoreCard({
               {title}
             </span>
           </div>
-          <StoplightIndicator status={stoplight} size="sm" />
+          <div className="flex items-center gap-1.5">
+            <StoplightIndicator status={stoplight} size="sm" />
+            <span className={cn(
+              "transition-transform duration-200",
+              isActive ? "rotate-180" : "rotate-0",
+            )}>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </span>
+          </div>
         </div>
         {isLoading ? (
           <Skeleton className="h-10 w-24" />
@@ -373,10 +439,373 @@ function ScoreCard({
                 {insight}
               </p>
             )}
+            {!isActive && (
+              <p className="text-[10px] text-primary/50 mt-2 font-medium">Click to reveal drivers →</p>
+            )}
           </>
         )}
       </CardContent>
+      {isActive && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary/60 rounded-b" />
+      )}
     </Card>
+  );
+}
+
+// ─────────────────────────────────────────────
+// MetricRevealSection
+// Inline diagnostic panel — appears below score cards on click
+// ─────────────────────────────────────────────
+
+type MetricKey = "flow" | "risk" | "execution" | "improvement";
+
+function MetricRevealSection({
+  metric,
+  intel,
+  summary,
+  onClose,
+}: {
+  metric: MetricKey;
+  intel: DashboardIntelligence | null;
+  summary: any;
+  onClose: () => void;
+}) {
+  const config: Record<MetricKey, { title: string; why: string; color: string }> = {
+    flow: {
+      title: "Why Flow is constrained",
+      why: summary?.flowInsight ?? "Flow analysis unavailable.",
+      color: "border-blue-500/30 bg-blue-500/5",
+    },
+    risk: {
+      title: "Why Risk is elevated",
+      why: summary?.riskInsight ?? "Risk analysis unavailable.",
+      color: "border-red-500/30 bg-red-500/5",
+    },
+    execution: {
+      title: "Why Execution is low",
+      why: summary?.executionInsight ?? "Execution analysis unavailable.",
+      color: "border-green-500/30 bg-green-500/5",
+    },
+    improvement: {
+      title: "Why Improvement is trending this way",
+      why: summary?.improvementInsight ?? "Improvement analysis unavailable.",
+      color: "border-purple-500/30 bg-purple-500/5",
+    },
+  };
+
+  const cfg = config[metric];
+  const bottleneck = intel?.primaryBottleneck;
+  const spotlight = intel?.workflowSpotlight ?? [];
+  const actions = intel?.actions ?? [];
+  const snap = intel?.executiveSnapshot;
+  const trends = intel?.trends ?? [];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22 }}
+      className={cn("rounded-xl border p-5 space-y-4", cfg.color)}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">
+            Diagnostic · {metric.toUpperCase()}
+          </p>
+          <h3 className="text-sm font-semibold text-foreground">{cfg.title}</h3>
+        </div>
+        <button
+          onClick={onClose}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 border border-border/40 rounded-md px-2 py-1"
+        >
+          <X className="h-3 w-3" /> Close
+        </button>
+      </div>
+
+      {/* WHY summary */}
+      <div className="rounded-lg bg-background/60 border border-border/30 px-4 py-3">
+        <p className="text-sm text-foreground/80 leading-relaxed">{cfg.why}</p>
+      </div>
+
+      {/* Per-metric detail rows */}
+      {metric === "flow" && (
+        <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} />
+      )}
+      {metric === "risk" && (
+        <RiskReveal actions={actions} spotlight={spotlight} summary={summary} />
+      )}
+      {metric === "execution" && (
+        <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} />
+      )}
+      {metric === "improvement" && (
+        <ImprovementReveal snap={snap} trends={trends} summary={summary} />
+      )}
+    </motion.div>
+  );
+}
+
+// ── Flow Reveal ───────────────────────────────────────────────────────────────
+
+function FlowReveal({
+  bottleneck,
+  spotlight,
+  trends,
+}: {
+  bottleneck: DashboardIntelligence["primaryBottleneck"];
+  spotlight: WorkflowSpotlightEntry[];
+  trends: TrendSignal[];
+}) {
+  const congestionTrend = trends.find((t) => t.label === "Stage Congestion");
+  const agingTrend = trends.find((t) => t.label === "Aging Items");
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Top bottleneck */}
+      <RevealCard label="Top Bottleneck Stage" icon={Activity}>
+        {bottleneck ? (
+          <>
+            <p className="font-semibold text-sm">{bottleneck.stageName}</p>
+            <p className="text-xs text-muted-foreground mt-1">{bottleneck.workflowTitle}</p>
+            <div className="flex gap-3 mt-2 text-xs">
+              <span className="text-status-red font-medium">{bottleneck.itemCount} items stuck</span>
+              <span className="text-muted-foreground">{bottleneck.maxAgeDays}d max age</span>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">No active bottleneck detected.</p>
+        )}
+      </RevealCard>
+
+      {/* Congestion trend */}
+      <RevealCard label="Stage Congestion Signal" icon={TrendingDown}>
+        {congestionTrend ? (
+          <>
+            <p className="font-semibold text-sm">{congestionTrend.value}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">{congestionTrend.explanation}</p>
+          </>
+        ) : agingTrend ? (
+          <>
+            <p className="font-semibold text-sm">{agingTrend.value}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">{agingTrend.explanation}</p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">No congestion signal.</p>
+        )}
+      </RevealCard>
+
+      {/* Affected workflows */}
+      <RevealCard label="Affected Workflows" icon={Workflow}>
+        {spotlight.filter((w) => w.hasBottleneck).length > 0 ? (
+          <ul className="space-y-1.5">
+            {spotlight.filter((w) => w.hasBottleneck).slice(0, 3).map((w) => (
+              <li key={w.workflowId} className="flex items-center justify-between text-xs">
+                <span className="text-foreground/80 truncate max-w-[120px]">{w.title}</span>
+                <span className="text-muted-foreground shrink-0 ml-1">{w.openItems} open</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">No workflows with active bottlenecks.</p>
+        )}
+      </RevealCard>
+    </div>
+  );
+}
+
+// ── Risk Reveal ───────────────────────────────────────────────────────────────
+
+function RiskReveal({
+  actions,
+  spotlight,
+  summary,
+}: {
+  actions: IntelligenceAction[];
+  spotlight: WorkflowSpotlightEntry[];
+  summary: any;
+}) {
+  const criticalActions = actions.filter((a) => a.urgency === "critical");
+  const overdueActions = actions.filter((a) => a.category === "overdue");
+  const missingDocActions = actions.filter((a) => a.missingDocs);
+  const redWorkflows = spotlight.filter((w) => w.concernLevel === "critical");
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Critical Items" icon={ShieldAlert}>
+        <p className="text-2xl font-bold text-status-red tabular-nums">{summary?.criticalItemsCount ?? 0}</p>
+        <p className="text-xs text-muted-foreground mt-1">open critical-priority items</p>
+        {criticalActions.length > 0 && (
+          <p className="text-xs text-status-red/80 mt-2 leading-snug">
+            {criticalActions.length} action{criticalActions.length !== 1 ? "s" : ""} flagged critical
+          </p>
+        )}
+      </RevealCard>
+
+      <RevealCard label="Overdue Items" icon={Clock}>
+        <p className="text-2xl font-bold text-status-yellow tabular-nums">{summary?.overdueItemsCount ?? 0}</p>
+        <p className="text-xs text-muted-foreground mt-1">items past their due date</p>
+        {missingDocActions.length > 0 && (
+          <p className="text-xs text-status-yellow/80 mt-2 leading-snug">
+            {missingDocActions.length} critical item{missingDocActions.length !== 1 ? "s" : ""} missing documentation
+          </p>
+        )}
+      </RevealCard>
+
+      <RevealCard label="At-Risk Workflows" icon={AlertTriangle}>
+        {redWorkflows.length > 0 ? (
+          <ul className="space-y-1.5">
+            {redWorkflows.slice(0, 3).map((w) => (
+              <li key={w.workflowId} className="text-xs">
+                <span className="text-foreground/80 font-medium">{w.title}</span>
+                <p className="text-muted-foreground leading-tight mt-0.5">{w.concernReason}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground">No workflows at critical risk level.</p>
+        )}
+      </RevealCard>
+    </div>
+  );
+}
+
+// ── Execution Reveal ──────────────────────────────────────────────────────────
+
+function ExecutionReveal({
+  snap,
+  trends,
+  spotlight,
+  summary,
+}: {
+  snap: DashboardIntelligence["executiveSnapshot"] | undefined;
+  trends: TrendSignal[];
+  spotlight: WorkflowSpotlightEntry[];
+  summary: any;
+}) {
+  const completionTrend = trends.find((t) => t.label === "Completion Activity");
+  const overdueTrend = trends.find((t) => t.label === "Overdue Items");
+  const staleWorkflows = spotlight.filter((w) => w.openItems > 0 && w.criticalItems === 0);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Completion Rate" icon={Target}>
+        <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
+        <p className="text-xs text-muted-foreground mt-1">{snap?.throughputLabel ?? "workflows completed"}</p>
+        {completionTrend && (
+          <p className="text-xs text-muted-foreground mt-2 leading-snug">{completionTrend.explanation}</p>
+        )}
+      </RevealCard>
+
+      <RevealCard label="Movement Consistency" icon={Activity}>
+        {snap?.longestAgingItem ? (
+          <>
+            <p className="text-xs text-muted-foreground mb-1">Longest stuck item:</p>
+            <p className="text-sm font-semibold leading-snug text-foreground/80">{snap.longestAgingItem.title}</p>
+            <div className="flex gap-2 mt-1.5 text-xs">
+              <span className="text-status-red font-medium">{snap.longestAgingItem.daysInStage}d</span>
+              <span className="text-muted-foreground">{snap.longestAgingItem.workflowTitle}</span>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">No severely stale items detected.</p>
+        )}
+      </RevealCard>
+
+      <RevealCard label="Responsiveness Gaps" icon={Clock}>
+        {overdueTrend ? (
+          <>
+            <p className="font-semibold text-sm">{overdueTrend.value}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">{overdueTrend.explanation}</p>
+          </>
+        ) : staleWorkflows.length > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {staleWorkflows.length} workflow{staleWorkflows.length !== 1 ? "s" : ""} have open items with no critical escalation — review for stale assignments.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">No responsiveness gaps detected.</p>
+        )}
+      </RevealCard>
+    </div>
+  );
+}
+
+// ── Improvement Reveal ────────────────────────────────────────────────────────
+
+function ImprovementReveal({
+  snap,
+  trends,
+  summary,
+}: {
+  snap: DashboardIntelligence["executiveSnapshot"] | undefined;
+  trends: TrendSignal[];
+  summary: any;
+}) {
+  const completionTrend = trends.find((t) => t.label === "Completion Activity");
+  const agingTrend = trends.find((t) => t.label === "Aging Items");
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <RevealCard label="Trend Direction" icon={TrendingUp}>
+        {completionTrend ? (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              {completionTrend.direction === "up" ? (
+                <TrendingUp className="h-5 w-5 text-status-green" />
+              ) : completionTrend.direction === "down" ? (
+                <TrendingDown className="h-5 w-5 text-status-red" />
+              ) : (
+                <Minus className="h-5 w-5 text-muted-foreground" />
+              )}
+              <span className="font-semibold text-sm capitalize">{completionTrend.direction}</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-snug">{completionTrend.explanation}</p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">Trend data not yet available.</p>
+        )}
+      </RevealCard>
+
+      <RevealCard label="Completion Momentum" icon={Zap}>
+        <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
+        <p className="text-xs text-muted-foreground mt-1">{snap?.improvementSignal ?? "No signal available"}</p>
+      </RevealCard>
+
+      <RevealCard label="Recovery vs Decline" icon={BarChart2}>
+        {agingTrend ? (
+          <>
+            <p className="font-semibold text-sm">{agingTrend.value}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">{agingTrend.explanation}</p>
+          </>
+        ) : snap?.longestAgingItem ? (
+          <>
+            <p className="text-xs text-muted-foreground mb-1">Oldest unresolved item:</p>
+            <p className="text-sm font-semibold">{snap.longestAgingItem.title}</p>
+            <p className="text-xs text-status-red mt-1">{snap.longestAgingItem.daysInStage}d in stage</p>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">No recovery signal available.</p>
+        )}
+      </RevealCard>
+    </div>
+  );
+}
+
+// ── Shared reveal card wrapper ─────────────────────────────────────────────────
+
+function RevealCard({ label, icon: Icon, children }: {
+  label: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg bg-background/70 border border-border/40 px-4 py-3">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
+      </div>
+      {children}
+    </div>
   );
 }
 
