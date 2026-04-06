@@ -26,6 +26,7 @@ import {
   workflowsTable,
 } from "@workspace/db/schema";
 import { eq, and, lt, ne, inArray, or } from "drizzle-orm";
+import { getReplacementCost } from "../lib/cost-lookup";
 
 const router = Router();
 
@@ -43,6 +44,7 @@ interface DrillRow {
   badge?: string;
   badgeColor?: BadgeColor;
   navigateTo?: string;
+  cost?: number | null;
   meta: Record<string, unknown>;
 }
 
@@ -50,6 +52,8 @@ interface DrillResponse {
   signal: string;
   title: string;
   total: number;
+  totalCost?: number | null;
+  costMatchedCount?: number;
   triggerExplanation: string;
   rows: DrillRow[];
 }
@@ -159,6 +163,7 @@ async function assetWarrantyDrill(signal: string, propertyId?: number): Promise<
     const propertyLabel = a.propertyName ?? "Unknown property";
     const dAgo = a.warrantyExpiration ? daysDiff(a.warrantyExpiration) : null;
     const dLeft = a.warrantyExpiration ? daysUntil(a.warrantyExpiration) : null;
+    const cost = getReplacementCost(a.assetType);
 
     return {
       id: a.id,
@@ -171,6 +176,7 @@ async function assetWarrantyDrill(signal: string, propertyId?: number): Promise<
       badge: isExpired ? "EXPIRED" : "EXPIRING",
       badgeColor: isExpired ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
       navigateTo: a.unitId ? `/units/${a.unitId}` : undefined,
+      cost,
       meta: {
         assetType: a.assetType,
         installDate: a.installDate,
@@ -419,10 +425,26 @@ router.get("/drill", async (req, res) => {
       rows = await atRiskWorkflowsDrill();
     }
 
+    // Compute cost totals for asset signals
+    let totalCost: number | null = null;
+    let costMatchedCount = 0;
+    if (signal === "expired_warranty" || signal === "expiring_soon") {
+      let sum = 0;
+      for (const row of rows) {
+        if (row.cost != null) {
+          sum += row.cost;
+          costMatchedCount++;
+        }
+      }
+      totalCost = costMatchedCount > 0 ? sum : null;
+    }
+
     const response: DrillResponse = {
       signal,
       title: meta.title,
       total: rows.length,
+      totalCost,
+      costMatchedCount: costMatchedCount > 0 ? costMatchedCount : undefined,
       triggerExplanation: meta.triggerExplanation,
       rows,
     };

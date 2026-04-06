@@ -149,6 +149,26 @@ Implemented throughout the UI: every major operational signal is clickable and o
 - **Properties list** (`properties.tsx`): Critical item badges and aging badges per property card (outside card button to avoid nesting)
 - **Alert Center** (`alerts.tsx`): Critical and Warning summary tiles
 
+## Financial Intelligence Engine (Build 1.9)
+
+Adds real replacement-cost data throughout the platform — every warranty signal now shows dollar exposure in addition to asset counts.
+
+**Backend cost service:** `artifacts/api-server/src/lib/cost-lookup.ts` — maps 4 DB asset types to benchmark replacement costs: Stove=$825, HVAC Unit=$5,000, Refrigerator=$850, Water Heater=$875.
+
+**Drill route (`/api/drill`):** `DrillRow` includes `cost` field; `DrillResponse` includes `totalCost` + `costMatchedCount`; each `expired_warranty` / `expiring_soon` row carries a per-asset replacement cost lookup.
+
+**Portfolio service (`portfolio_control_tower.ts`):** Each `PropertyPortfolioCard` now includes `totalAssetCost`, `expiredWarrantyCost`, `expiringSoonCost` (null when no priced assets exist for that category).
+
+**DrillDownSheet footer:** Shows "Total Replacement Exposure" with dollar amount + unmatched-asset footnote when cost data is available.
+
+**Property Control Tower (`property-detail.tsx`):**
+- Asset Health cards show dollar exposure beneath expired/expiring counts ("$X exposure", "$Y at risk")
+- Financial Intelligence panel (3 cells): Total Asset Value · Expired Exposure (clickable) · 90d Risk (clickable)
+
+**Dashboard (`dashboard.tsx`):** Asset Health Pulse card shows "Replacement Exposure" strip below counts — portfolio-wide Total Portfolio Value · Expired Exposure (clickable) · 90d At Risk (clickable).
+
+**Unit Detail (`unit-detail.tsx`):** Unit Cost Summary strip above asset list — Total Replacement Value · Expired Exposure · 90d At Risk (only when assets have priced types). Per-asset replacement cost badge shown inline.
+
 ## API Endpoints
 
 | Module | Routes |

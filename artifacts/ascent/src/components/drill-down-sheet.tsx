@@ -61,6 +61,12 @@ function rowTypeIcon(rowType: DrillRow["rowType"]): React.ReactElement {
   return <Workflow className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
 }
 
+// ─── Currency formatter ───────────────────────────────────────────────────────
+
+function fmtCost(n: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+}
+
 // ─── Row component ────────────────────────────────────────────────────────────
 
 function DrillRowCard({ row, onNavigate }: { row: DrillRow; onNavigate: (path: string) => void }) {
@@ -82,6 +88,14 @@ function DrillRowCard({ row, onNavigate }: { row: DrillRow; onNavigate: (path: s
               >
                 {row.badge}
               </span>
+            )}
+            {row.cost != null && (
+              <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded border bg-muted/40 text-muted-foreground border-border/40">
+                {fmtCost(row.cost)}
+              </span>
+            )}
+            {row.rowType === "asset" && row.cost == null && (
+              <span className="text-[10px] text-muted-foreground/50 italic">Cost N/A</span>
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{row.subtitle}</p>
@@ -228,11 +242,24 @@ export function DrillDownSheet({
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer — count + total exposure */}
         {data && !isLoading && data.rows.length > 0 && (
-          <div className="px-5 py-3 border-t border-border/40 shrink-0">
-            <p className="text-[10px] text-muted-foreground text-center">
-              Showing {data.rows.length} of {data.total} record{data.total !== 1 ? "s" : ""} · Click View to navigate
+          <div className="px-5 py-3 border-t border-border/40 shrink-0 space-y-1.5">
+            {data.totalCost != null && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Total Replacement Exposure</span>
+                <span className="text-sm font-bold text-foreground tabular-nums">
+                  {fmtCost(data.totalCost)}
+                </span>
+              </div>
+            )}
+            {data.totalCost != null && data.costMatchedCount != null && data.costMatchedCount < data.total && (
+              <p className="text-[10px] text-muted-foreground/60">
+                Cost data available for {data.costMatchedCount} of {data.total} assets · {data.total - data.costMatchedCount} without pricing
+              </p>
+            )}
+            <p className="text-[10px] text-muted-foreground/60 text-center">
+              {data.total} record{data.total !== 1 ? "s" : ""} · Click View to navigate
             </p>
           </div>
         )}

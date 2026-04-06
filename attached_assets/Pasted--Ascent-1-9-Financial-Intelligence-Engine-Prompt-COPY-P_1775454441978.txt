@@ -1,0 +1,231 @@
+# Ascent 1.9 — Financial Intelligence Engine Prompt
+
+## COPY + PASTE INTO REPLIT AGENT
+
+We are extending Ascent 1.0 with a Financial Intelligence Layer.
+
+This is NOT a redesign.
+This is NOT a new system.
+
+This is an EXTENSION of:
+
+* Asset system
+* Reaction layer (Build 1.8)
+* Dashboard intelligence (Build 5)
+
+==================================================
+CORE GOAL
+=========
+
+Convert asset signals into financial impact.
+
+Every asset-related signal must now support:
+
+COUNT → COST → TOTAL EXPOSURE
+
+==================================================
+DATA SOURCE
+===========
+
+Use uploaded CSV:
+
+asset_costs.csv
+
+Fields:
+
+* asset_type
+* default_purchase_cost
+* default_install_cost
+* total_default_cost
+* replacement_cost
+* category
+
+==================================================
+ASSET MODEL EXTENSION
+=====================
+
+Extend asset records with:
+
+* purchase_cost
+* install_cost
+* total_asset_cost
+* replacement_cost
+
+Rules:
+
+1. When asset is created or loaded:
+
+   * match asset_type to CSV
+   * auto-assign default costs
+
+2. If asset already exists:
+
+   * backfill cost using asset_type match
+
+3. Allow manual override later (not required now)
+
+==================================================
+COST MATCHING LOGIC
+===================
+
+Match using:
+
+asset.asset_type → CSV.asset_type
+
+If no match:
+
+* leave cost null
+* do NOT assign fake values
+
+==================================================
+REACTION LAYER UPGRADE (CRITICAL)
+=================================
+
+Update ALL asset drill-down panels:
+
+* Expired Warranty
+* Expiring (90d)
+* Aging Assets
+
+Add:
+
+COLUMN: Cost (total_asset_cost)
+
+Add:
+
+FOOTER:
+
+* Total Assets Count
+* Total Cost (sum of total_asset_cost)
+
+Example:
+
+"11 assets expiring within 90 days"
+"Total Exposure: $8,650"
+
+==================================================
+COUNT + COST INTEGRITY RULE
+===========================
+
+The asset count MUST match:
+
+* number displayed on card
+* number of records returned
+
+The cost total MUST equal:
+
+* sum of all asset costs in the result set
+
+No mismatches allowed.
+
+==================================================
+PROPERTY LEVEL UPGRADE
+======================
+
+Add cost aggregation to property view:
+
+For each property:
+
+* total_asset_cost
+* expired_warranty_cost
+* expiring_90d_cost
+
+Expose in:
+
+* Cost Summary Tab (future UI)
+* Asset Health cards (optional enhancement)
+
+==================================================
+CONTROL TOWER UPGRADE
+=====================
+
+Add Financial Intelligence signals:
+
+* Total Portfolio Asset Value
+* Total Expired Warranty Exposure
+* Total Expiring (90d) Exposure
+
+Each must be:
+
+* clickable
+* drillable
+* scoped correctly
+
+==================================================
+UNIT PROFILE UPGRADE
+====================
+
+Extend Unit Profile (Build 1.6):
+
+Add section:
+
+UNIT COST SUMMARY
+
+Fields:
+
+* Total Asset Cost
+* Total Replacement Cost
+* # of Assets
+
+Each value must be clickable:
+
+* opens asset list for that unit
+
+==================================================
+PERFORMANCE RULES
+=================
+
+* No heavy calculations in UI
+* Use aggregation service layer
+* Reuse existing query engine from Build 1.8
+* No duplicate queries
+
+==================================================
+EMPTY STATE RULE
+================
+
+If no cost data exists:
+
+* still show asset records
+* show cost as "Not Available"
+* do NOT hide assets
+
+==================================================
+CODE QUALITY RULES
+==================
+
+DO:
+
+* centralize cost logic
+* reuse existing data relationships
+* keep aggregation deterministic
+
+DO NOT:
+
+* hardcode cost values
+* create separate financial system
+* break reaction layer behavior
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. Asset drill-down panels show cost per asset
+2. Drill-down panels show total exposure
+3. Counts and cost totals always match
+4. Property-level cost aggregation works
+5. Control tower shows financial signals
+6. Unit profile reflects asset cost
+7. System converts signals into financial impact
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Build 1.9: Financial Intelligence Engine"
+
+==================================================
+END OF PROMPT
+=============

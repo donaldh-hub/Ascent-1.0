@@ -27,6 +27,7 @@ export interface DrillRow {
   badge?: string;
   badgeColor?: BadgeColor;
   navigateTo?: string;
+  cost?: number | null;
   meta: Record<string, unknown>;
 }
 
@@ -34,6 +35,8 @@ export interface DrillData {
   signal: SignalType;
   title: string;
   total: number;
+  totalCost?: number | null;
+  costMatchedCount?: number;
   triggerExplanation: string;
   rows: DrillRow[];
 }

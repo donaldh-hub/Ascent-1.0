@@ -28,6 +28,9 @@ export interface PropertyPortfolioCard {
   atRiskAssets: number;
   expiringSoonAssets: number;
   unitCoverage: number;
+  totalAssetCost: number | null;
+  expiredWarrantyCost: number | null;
+  expiringSoonCost: number | null;
 }
 
 export function usePortfolio() {

@@ -13,6 +13,7 @@ import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
 import type { SignalType } from "@/hooks/use-signal-drill";
 import { useDocCounts } from "@/hooks/use-doc-counts";
 import { PortfolioControlTowerSection } from "@/components/portfolio-control-tower";
+import { usePortfolio } from "@/hooks/use-portfolio";
 import { AttachmentBadge } from "@/components/attachment-badge";
 import { EVIDENCE } from "@/lib/evidence-language";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -127,9 +128,26 @@ function HealthGaugeSkeleton() {
 
 type DrillState = { signal: SignalType; workflowId?: number; stageId?: number } | null;
 
+const fmtCost = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+
 export default function Dashboard() {
   const { data: intel, isLoading } = useGetDashboardIntelligence();
   const { data: summary } = useGetDashboardSummary();
+  const { data: portfolioCards = [] } = usePortfolio();
+
+  const portfolioExpiredCost = portfolioCards.reduce<number | null>((acc, c) => {
+    if (c.expiredWarrantyCost == null) return acc;
+    return (acc ?? 0) + c.expiredWarrantyCost;
+  }, null);
+  const portfolioExpiringSoonCost = portfolioCards.reduce<number | null>((acc, c) => {
+    if (c.expiringSoonCost == null) return acc;
+    return (acc ?? 0) + c.expiringSoonCost;
+  }, null);
+  const portfolioTotalAssetCost = portfolioCards.reduce<number | null>((acc, c) => {
+    if (c.totalAssetCost == null) return acc;
+    return (acc ?? 0) + c.totalAssetCost;
+  }, null);
   const [activeMetric, setActiveMetric] = useState<"flow" | "risk" | "execution" | "improvement" | null>(null);
   const [drillState, setDrillState] = useState<DrillState>(null);
 
@@ -416,6 +434,49 @@ export default function Dashboard() {
               </span>
             </ClickableSignal>
           </div>
+
+          {/* Financial exposure strip */}
+          {(portfolioExpiredCost != null || portfolioExpiringSoonCost != null || portfolioTotalAssetCost != null) && (
+            <div className="mt-4 pt-4 border-t border-border/40">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-3">Replacement Exposure</p>
+              <div className="grid grid-cols-3 gap-3">
+                {portfolioTotalAssetCost != null && (
+                  <div>
+                    <div className="text-sm font-bold tabular-nums text-foreground">{fmtCost(portfolioTotalAssetCost)}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Total portfolio value</div>
+                  </div>
+                )}
+                {portfolioExpiredCost != null ? (
+                  <ClickableSignal
+                    onClick={() => openDrill("expired_warranty")}
+                    className="px-1 py-0.5 -mx-1 rounded"
+                    title="View expired warranty exposure"
+                  >
+                    <div className="text-sm font-bold tabular-nums text-red-400">{fmtCost(portfolioExpiredCost)}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                      Expired exposure <span className="text-[9px] text-primary/50">↗</span>
+                    </div>
+                  </ClickableSignal>
+                ) : (
+                  <div />
+                )}
+                {portfolioExpiringSoonCost != null ? (
+                  <ClickableSignal
+                    onClick={() => openDrill("expiring_soon")}
+                    className="px-1 py-0.5 -mx-1 rounded"
+                    title="View 90-day expiry risk"
+                  >
+                    <div className="text-sm font-bold tabular-nums text-amber-400">{fmtCost(portfolioExpiringSoonCost)}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
+                      90d at risk <span className="text-[9px] text-primary/50">↗</span>
+                    </div>
+                  </ClickableSignal>
+                ) : (
+                  <div />
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

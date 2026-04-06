@@ -809,6 +809,11 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
                 {card.atRiskAssets > 0 && <span className="text-[11px] text-primary/50">↗</span>}
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">Expired Warranty</div>
+              {card.expiredWarrantyCost != null && card.atRiskAssets > 0 && (
+                <div className="text-[10px] font-semibold text-status-red/70 mt-1 tabular-nums">
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(card.expiredWarrantyCost)} exposure
+                </div>
+              )}
             </ClickableSignal>
 
             <ClickableSignal
@@ -822,6 +827,11 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
                 {card.expiringSoonAssets > 0 && <span className="text-[11px] text-primary/50">↗</span>}
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">Expiring (90d)</div>
+              {card.expiringSoonCost != null && card.expiringSoonAssets > 0 && (
+                <div className="text-[10px] font-semibold text-status-yellow/70 mt-1 tabular-nums">
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(card.expiringSoonCost)} at risk
+                </div>
+              )}
             </ClickableSignal>
 
             <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
@@ -830,6 +840,63 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
             </div>
         </div>
       </div>
+
+      {/* Financial Intelligence */}
+      {(card.totalAssetCost != null || card.expiredWarrantyCost != null || card.expiringSoonCost != null) && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-4">
+            Financial Intelligence
+          </p>
+          <div className="grid grid-cols-3 gap-4">
+            {card.totalAssetCost != null && (
+              <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+                <div className="text-lg font-bold tabular-nums text-foreground">
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(card.totalAssetCost)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Total Asset Value</div>
+              </div>
+            )}
+            {card.expiredWarrantyCost != null ? (
+              <ClickableSignal
+                onClick={() => openDrill("expired_warranty")}
+                className="rounded-lg bg-secondary/30 border border-red-500/20 px-3 py-3 text-center w-full block"
+                title="View expired warranty assets"
+              >
+                <div className="text-lg font-bold tabular-nums text-status-red">
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(card.expiredWarrantyCost)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                  Expired Exposure <span className="text-[10px] text-primary/50">↗</span>
+                </div>
+              </ClickableSignal>
+            ) : (
+              <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+                <div className="text-lg font-bold tabular-nums text-muted-foreground">—</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Expired Exposure</div>
+              </div>
+            )}
+            {card.expiringSoonCost != null ? (
+              <ClickableSignal
+                onClick={() => openDrill("expiring_soon")}
+                className="rounded-lg bg-secondary/30 border border-yellow-500/20 px-3 py-3 text-center w-full block"
+                title="View assets expiring soon"
+              >
+                <div className="text-lg font-bold tabular-nums text-status-yellow">
+                  {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(card.expiringSoonCost)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                  90d Risk <span className="text-[10px] text-primary/50">↗</span>
+                </div>
+              </ClickableSignal>
+            ) : (
+              <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+                <div className="text-lg font-bold tabular-nums text-muted-foreground">—</div>
+                <div className="text-xs text-muted-foreground mt-0.5">90d Risk</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Signals + supervisor */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

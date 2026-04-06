@@ -15,6 +15,7 @@ import {
 } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { calcStoplight, type Stoplight } from "../engine/scoring";
+import { getReplacementCost } from "../lib/cost-lookup";
 
 export interface PropertyPortfolioCard {
   propertyId: number;
@@ -40,6 +41,10 @@ export interface PropertyPortfolioCard {
   atRiskAssets: number;
   expiringSoonAssets: number;
   unitCoverage: number;
+  // Financial Intelligence (Build 1.9)
+  totalAssetCost: number | null;
+  expiredWarrantyCost: number | null;
+  expiringSoonCost: number | null;
 }
 
 const STOPLIGHT_ORDER: Record<Stoplight, number> = { red: 0, yellow: 1, green: 2 };
@@ -111,12 +116,22 @@ export async function buildPortfolioControlTower(): Promise<PropertyPortfolioCar
     let unlinked = 0;
     let criticalItemsCount = 0;
     let oldestExpiredDays = 0;
+    let sumTotalCost = 0;
+    let sumExpiredCost = 0;
+    let sumExpiringSoonCost = 0;
+    let hasCostData = false;
 
     const typeRiskCount = new Map<string, number>();
 
     for (const a of propAssets) {
       sumHealth += a.healthScore ?? 100;
       if (a.unitId == null) unlinked++;
+
+      const assetCost = getReplacementCost(a.assetType);
+      if (assetCost != null) {
+        sumTotalCost += assetCost;
+        hasCostData = true;
+      }
 
       if (a.warrantyExpiration) {
         const exp = new Date(a.warrantyExpiration);
@@ -126,8 +141,10 @@ export async function buildPortfolioControlTower(): Promise<PropertyPortfolioCar
           if (days > oldestExpiredDays) oldestExpiredDays = days;
           const typ = a.assetType ?? "Equipment";
           typeRiskCount.set(typ, (typeRiskCount.get(typ) ?? 0) + 1);
+          if (assetCost != null) sumExpiredCost += assetCost;
         } else if (exp < ninetyDays) {
           expiringSoon++;
+          if (assetCost != null) sumExpiringSoonCost += assetCost;
         }
       }
 
@@ -222,6 +239,9 @@ export async function buildPortfolioControlTower(): Promise<PropertyPortfolioCar
       atRiskAssets: atRisk,
       expiringSoonAssets: expiringSoon,
       unitCoverage,
+      totalAssetCost: hasCostData ? sumTotalCost : null,
+      expiredWarrantyCost: hasCostData && atRisk > 0 ? sumExpiredCost : null,
+      expiringSoonCost: hasCostData && expiringSoon > 0 ? sumExpiringSoonCost : null,
     });
   }
 

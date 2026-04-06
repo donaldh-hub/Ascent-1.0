@@ -12,6 +12,23 @@ import { useUnitHistory, type UnitHistoryEvent } from "@/hooks/use-unit-history"
 import { DocumentPanel } from "@/components/document-panel";
 import { cn, formatUnitIdentity } from "@/lib/utils";
 
+// ─── Replacement cost benchmarks (mirrors api-server/src/lib/cost-lookup.ts) ──
+
+const ASSET_REPLACEMENT_COSTS: Record<string, number> = {
+  "Stove": 825,
+  "HVAC Unit": 5000,
+  "Refrigerator": 850,
+  "Water Heater": 875,
+};
+
+function getReplacementCost(assetType: string | null): number | null {
+  if (!assetType) return null;
+  return ASSET_REPLACEMENT_COSTS[assetType] ?? null;
+}
+
+const fmtCost = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+
 // ─── Unit assets hook ─────────────────────────────────────────────────────────
 
 interface UnitAsset {
@@ -193,6 +210,22 @@ export default function UnitDetail() {
   );
   const { data: unitAssets = [], isLoading: assetsLoading } = useUnitAssets(unitId);
 
+  const assetsWithCost = unitAssets.map(a => ({ ...a, replacementCost: getReplacementCost(a.assetType) }));
+  const unitTotalCost = assetsWithCost.reduce<number | null>((acc, a) => {
+    if (a.replacementCost == null) return acc;
+    return (acc ?? 0) + a.replacementCost;
+  }, null);
+  const unitExpiredCost = assetsWithCost.reduce<number | null>((acc, a) => {
+    if (a.replacementCost == null) return acc;
+    if (a.warrantyDaysRemaining == null || a.warrantyDaysRemaining >= 0) return acc;
+    return (acc ?? 0) + a.replacementCost;
+  }, null);
+  const unitExpiringSoonCost = assetsWithCost.reduce<number | null>((acc, a) => {
+    if (a.replacementCost == null) return acc;
+    if (a.warrantyDaysRemaining == null || a.warrantyDaysRemaining < 0 || a.warrantyDaysRemaining > 90) return acc;
+    return (acc ?? 0) + a.replacementCost;
+  }, null);
+
   const unit = units.find((u) => u.id === unitId);
   const property = properties.find((p) => p.id === unit?.propertyId);
 
@@ -365,7 +398,28 @@ export default function UnitDetail() {
           </>
         ) : (
           <div className="divide-y divide-border">
-            {unitAssets.map((asset) => {
+            {/* Unit Cost Summary strip */}
+            {unitTotalCost != null && (
+              <div className="px-5 py-3 bg-secondary/20 grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-sm font-bold tabular-nums text-foreground">{fmtCost(unitTotalCost)}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">Total Replacement Value</div>
+                </div>
+                {unitExpiredCost != null && (
+                  <div>
+                    <div className="text-sm font-bold tabular-nums text-red-400">{fmtCost(unitExpiredCost)}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Expired Exposure</div>
+                  </div>
+                )}
+                {unitExpiringSoonCost != null && (
+                  <div>
+                    <div className="text-sm font-bold tabular-nums text-yellow-400">{fmtCost(unitExpiringSoonCost)}</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">90d At Risk</div>
+                  </div>
+                )}
+              </div>
+            )}
+            {assetsWithCost.map((asset) => {
               const warrantyExpired = asset.warrantyDaysRemaining !== null && asset.warrantyDaysRemaining < 0;
               const warrantyExpiringSoon = !warrantyExpired && asset.warrantyDaysRemaining !== null && asset.warrantyDaysRemaining <= 90;
               const WarrantyIcon = warrantyExpired ? ShieldOff : warrantyExpiringSoon ? ShieldAlert : Shield;
@@ -392,6 +446,11 @@ export default function UnitDetail() {
                       <span className="text-sm font-medium">{asset.assetType ?? asset.name}</span>
                       {asset.serial && (
                         <span className="text-xs text-muted-foreground font-mono">{asset.serial}</span>
+                      )}
+                      {asset.replacementCost != null && (
+                        <span className="text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                          {fmtCost(asset.replacementCost)}
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
