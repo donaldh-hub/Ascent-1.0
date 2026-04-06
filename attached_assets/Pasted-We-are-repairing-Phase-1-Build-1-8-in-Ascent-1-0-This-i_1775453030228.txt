@@ -1,0 +1,157 @@
+We are repairing Phase 1 — Build 1.8 in Ascent 1.0.
+
+This is NOT a redesign.
+This is NOT a new build.
+This is a targeted REPAIR of incomplete signal wiring.
+
+Reference the existing 1.8 system integration + reaction layer requirements and fix the broken asset signal drill-down behavior.
+
+CURRENT ISSUE
+
+On the Property Control Tower / property detail page, the Asset Health cards display:
+
+- Total Assets
+- Expired Warranty
+- Expiring (90d)
+- Unit Coverage
+
+The problem is:
+
+- Expired Warranty is visually clickable but does not consistently open the drill-down result view
+- Expiring (90d) shows the number 11 but does NOT open the actual assets that are expiring soon
+- This means the UI appears wired, but the signal-to-query reaction behavior is incomplete
+
+This violates the Build 1.8 requirement that:
+REAL → CLICKABLE → ACTIONABLE DATA
+and
+If a signal cannot produce real supporting data, it must NOT be clickable.
+
+REPAIR GOAL
+
+Fully wire the Property Asset Health cards so that:
+
+1. Clicking "Expired Warranty" opens the property-scoped result panel
+2. Clicking "Expiring (90d)" opens the property-scoped result panel
+3. The panel shows the exact matching asset records
+4. The user remains in the current property context
+5. No redirect to unrelated pages occurs
+6. The signal count shown on the card matches the count in the result panel
+
+REQUIRED SIGNAL WIRING
+
+Add or repair signal definitions for:
+
+A. property_asset_expired_warranty
+B. property_asset_expiring_90d
+
+Each signal must include:
+- signal_type
+- source = assets
+- property scope
+- query rules
+- display config
+
+REQUIRED QUERY LOGIC
+
+For property_asset_expired_warranty:
+- return assets linked to the current property
+- include only assets with warranty_expiration_date before today
+- exclude null/invalid records unless intentionally surfaced as incomplete data elsewhere
+
+For property_asset_expiring_90d:
+- return assets linked to the current property
+- include only assets with warranty_expiration_date between today and today + 90 days
+- exclude already expired assets
+- exclude null/invalid warranty dates from this result set
+
+COUNT INTEGRITY RULE
+
+The number on the card MUST exactly match the number returned by the drill-down query.
+
+Example:
+- Card says Expiring (90d) = 11
+- Drill-down must return exactly 11 matching assets
+
+If query count and display count are inconsistent, fix the shared aggregation source so both use the same underlying query logic.
+
+RESULT PANEL REQUIREMENTS
+
+When either card is clicked, open a side panel, modal, or overlay in context.
+
+The panel must show REAL DATA only.
+
+Required columns/fields:
+- asset type
+- manufacturer if available
+- model if available
+- serial if available
+- property
+- unit
+- install date
+- warranty expiration date
+- status
+
+Optional if already available:
+- age / life %
+- linked asset detail path
+
+Panel header examples:
+- "20 assets with expired warranty"
+- "11 assets expiring within 90 days"
+
+Also include:
+- a short why-this-matters explanation
+- count confirmation
+- empty-state messaging only if truly no records exist
+
+NO FAKE DATA
+NO PLACEHOLDER ROWS
+
+PROPERTY CONTEXT RULE
+
+The repair must be scoped to the CURRENT property only.
+
+If I am inside Parkview Estates, clicking:
+- Expired Warranty
+- Expiring (90d)
+
+must show ONLY Parkview Estates assets.
+
+Do NOT open cross-property portfolio records from this property page.
+
+UI BEHAVIOR RULES
+
+- keep the cards visibly clickable ONLY if real drill-down data exists
+- if there are 0 records, either disable click behavior or open a truthful empty-state panel
+- do not allow decorative click behavior
+- do not trigger full-page navigation
+- do not break scroll/context
+- keep interaction consistent with the rest of the 1.8 reaction layer
+
+DEBUG / REPAIR CHECKLIST
+
+Check and fix all of the following:
+
+1. The Asset Health card click handlers are actually bound
+2. The signal keys are correctly registered in the reaction layer
+3. The property page is passing the current property id into the signal query
+4. The expiring_90d query logic is correctly implemented
+5. The result panel is connected to these signals
+6. The displayed counts and returned records come from the same source of truth
+7. No nested element is swallowing or blocking the click event
+8. Expired and expiring-soon are treated as separate asset conditions
+
+SUCCESS STATE
+
+This repair is complete when:
+
+1. Clicking Expired Warranty always opens the affected expired assets for that property
+2. Clicking Expiring (90d) always opens the affected soon-to-expire assets for that property
+3. The returned records are real and count-matched
+4. The user never leaves the property context
+5. The property asset cards now satisfy the actual intent of Build 1.8
+
+This is a REPAIR of incomplete wiring.
+Do not redesign the page.
+Do not change unrelated systems.
+Finish the missing reaction-layer connection correctly.

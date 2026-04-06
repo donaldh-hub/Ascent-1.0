@@ -40,7 +40,7 @@ interface DrillDownSheetProps {
   propertyId?: number;
   workflowId?: number;
   stageId?: number;
-  open: boolean;
+  open?: boolean;
   onClose: () => void;
 }
 
@@ -108,7 +108,7 @@ export function DrillDownSheet({
   propertyId,
   workflowId,
   stageId,
-  open,
+  open = true,
   onClose,
 }: DrillDownSheetProps) {
   const [, navigate] = useLocation();
