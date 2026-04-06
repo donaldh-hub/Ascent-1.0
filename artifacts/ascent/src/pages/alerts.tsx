@@ -20,6 +20,8 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Alert } from "@workspace/api-client-react";
+import { DrillDownSheet } from "@/components/drill-down-sheet";
+import type { SignalType } from "@/hooks/use-signal-drill";
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -224,22 +226,40 @@ function AlertCard({ alert, onMarkRead, onAcknowledge, onResolve, onNavigate }: 
 
 // ─── Summary Strip ───────────────────────────────────────────
 
-function SummaryStrip({ critical, warning, informational, unread }: {
+function SummaryStrip({ critical, warning, informational, unread, onDrill }: {
   critical: number; warning: number; informational: number; unread: number;
+  onDrill: (signal: SignalType) => void;
 }) {
+  const tiles = [
+    { label: "Critical", value: critical, color: "text-status-red",    bg: "bg-red-500/10",    border: "border-red-500/20",    signal: "critical_items" as SignalType },
+    { label: "Warning",  value: warning,  color: "text-status-yellow", bg: "bg-yellow-500/10", border: "border-yellow-500/20", signal: "overdue_items" as SignalType },
+    { label: "Info",     value: informational, color: "text-blue-400", bg: "bg-blue-500/10",   border: "border-blue-500/20",   signal: null },
+    { label: "Unread",   value: unread,   color: "text-foreground",    bg: "bg-secondary",     border: "border-border",        signal: null },
+  ];
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {[
-        { label: "Critical", value: critical, color: "text-status-red", bg: "bg-red-500/10", border: "border-red-500/20" },
-        { label: "Warning", value: warning, color: "text-status-yellow", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
-        { label: "Info", value: informational, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-        { label: "Unread", value: unread, color: "text-foreground", bg: "bg-secondary", border: "border-border" },
-      ].map(({ label, value, color, bg, border }) => (
-        <div key={label} className={cn("rounded-lg border p-3 text-center", bg, border)}>
-          <p className={cn("text-2xl font-bold", color)}>{value}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-        </div>
-      ))}
+      {tiles.map(({ label, value, color, bg, border, signal }) =>
+        signal && value > 0 ? (
+          <button
+            key={label}
+            onClick={() => onDrill(signal)}
+            className={cn("rounded-lg border p-3 text-center hover:opacity-80 transition-opacity", bg, border)}
+            title={`View ${label.toLowerCase()} items in detail`}
+          >
+            <p className={cn("text-2xl font-bold flex items-baseline justify-center gap-1", color)}>
+              {value}
+              <span className="text-[11px] text-primary/50">↗</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+          </button>
+        ) : (
+          <div key={label} className={cn("rounded-lg border p-3 text-center", bg, border)}>
+            <p className={cn("text-2xl font-bold", color)}>{value}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -252,6 +272,7 @@ export default function Alerts() {
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [drillSignal, setDrillSignal] = useState<SignalType | null>(null);
 
   const { data: alerts, isLoading, refetch } = useListAlerts();
   const { data: summary, refetch: refetchSummary } = useGetAlertSummary();
@@ -345,6 +366,7 @@ export default function Alerts() {
           warning={summary.warning}
           informational={summary.informational}
           unread={summary.unread}
+          onDrill={setDrillSignal}
         />
       )}
 
@@ -492,6 +514,13 @@ export default function Alerts() {
           </AnimatePresence>
         )}
       </div>
+
+      {drillSignal && (
+        <DrillDownSheet
+          signal={drillSignal}
+          onClose={() => setDrillSignal(null)}
+        />
+      )}
     </div>
   );
 }

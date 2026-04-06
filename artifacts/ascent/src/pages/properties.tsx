@@ -6,11 +6,14 @@ import {
   Mail, User, ArrowRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { usePortfolio, type PropertyPortfolioCard } from "@/hooks/use-portfolio";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
+import type { SignalType } from "@/hooks/use-signal-drill";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,7 +56,13 @@ function DimBar({ score, color }: { score: number; color: string }) {
 
 // ── PropertyCard ──────────────────────────────────────────────────────────────
 
-function PropertyCard({ card }: { card: PropertyPortfolioCard }) {
+function PropertyCard({
+  card,
+  onDrillSignal,
+}: {
+  card: PropertyPortfolioCard;
+  onDrillSignal: (signal: SignalType, propertyId: number) => void;
+}) {
   const [, navigate] = useLocation();
 
   const dims = [
@@ -122,26 +131,6 @@ function PropertyCard({ card }: { card: PropertyPortfolioCard }) {
           ))}
         </div>
 
-        {/* Signal badges */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {card.criticalItemsCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs bg-status-red/10 text-status-red border border-status-red/25 rounded-full px-2 py-0.5">
-              <AlertTriangle className="h-3 w-3" />
-              {card.criticalItemsCount} critical
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1 text-xs bg-secondary/60 text-muted-foreground border border-border/40 rounded-full px-2 py-0.5">
-            <Hash className="h-3 w-3" />
-            {card.topBottleneck}
-          </span>
-          {card.bottleneckAging > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs bg-status-yellow/10 text-status-yellow border border-status-yellow/25 rounded-full px-2 py-0.5">
-              <Clock className="h-3 w-3" />
-              {card.bottleneckAging}d aging
-            </span>
-          )}
-        </div>
-
         {/* Documentation signal — corrected to show financial risk */}
         {card.missingDocsCount > 0 ? (
           <div className="flex items-start gap-1.5 text-xs text-status-red mb-2 leading-snug">
@@ -177,6 +166,34 @@ function PropertyCard({ card }: { card: PropertyPortfolioCard }) {
           View Control Tower <ChevronRight className="h-3 w-3" />
         </div>
       </button>
+
+      {/* Signal badges — outside button to avoid nested button issue */}
+      <div className="px-5 pb-2 flex flex-wrap gap-1.5">
+        {card.criticalItemsCount > 0 && (
+          <button
+            onClick={() => onDrillSignal("critical_items", card.propertyId)}
+            className="inline-flex items-center gap-1 text-xs bg-status-red/10 text-status-red border border-status-red/25 rounded-full px-2 py-0.5 hover:bg-status-red/20 transition-colors"
+            title="View critical items"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            {card.criticalItemsCount} critical
+          </button>
+        )}
+        <span className="inline-flex items-center gap-1 text-xs bg-secondary/60 text-muted-foreground border border-border/40 rounded-full px-2 py-0.5">
+          <Hash className="h-3 w-3" />
+          {card.topBottleneck}
+        </span>
+        {card.bottleneckAging > 0 && (
+          <button
+            onClick={() => onDrillSignal("bottleneck_items", card.propertyId)}
+            className="inline-flex items-center gap-1 text-xs bg-status-yellow/10 text-status-yellow border border-status-yellow/25 rounded-full px-2 py-0.5 hover:bg-status-yellow/20 transition-colors"
+            title="View bottleneck items"
+          >
+            <Clock className="h-3 w-3" />
+            {card.bottleneckAging}d aging
+          </button>
+        )}
+      </div>
 
       {/* Bottom bar — supervisor + view units */}
       <div className="border-t border-border/30 px-5 py-3 flex items-center justify-between gap-2 bg-secondary/20">
@@ -239,14 +256,22 @@ function PropertyCardSkeleton() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+type DrillState = { signal: SignalType; propertyId?: number } | null;
+
 export default function Properties() {
   const { data: portfolio, isLoading } = usePortfolio();
+  const [drillState, setDrillState] = useState<DrillState>(null);
 
   const redCount    = portfolio?.filter((p) => p.stoplight === "red").length ?? 0;
   const yellowCount = portfolio?.filter((p) => p.stoplight === "yellow").length ?? 0;
   const greenCount  = portfolio?.filter((p) => p.stoplight === "green").length ?? 0;
 
+  function handleDrillSignal(signal: SignalType, propertyId: number) {
+    setDrillState({ signal, propertyId });
+  }
+
   return (
+    <>
     <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full pb-8">
       {/* Header */}
       <div className="flex items-end justify-between">
@@ -296,10 +321,19 @@ export default function Properties() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {portfolio.map((card) => (
-            <PropertyCard key={card.propertyId} card={card} />
+            <PropertyCard key={card.propertyId} card={card} onDrillSignal={handleDrillSignal} />
           ))}
         </div>
       )}
     </div>
+
+    {drillState && (
+      <DrillDownSheet
+        signal={drillState.signal}
+        propertyId={drillState.propertyId}
+        onClose={() => setDrillState(null)}
+      />
+    )}
+    </>
   );
 }

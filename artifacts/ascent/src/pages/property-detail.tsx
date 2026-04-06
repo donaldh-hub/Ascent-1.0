@@ -21,6 +21,8 @@ import { useListUnits } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
+import type { SignalType } from "@/hooks/use-signal-drill";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -634,16 +636,27 @@ function SupervisorBlock({ card }: { card: PropertyPortfolioCard }) {
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
+type DrillState = { signal: SignalType; propertyId?: number } | null;
+
 function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCard; propertyId: number }) {
   const [, navigate] = useLocation();
   const { data: allUnits = [] } = useListUnits({});
   const propertyUnits = allUnits.filter((u) => u.propertyId === propertyId);
   const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
+  const [drillState, setDrillState] = useState<DrillState>(null);
 
   const doc = docStatus(card);
 
   function toggleMetric(key: MetricKey) {
     setActiveMetric((prev) => (prev === key ? null : key));
+  }
+
+  function openDrill(signal: SignalType, scoped = true) {
+    setDrillState({ signal, propertyId: scoped ? propertyId : undefined });
+  }
+
+  function closeDrill() {
+    setDrillState(null);
   }
 
   const dimCards = [
@@ -654,6 +667,7 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
   ] as const;
 
   return (
+    <>
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-8">
       {/* Back + header */}
       <div>
@@ -779,17 +793,41 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
           Asset Health
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Assets",      value: card.totalAssets,      color: "text-foreground" },
-            { label: "Expired Warranty",  value: card.atRiskAssets,     color: card.atRiskAssets > 0 ? "text-status-red" : "text-foreground" },
-            { label: "Expiring (90d)",    value: card.expiringSoonAssets, color: card.expiringSoonAssets > 0 ? "text-status-yellow" : "text-foreground" },
-            { label: "Unit Coverage",     value: `${card.unitCoverage}%`, color: "text-foreground" },
-          ].map((m) => (
-            <div key={m.label} className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
-              <div className={cn("text-xl font-bold tabular-nums", m.color)}>{m.value}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{m.label}</div>
+            <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+              <div className="text-xl font-bold tabular-nums text-foreground">{card.totalAssets}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Total Assets</div>
             </div>
-          ))}
+
+            <ClickableSignal
+              onClick={() => openDrill("expired_warranty")}
+              className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center w-full block"
+              disabled={card.atRiskAssets === 0}
+              title="View expired warranty assets"
+            >
+              <div className={cn("text-xl font-bold tabular-nums flex items-baseline justify-center gap-1", card.atRiskAssets > 0 ? "text-status-red" : "text-foreground")}>
+                {card.atRiskAssets}
+                {card.atRiskAssets > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">Expired Warranty</div>
+            </ClickableSignal>
+
+            <ClickableSignal
+              onClick={() => openDrill("expiring_soon")}
+              className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center w-full block"
+              disabled={card.expiringSoonAssets === 0}
+              title="View assets expiring soon"
+            >
+              <div className={cn("text-xl font-bold tabular-nums flex items-baseline justify-center gap-1", card.expiringSoonAssets > 0 ? "text-status-yellow" : "text-foreground")}>
+                {card.expiringSoonAssets}
+                {card.expiringSoonAssets > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">Expiring (90d)</div>
+            </ClickableSignal>
+
+            <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+              <div className="text-xl font-bold tabular-nums text-foreground">{card.unitCoverage}%</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Unit Coverage</div>
+            </div>
         </div>
       </div>
 
@@ -806,9 +844,17 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>Critical Items</span>
               </div>
-              <span className={cn("font-semibold tabular-nums", card.criticalItemsCount > 0 ? "text-status-red" : "text-foreground")}>
-                {card.criticalItemsCount}
-              </span>
+              <ClickableSignal
+                onClick={() => openDrill("critical_items", false)}
+                className="px-1.5 py-0.5 rounded"
+                disabled={card.criticalItemsCount === 0}
+                title="View critical items"
+              >
+                <span className={cn("font-semibold tabular-nums flex items-center gap-0.5", card.criticalItemsCount > 0 ? "text-status-red" : "text-foreground")}>
+                  {card.criticalItemsCount}
+                  {card.criticalItemsCount > 0 && <span className="text-[10px] text-primary/50">↗</span>}
+                </span>
+              </ClickableSignal>
             </div>
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -862,6 +908,16 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
         <SupervisorBlock card={card} />
       </div>
     </div>
+
+    {/* Drill-down panel */}
+    {drillState && (
+      <DrillDownSheet
+        signal={drillState.signal}
+        propertyId={drillState.propertyId}
+        onClose={closeDrill}
+      />
+    )}
+    </>
   );
 }
 

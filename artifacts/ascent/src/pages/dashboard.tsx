@@ -9,6 +9,8 @@ import {
   type WorkflowSpotlightEntry,
   type TrendSignal,
 } from "@workspace/api-client-react";
+import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
+import type { SignalType } from "@/hooks/use-signal-drill";
 import { useDocCounts } from "@/hooks/use-doc-counts";
 import { PortfolioControlTowerSection } from "@/components/portfolio-control-tower";
 import { AttachmentBadge } from "@/components/attachment-badge";
@@ -123,15 +125,26 @@ function HealthGaugeSkeleton() {
 // Main page
 // ─────────────────────────────────────────────
 
+type DrillState = { signal: SignalType; workflowId?: number; stageId?: number } | null;
+
 export default function Dashboard() {
   const { data: intel, isLoading } = useGetDashboardIntelligence();
   const { data: summary } = useGetDashboardSummary();
   const [activeMetric, setActiveMetric] = useState<"flow" | "risk" | "execution" | "improvement" | null>(null);
+  const [drillState, setDrillState] = useState<DrillState>(null);
 
   const snap = intel?.executiveSnapshot;
 
   function toggleMetric(key: "flow" | "risk" | "execution" | "improvement") {
     setActiveMetric((prev) => (prev === key ? null : key));
+  }
+
+  function openDrill(signal: SignalType, opts?: { workflowId?: number; stageId?: number }) {
+    setDrillState({ signal, ...opts });
+  }
+
+  function closeDrill() {
+    setDrillState(null);
   }
 
   return (
@@ -203,18 +216,21 @@ export default function Dashboard() {
                 label="Critical"
                 color="text-red-400"
                 isLoading={isLoading}
+                onClick={!isLoading && (snap?.criticalItemsCount ?? 0) > 0 ? () => openDrill("critical_items") : undefined}
               />
               <StatPill
                 value={snap?.activeWorkflowsCount ?? 0}
                 label="Active"
                 color="text-blue-400"
                 isLoading={isLoading}
+                onClick={!isLoading && (snap?.activeWorkflowsCount ?? 0) > 0 ? () => openDrill("at_risk_workflows") : undefined}
               />
               <StatPill
                 value={snap?.overdueItemsCount ?? 0}
                 label="Overdue"
                 color="text-amber-400"
                 isLoading={isLoading}
+                onClick={!isLoading && (snap?.overdueItemsCount ?? 0) > 0 ? () => openDrill("overdue_items") : undefined}
               />
             </div>
 
@@ -234,13 +250,27 @@ export default function Dashboard() {
                   <li className="flex items-start gap-2 text-xs">
                     <span className="text-status-red font-bold mt-0.5">•</span>
                     <span className="text-foreground/80">
-                      <span className="font-semibold text-status-red">{snap.criticalItemsCount} critical items</span>
+                      <ClickableSignal
+                        onClick={() => openDrill("critical_items")}
+                        className="px-1 py-0.5 rounded"
+                        title="View critical items"
+                        disabled={snap.criticalItemsCount === 0}
+                      >
+                        <span className="font-semibold text-status-red">{snap.criticalItemsCount} critical items</span>
+                      </ClickableSignal>
                     </span>
                   </li>
                   <li className="flex items-start gap-2 text-xs">
                     <span className="text-status-yellow font-bold mt-0.5">•</span>
                     <span className="text-foreground/80">
-                      <span className="font-semibold text-status-yellow">{snap.overdueItemsCount} overdue items</span>
+                      <ClickableSignal
+                        onClick={() => openDrill("overdue_items")}
+                        className="px-1 py-0.5 rounded"
+                        title="View overdue items"
+                        disabled={snap.overdueItemsCount === 0}
+                      >
+                        <span className="font-semibold text-status-yellow">{snap.overdueItemsCount} overdue items</span>
+                      </ClickableSignal>
                     </span>
                   </li>
                   {intel?.primaryBottleneck && (
@@ -320,6 +350,7 @@ export default function Dashboard() {
             intel={intel ?? null}
             summary={summary ?? null}
             onClose={() => setActiveMetric(null)}
+            onDrill={openDrill}
           />
         )}
       </AnimatePresence>
@@ -354,24 +385,36 @@ export default function Dashboard() {
               </span>
               <span className="text-xs text-muted-foreground mt-0.5">Total assets</span>
             </div>
-            <div className="flex flex-col">
+            <ClickableSignal
+              onClick={() => openDrill("expired_warranty")}
+              className="flex flex-col px-2 py-1 -mx-2 -my-1 rounded-lg"
+              disabled={(summary?.atRiskAssets ?? 0) === 0}
+              title="View expired warranty assets"
+            >
               <span className={`text-2xl font-black tracking-tight ${(summary?.atRiskAssets ?? 0) > 0 ? "text-red-400" : "text-muted-foreground"}`}>
                 {summary?.atRiskAssets ?? 0}
               </span>
               <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3 text-red-400" />
                 At risk (expired)
+                {(summary?.atRiskAssets ?? 0) > 0 && <span className="text-[10px] text-primary/50 ml-1">↗</span>}
               </span>
-            </div>
-            <div className="flex flex-col">
+            </ClickableSignal>
+            <ClickableSignal
+              onClick={() => openDrill("expiring_soon")}
+              className="flex flex-col px-2 py-1 -mx-2 -my-1 rounded-lg"
+              disabled={(summary?.expiringSoonAssets ?? 0) === 0}
+              title="View assets expiring soon"
+            >
               <span className={`text-2xl font-black tracking-tight ${(summary?.expiringSoonAssets ?? 0) > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
                 {summary?.expiringSoonAssets ?? 0}
               </span>
               <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                 <Clock className="h-3 w-3 text-amber-400" />
                 Expiring soon (90d)
+                {(summary?.expiringSoonAssets ?? 0) > 0 && <span className="text-[10px] text-primary/50 ml-1">↗</span>}
               </span>
-            </div>
+            </ClickableSignal>
           </div>
         </CardContent>
       </Card>
@@ -394,6 +437,17 @@ export default function Dashboard() {
 
       {/* ─── Row 5: Portfolio Control Tower ─── */}
       <PortfolioControlTowerSection />
+
+      {/* ─── Drill-Down Sheet ─── */}
+      {drillState && (
+        <DrillDownSheet
+          signal={drillState.signal}
+          workflowId={drillState.workflowId}
+          stageId={drillState.stageId}
+          open={true}
+          onClose={closeDrill}
+        />
+      )}
     </div>
   );
 }
@@ -407,13 +461,15 @@ function StatPill({
   label,
   color,
   isLoading,
+  onClick,
 }: {
   value: number;
   label: string;
   color: string;
   isLoading: boolean;
+  onClick?: () => void;
 }) {
-  return (
+  const inner = (
     <div className="flex flex-col items-center gap-0.5">
       {isLoading ? (
         <Skeleton className="h-6 w-8" />
@@ -424,6 +480,26 @@ function StatPill({
         {label}
       </span>
     </div>
+  );
+
+  if (!onClick) return inner;
+
+  return (
+    <button
+      onClick={onClick}
+      title={`View ${label.toLowerCase()} records`}
+      className="flex flex-col items-center gap-0.5 cursor-pointer rounded-lg px-2 py-1 hover:bg-muted/60 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    >
+      {isLoading ? (
+        <Skeleton className="h-6 w-8" />
+      ) : (
+        <span className={`text-xl font-bold ${color}`}>{value}</span>
+      )}
+      <span className="text-[10px] uppercase text-muted-foreground font-semibold tracking-wider flex items-center gap-0.5">
+        {label}
+        <span className="text-[9px] text-primary/40">↗</span>
+      </span>
+    </button>
   );
 }
 
@@ -518,11 +594,13 @@ function MetricRevealSection({
   intel,
   summary,
   onClose,
+  onDrill,
 }: {
   metric: MetricKey;
   intel: DashboardIntelligence | null;
   summary: any;
   onClose: () => void;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const bottleneck = intel?.primaryBottleneck;
   const spotlight = intel?.workflowSpotlight ?? [];
@@ -680,16 +758,16 @@ function MetricRevealSection({
 
         {/* Per-metric detail rows */}
         {metric === "flow" && (
-          <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} />
+          <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} onDrill={onDrill} />
         )}
         {metric === "risk" && (
-          <RiskReveal actions={actions} spotlight={spotlight} summary={summary} />
+          <RiskReveal actions={actions} spotlight={spotlight} summary={summary} onDrill={onDrill} />
         )}
         {metric === "execution" && (
-          <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} />
+          <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} onDrill={onDrill} />
         )}
         {metric === "improvement" && (
-          <ImprovementReveal snap={snap} trends={trends} summary={summary} />
+          <ImprovementReveal snap={snap} trends={trends} summary={summary} onDrill={onDrill} />
         )}
 
         {/* RECOMMENDED ACTION */}
@@ -715,10 +793,12 @@ function FlowReveal({
   bottleneck,
   spotlight,
   trends,
+  onDrill,
 }: {
   bottleneck: DashboardIntelligence["primaryBottleneck"];
   spotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
+  onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const congestionTrend = trends.find((t) => t.label === "Stage Congestion");
   const agingTrend = trends.find((t) => t.label === "Aging Items");
@@ -733,7 +813,18 @@ function FlowReveal({
             <p className="text-xs text-muted-foreground mt-1">{bottleneck.workflowTitle}</p>
             <div className="mt-2 space-y-1">
               <div className="text-xs">
-                <span className="text-status-red font-semibold">{bottleneck.itemCount} items stuck</span>
+                <ClickableSignal
+                  onClick={() => onDrill("bottleneck_items", {
+                    workflowId: bottleneck.workflowId,
+                    stageId: bottleneck.stageId ?? undefined,
+                  })}
+                  className="px-1 py-0.5 rounded"
+                  title="View stuck items in this stage"
+                  disabled={bottleneck.itemCount === 0}
+                >
+                  <span className="text-status-red font-semibold">{bottleneck.itemCount} items stuck</span>
+                  {bottleneck.itemCount > 0 && <span className="ml-1 text-[10px] text-primary/50">↗</span>}
+                </ClickableSignal>
               </div>
               <div className="text-xs">
                 <span className="font-medium text-foreground/80">{bottleneck.maxAgeDays}d max age</span>
@@ -790,10 +881,12 @@ function RiskReveal({
   actions,
   spotlight,
   summary,
+  onDrill,
 }: {
   actions: IntelligenceAction[];
   spotlight: WorkflowSpotlightEntry[];
   summary: any;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const criticalActions = actions.filter((a) => a.urgency === "critical");
   const overdueActions = actions.filter((a) => a.category === "overdue");
@@ -803,10 +896,20 @@ function RiskReveal({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <RevealCard label="Critical Items" icon={ShieldAlert}>
-        <p className="text-2xl font-bold text-status-red tabular-nums">{summary?.criticalItemsCount ?? 0}</p>
-        <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
-          {severityLabel(summary?.criticalItemsCount ?? 0, "critical")}
-        </p>
+        <ClickableSignal
+          onClick={() => onDrill("critical_items")}
+          className="block px-1 py-0.5 rounded -mx-1"
+          disabled={(summary?.criticalItemsCount ?? 0) === 0}
+          title="View critical items"
+        >
+          <p className="text-2xl font-bold text-status-red tabular-nums flex items-baseline gap-1">
+            {summary?.criticalItemsCount ?? 0}
+            {(summary?.criticalItemsCount ?? 0) > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+          </p>
+          <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+            {severityLabel(summary?.criticalItemsCount ?? 0, "critical")}
+          </p>
+        </ClickableSignal>
         <p className="text-xs text-muted-foreground mt-1">open critical-priority items</p>
         {criticalActions.length > 0 && (
           <p className="text-xs text-status-red/80 mt-2 leading-snug">
@@ -816,10 +919,20 @@ function RiskReveal({
       </RevealCard>
 
       <RevealCard label="Overdue Items" icon={Clock}>
-        <p className="text-2xl font-bold text-status-yellow tabular-nums">{summary?.overdueItemsCount ?? 0}</p>
-        <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
-          {severityLabel(summary?.overdueItemsCount ?? 0, "overdue")} backlog
-        </p>
+        <ClickableSignal
+          onClick={() => onDrill("overdue_items")}
+          className="block px-1 py-0.5 rounded -mx-1"
+          disabled={(summary?.overdueItemsCount ?? 0) === 0}
+          title="View overdue items"
+        >
+          <p className="text-2xl font-bold text-status-yellow tabular-nums flex items-baseline gap-1">
+            {summary?.overdueItemsCount ?? 0}
+            {(summary?.overdueItemsCount ?? 0) > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+          </p>
+          <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+            {severityLabel(summary?.overdueItemsCount ?? 0, "overdue")} backlog
+          </p>
+        </ClickableSignal>
         <p className="text-xs text-muted-foreground mt-1">items past their due date</p>
         {missingDocActions.length > 0 && (
           <p className="text-xs text-status-yellow/80 mt-2 leading-snug">
@@ -853,11 +966,13 @@ function ExecutionReveal({
   trends,
   spotlight,
   summary,
+  onDrill,
 }: {
   snap: DashboardIntelligence["executiveSnapshot"] | undefined;
   trends: TrendSignal[];
   spotlight: WorkflowSpotlightEntry[];
   summary: any;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const completionTrend = trends.find((t) => t.label === "Completion Activity");
   const overdueTrend = trends.find((t) => t.label === "Overdue Items");
@@ -898,9 +1013,22 @@ function ExecutionReveal({
             <p className="text-xs text-muted-foreground mt-1 leading-snug">{overdueTrend.explanation}</p>
           </>
         ) : staleWorkflows.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {staleWorkflows.length} workflow{staleWorkflows.length !== 1 ? "s" : ""} have open items with no critical escalation — review for stale assignments.
-          </p>
+          <>
+            <ClickableSignal
+              onClick={() => onDrill("stale_items")}
+              className="block px-1 py-0.5 rounded -mx-1"
+              title="View stale workflow items"
+            >
+              <p className="text-2xl font-bold tabular-nums text-amber-400 flex items-baseline gap-1">
+                {staleWorkflows.length}
+                <span className="text-[11px] text-primary/50">↗</span>
+              </p>
+              <p className="text-[10px] font-bold uppercase text-amber-400/80 mt-0.5 tracking-wide">stale workflows</p>
+            </ClickableSignal>
+            <p className="text-xs text-muted-foreground mt-1">
+              with open items, no critical escalation
+            </p>
+          </>
         ) : (
           <p className="text-xs text-muted-foreground">No responsiveness gaps detected.</p>
         )}
@@ -915,10 +1043,12 @@ function ImprovementReveal({
   snap,
   trends,
   summary,
+  onDrill,
 }: {
   snap: DashboardIntelligence["executiveSnapshot"] | undefined;
   trends: TrendSignal[];
   summary: any;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const completionTrend = trends.find((t) => t.label === "Completion Activity");
   const agingTrend = trends.find((t) => t.label === "Aging Items");

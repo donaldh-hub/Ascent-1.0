@@ -133,6 +133,22 @@ GCS object storage with a full document management pipeline:
 - Integrated into `ItemDetailSheet` in workflow-detail.tsx
 - ItemCard footer shows document count badge when docs exist
 
+## Reaction Layer (Build 1.8)
+
+Implemented throughout the UI: every major operational signal is clickable and opens a `DrillDownSheet` panel showing supporting records.
+
+**Backend:** `GET /api/drill?signal=X&propertyId=Y&workflowId=Z&stageId=W` — returns structured `DrillResponse` (label, trigger explanation, rows). Supports 7 signal types: `expired_warranty`, `expiring_soon`, `critical_items`, `overdue_items`, `bottleneck_items`, `stale_items`, `at_risk_workflows`.
+
+**Frontend components:**
+- `drill-down-sheet.tsx` — Right-side Sheet panel with signal context, scrollable rows, navigate-to links
+- `use-signal-drill.ts` — Hook to fetch `/api/drill` with signal params
+
+**Wired pages:**
+- **Control Tower** (`dashboard.tsx`): StatPills (critical/overdue), Driven By bullets, Asset Health Pulse (expired/expiring), FlowReveal bottleneck, RiskReveal critical/overdue, ExecutionReveal stale workflows
+- **Property Control Tower** (`property-detail.tsx`): Asset Health stats (Expired Warranty, Expiring 90d), Operational Signals Critical Items count
+- **Properties list** (`properties.tsx`): Critical item badges and aging badges per property card (outside card button to avoid nesting)
+- **Alert Center** (`alerts.tsx`): Critical and Warning summary tiles
+
 ## API Endpoints
 
 | Module | Routes |

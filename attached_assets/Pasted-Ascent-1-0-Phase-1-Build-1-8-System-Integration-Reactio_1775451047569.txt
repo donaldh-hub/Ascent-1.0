@@ -1,0 +1,340 @@
+Ascent 1.0 — Phase 1 Build 1.8 (System Integration + Reaction Layer Prompt)
+
+Reference Blueprint: Continuous Improvement App Core Builds 
+Reference Prior Builds:
+
+* Phase 1 — Build 1 (Foundation) 
+* Phase 1 — Build 2 (Workflow Engine) 
+* Phase 1 — Build 3 (Scoring + Stoplight Engine) 
+* Phase 1 — Build 4 (Alert Engine) 
+* Phase 1 — Build 5 (Dashboard Intelligence) 
+* Phase 1 — Build 6 / 6.5 / 6.6 (Document + Evidence Layers) 
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.8.
+
+The system already has:
+
+* authentication
+* organization + property + unit structure
+* workflow engine
+* scoring + stoplight engine
+* alert + warning engine
+* dashboard intelligence layer
+* document + evidence engine
+* evidence visibility + language layer
+* unit profile + assignment engine
+
+Do NOT rebuild any existing engines.
+Do NOT redesign the UI system.
+Do NOT duplicate scoring, alert, or document logic.
+
+This build is the SYSTEM INTEGRATION + REACTION LAYER.
+
+==================================================
+CORE GOAL
+=========
+
+Convert every insight, signal, and metric in the system into:
+
+REAL → CLICKABLE → ACTIONABLE DATA
+
+This build must ensure:
+
+Users NEVER see a number without being able to click and verify it.
+
+Users NEVER lose context when investigating a problem.
+
+Users can move from:
+
+Signal → Proof → Decision → Action
+
+in one continuous flow.
+
+==================================================
+CORE SYSTEM PRINCIPLE (NON-NEGOTIABLE)
+======================================
+
+ALL surfaced insights must follow:
+
+SIGNAL → CLICK → DATA → DECISION
+
+If any signal cannot produce real supporting data, it must NOT be clickable.
+
+==================================================
+BUILD REQUIREMENTS
+==================
+
+1. SIGNAL-TO-QUERY ENGINE (CORE LAYER)
+
+Create a centralized reaction engine that:
+
+* receives signal metadata from:
+
+  * scoring engine
+  * dashboard intelligence layer
+  * alert engine
+  * evidence system
+
+* converts signals into structured queries
+
+* executes queries against real system data
+
+* returns result sets tied to the originating signal
+
+This must be a reusable service layer (NOT UI logic).
+
+Each signal must define:
+
+* signal_type
+* source (risk / flow / execution / improvement / documents / assets)
+* query_rules
+* display_config
+
+==================================================
+2. UNIVERSAL CLICKABLE SIGNAL SYSTEM
+
+Enable click behavior for ALL major signals across the app.
+
+At minimum:
+
+RISK SIGNALS
+
+* expired warranties → show affected assets
+* missing documentation → show affected items
+* critical items → show those items
+
+FLOW SIGNALS
+
+* bottleneck stage → show stuck workflow items
+* stage congestion → show items in that stage
+
+EXECUTION SIGNALS
+
+* incomplete items → show incomplete workflow items
+* stale items → show aging items
+
+IMPROVEMENT SIGNALS
+
+* low momentum → show stalled workflows/items
+
+DOCUMENT SIGNALS
+
+* missing documentation → show items without documents
+* critical items without documents → show filtered items
+
+ASSET SIGNALS
+
+* expired warranties
+* expiring soon
+* aging assets
+
+NO signal should exist without click-through behavior.
+
+==================================================
+3. CONTEXT PRESERVATION (CRITICAL UX RULE)
+
+Clicking a signal must NOT:
+
+* redirect to unrelated pages
+* break navigation context
+* reset user flow
+
+Instead:
+
+Open ONE of the following:
+
+* side panel
+* modal
+* overlay view
+
+User must remain within:
+
+* dashboard
+* workflow
+* property
+* or unit context
+
+==================================================
+4. RESULT PANEL (PROOF LAYER)
+
+All drill-down views must show REAL DATA.
+
+Example: “20 assets with expired warranty”
+
+Panel must show:
+
+* asset type
+* unit
+* property
+* install date
+* warranty expiration date
+* age / life %
+* status
+
+Example row:
+
+Unit 12A — Refrigerator — Installed 2019 — Expired 2024
+
+Requirements:
+
+* sortable list
+* scrollable
+* clean table or card format
+* no fake or placeholder data
+
+==================================================
+5. EXPLAINABILITY INSIDE DRILL-DOWN
+
+Each drill-down panel must include:
+
+A. WHY THIS WAS TRIGGERED
+Example:
+“Assets shown here have expired warranties, increasing financial exposure.”
+
+B. COUNT CONFIRMATION
+Example:
+“20 assets match this condition.”
+
+C. OPTIONAL GROUPING (if clean)
+
+* by asset type
+* by property
+* by severity
+
+==================================================
+6. SYSTEM-WIDE QUERY STANDARDIZATION
+
+All queries must:
+
+* use existing database relationships
+* respect organization scope
+* respect role permissions
+* avoid duplicate logic
+
+Query outputs must remain consistent across:
+
+* dashboard
+* workflows
+* unit profiles
+* alerts
+
+==================================================
+7. ROLE-AWARE REACTION
+
+Admin / Supervisor / Manager:
+
+* full drill-down access
+
+Technician:
+
+* only assigned or visible scope
+
+Viewer:
+
+* read-only drill-down
+
+No role should see data outside their scope.
+
+==================================================
+8. LIGHT ACTION SUPPORT (PHASE 1 LEVEL)
+
+Inside drill-down panels, allow:
+
+* navigation to unit
+* navigation to workflow item
+* navigation to asset record
+
+Do NOT build bulk-edit systems yet.
+Do NOT build automation triggers yet.
+
+This build is visibility + decision support.
+
+==================================================
+9. PERFORMANCE REQUIREMENTS
+
+* queries must execute quickly
+* no blocking UI
+* no full reloads
+* reuse existing data sources
+
+No additional heavy analytics layers.
+
+==================================================
+10. EMPTY / LOW-DATA HANDLING
+
+If a signal has no supporting data:
+
+* disable click behavior OR
+* show message:
+
+“No records available for this condition”
+
+NEVER show empty panels with misleading signals.
+
+==================================================
+11. CODE QUALITY RULES
+
+DO:
+
+* centralize signal-to-query logic
+* reuse existing engines
+* keep UI clean and consistent
+* ensure deterministic outputs
+
+DO NOT:
+
+* hardcode results
+* create duplicate query logic
+* build disconnected drill-down systems
+* introduce fake data
+
+==================================================
+SUCCESS STATE
+
+This build is complete when:
+
+1. Every major dashboard signal is clickable
+2. Clicking a signal shows real supporting data
+3. Users can identify EXACT records causing issues
+4. Users never leave context while investigating
+5. Drill-down panels are consistent across the app
+6. The system feels “provable,” not just informative
+
+==================================================
+IMPORTANT LIMITS
+
+This build is NOT for:
+
+* predictive AI
+* bulk automation
+* advanced reporting dashboards
+* capital planning engine (future build)
+
+This is the REACTION LAYER.
+
+==================================================
+INTERNAL LABEL
+
+“Phase 1 — Build 1.8: System Integration + Reaction Layer”
+
+==================================================
+
+BUILD INTENT
+
+Build 1 created the structure.
+Build 2 created the movement.
+Build 3 created the meaning.
+Build 4 created awareness.
+Build 5 created direction.
+Build 6 created proof.
+
+Build 1.8 creates ACTION.
+
+==================================================
+END OF PROMPT
