@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, FileText, CheckCircle2, AlertTriangle, HelpCircle,
   ChevronRight, X, Search, Layers, RefreshCw, ClipboardCheck,
-  ThumbsUp, ThumbsDown, ArrowRight, Info,
+  ThumbsUp, ThumbsDown, ArrowRight, Info, Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,9 +107,12 @@ function ResultRow({
             ) : null)}
           </div>
           {result.match.unit && (
-            <div className="text-xs text-muted-foreground mt-0.5">
-              → Unit {result.match.unit.unitNumber}
-              {result.match.property && ` · ${result.match.property.name}`}
+            <div className="text-xs text-primary/80 font-medium mt-0.5 flex items-center gap-1">
+              <Hash className="h-3 w-3 shrink-0" />
+              Unit {result.match.unit.unitNumber}
+              {result.match.property && (
+                <><span className="text-muted-foreground font-normal">—</span> {result.match.property.name}</>
+              )}
             </div>
           )}
         </div>

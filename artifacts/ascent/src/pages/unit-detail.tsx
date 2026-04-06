@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useListUnits, useListProperties, useListDocuments } from "@workspace/api-client-react";
 import { useUnitHistory, type UnitHistoryEvent } from "@/hooks/use-unit-history";
 import { DocumentPanel } from "@/components/document-panel";
-import { cn } from "@/lib/utils";
+import { cn, formatUnitIdentity } from "@/lib/utils";
 
 // ─── Unit assets hook ─────────────────────────────────────────────────────────
 
@@ -68,16 +68,17 @@ function timeAgo(s: string) {
 
 // ─── Insight strip ───────────────────────────────────────────────────────────
 
-function InsightStrip({ docCount, workCount, latestAt }: {
+function InsightStrip({ docCount, workCount, latestAt, unitLabel }: {
   docCount: number;
   workCount: number;
   latestAt: string | null;
+  unitLabel: string;
 }) {
   if (docCount === 0 && workCount === 0) {
     return (
       <div className="flex items-start gap-2.5 bg-secondary/30 border border-border rounded-lg px-4 py-3 text-sm text-muted-foreground">
         <Info className="h-4 w-4 shrink-0 mt-0.5" />
-        <span>No work history has been recorded for this unit yet.</span>
+        <span>No work history has been recorded for {unitLabel} yet.</span>
       </div>
     );
   }
@@ -212,6 +213,9 @@ export default function UnitDetail() {
   const assetCount = history?.assetCount ?? 0;
   const latestAt = history?.latestActivityAt ?? null;
 
+  // Canonical unit identity — used in ALL empty states and contextual messages
+  const unitLabel = formatUnitIdentity(unit?.unitNumber, property?.name);
+
   const metaEntries = unit?.metadata && typeof unit.metadata === "object"
     ? Object.entries(unit.metadata as Record<string, unknown>).filter(([, v]) => v !== null && v !== "")
     : [];
@@ -233,18 +237,26 @@ export default function UnitDetail() {
           <Hash className="h-7 w-7 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold">Unit {unit?.unitNumber ?? "…"}</h1>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+          {/* Canonical identity: Unit N — Property */}
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold">Unit {unit?.unitNumber ?? "…"}</h1>
             {property && (
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Building2 className="h-4 w-4" />
-                {property.name}
-                {property.address && <span className="text-muted-foreground/60">· {property.address}</span>}
+              <>
+                <span className="text-xl text-muted-foreground font-light">—</span>
+                <span className="text-xl font-semibold text-foreground/90">{property.name}</span>
+              </>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+            {property?.address && (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Building2 className="h-3.5 w-3.5" />
+                {property.address}
               </span>
             )}
             {unit && (
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Calendar className="h-4 w-4" />
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
                 Added {fmtDate(unit.createdAt)}
               </span>
             )}
@@ -254,7 +266,7 @@ export default function UnitDetail() {
 
       {/* ── Insight strip ── */}
       {!historyLoading && (
-        <InsightStrip docCount={docCount} workCount={workCount} latestAt={latestAt} />
+        <InsightStrip docCount={docCount} workCount={workCount} latestAt={latestAt} unitLabel={unitLabel} />
       )}
 
       {/* ── Snapshot ── */}
@@ -303,7 +315,7 @@ export default function UnitDetail() {
           <div className="px-5 py-6 text-sm text-muted-foreground">Loading history…</div>
         ) : !history || history.events.length === 0 ? (
           <EmptySection
-            message="No activity recorded yet"
+            message={`No activity recorded yet for ${unitLabel}`}
             sub="Events like document uploads and work item changes will appear here."
           />
         ) : (
@@ -325,7 +337,7 @@ export default function UnitDetail() {
       {/* ── Work items ── */}
       <Section title="Related Work" icon={Briefcase}>
         <EmptySection
-          message="No work items linked to this unit yet"
+          message={`No work items linked to ${unitLabel} yet`}
           sub="Work items will appear here once they are assigned to this unit in a future update."
         />
         <div className="px-5 pb-4">
@@ -342,8 +354,8 @@ export default function UnitDetail() {
         ) : unitAssets.length === 0 ? (
           <>
             <EmptySection
-              message="No assets linked to this unit"
-              sub="Assets tracked for this unit will appear here once registered."
+              message={`No assets recorded for ${unitLabel}`}
+              sub="Assets will appear here once registered and linked to this unit."
             />
             <div className="px-5 pb-4">
               <Button variant="outline" size="sm" onClick={() => navigate("/assets")} className="w-full">

@@ -162,11 +162,18 @@ export default function Assets() {
                       <StoplightIndicator status={asset.stoplight} size="md" pulse={asset.stoplight === "red"} />
                     </div>
 
-                    {/* Unit linkage badge — single source of truth */}
+                    {/* Unit linkage badge — canonical "Unit N — Property" format */}
                     {asset.location && (
                       <div className="flex items-center gap-1.5 mb-3 px-2 py-1 rounded-md bg-secondary/50 border border-border/40 w-fit max-w-full">
-                        <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <span className="text-xs text-muted-foreground truncate">{asset.location}</span>
+                        <Building2 className="h-3 w-3 text-primary/70 shrink-0" />
+                        <span className="text-xs font-medium text-foreground/80 truncate">
+                          {/* Convert "Property, Unit N" → "Unit N — Property" */}
+                          {(() => {
+                            const parts = asset.location.split(", Unit ");
+                            if (parts.length === 2) return `Unit ${parts[1]} — ${parts[0]}`;
+                            return asset.location;
+                          })()}
+                        </span>
                       </div>
                     )}
 

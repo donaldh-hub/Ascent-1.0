@@ -105,9 +105,13 @@ function ManualAssignForm({
             className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm"
           >
             <option value="">Select unit…</option>
-            {filteredUnits.map((u) => (
-              <option key={u.id} value={u.id}>{u.unitNumber}</option>
-            ))}
+            {filteredUnits.map((u) => {
+              const prop = properties.find((p) => p.id === u.propertyId);
+              const label = selectedPropertyId
+                ? `Unit ${u.unitNumber}`
+                : `Unit ${u.unitNumber} — ${prop?.name ?? ""}`;
+              return <option key={u.id} value={u.id}>{label}</option>;
+            })}
           </select>
         </div>
       </div>

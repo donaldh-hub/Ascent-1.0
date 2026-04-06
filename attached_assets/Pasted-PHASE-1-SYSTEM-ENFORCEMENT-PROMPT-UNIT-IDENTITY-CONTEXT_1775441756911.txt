@@ -1,0 +1,246 @@
+PHASE 1 — SYSTEM ENFORCEMENT PROMPT (UNIT IDENTITY + CONTEXT CLARITY)
+COPY + PASTE INTO REPLIT AGENT
+
+---
+
+We are enforcing UNIT IDENTITY clarity across Ascent 1.0.
+
+This is NOT a new feature build.
+This is a SYSTEM CLARITY + TRUST ENFORCEMENT.
+
+---
+
+CORE PROBLEM
+
+Units are currently identified primarily by unit number (e.g., “Unit 10”).
+
+However:
+
+* The SAME unit number can exist across MULTIPLE properties
+* The system is correctly storing them as separate entities
+* BUT the UI does NOT clearly distinguish them
+
+Result:
+
+Users may believe:
+
+* assets are missing
+* counts are incorrect
+* system is inconsistent
+
+Even when the DATA IS CORRECT.
+
+---
+
+WHAT THIS BREAKS
+
+This breaks USER TRUST.
+
+It violates the UX principle:
+
+"The system must make truth obvious at a glance."
+
+Right now, truth exists… but is not obvious.
+
+---
+
+CORE GOAL OF THIS FIX
+
+Make UNIT IDENTITY unmistakable everywhere in the system.
+
+After this fix:
+
+A user must NEVER confuse:
+
+* Unit 10 at Property A
+* Unit 10 at Property B
+
+EVERY surface must clearly show:
+
+unit + property context
+
+---
+
+CRITICAL RULE
+
+Unit identity is NOT:
+
+unit_number
+
+Unit identity IS:
+
+(unit_number + property_id + organization_id)
+
+ALL display and logic must respect this.
+
+---
+
+BUILD REQUIREMENTS
+
+---
+
+1. GLOBAL UNIT IDENTITY FORMAT (MANDATORY)
+
+Define a standardized display format:
+
+Primary format:
+
+"Unit {unit_number} — {property_name}"
+
+Examples:
+
+Unit 10 — Cedar Heights
+Unit 10 — Stonewood Village
+
+Optional extended format (if needed):
+
+"Unit {unit_number} — {property_name} ({city/state})"
+
+Apply this format EVERYWHERE a unit is displayed.
+
+---
+
+2. ASSET LABEL CONTEXT ENFORCEMENT
+
+Update ALL asset displays.
+
+Replace ambiguous labels like:
+
+"Refrigerator — Unit 10"
+
+WITH:
+
+"Refrigerator — Unit 10 — Cedar Heights"
+
+Requirements:
+
+* Must pull property_name from linked unit
+* Must not rely on text concatenation hacks
+* Must use real relational data
+
+---
+
+3. UNIT PROFILE HEADER HARDENING
+
+Update Unit Profile header to ALWAYS show:
+
+* Unit number
+* Property name
+* Organization (optional if useful)
+
+Ensure visual hierarchy makes property unmistakable.
+
+---
+
+4. ASSET REGISTRY CONTEXT UPGRADE
+
+Each asset card MUST display:
+
+* Unit number
+* Property name
+
+NO asset should appear without full unit context.
+
+---
+
+5. CONTROL TOWER CONTEXT ENFORCEMENT
+
+Ensure Control Tower:
+
+* aggregates by unit_id (NOT unit name)
+* displays unit + property context where referenced
+
+If any aggregation groups by unit name only → FIX IT
+
+---
+
+6. QUERY AND GROUPING SAFEGUARD
+
+Audit ALL queries involving units.
+
+Ensure:
+
+* joins use unit_id (not unit_number)
+* groupings use unit_id + property_id
+
+NO grouping by raw unit_number allowed.
+
+---
+
+7. SEARCH + FILTER IMPROVEMENT
+
+Update search behavior:
+
+Searching "Unit 10" must return:
+
+* Unit 10 — Cedar Heights
+* Unit 10 — Stonewood Village
+
+Clearly separated.
+
+---
+
+8. VISUAL DIFFERENTIATION (LIGHTWEIGHT)
+
+Introduce subtle visual cues:
+
+* property name styling (secondary but visible)
+* optional property badge or tag
+
+Do NOT clutter UI.
+
+Clarity > decoration.
+
+---
+
+9. DATA MODEL VALIDATION (NO CHANGE REQUIRED, VERIFY ONLY)
+
+Confirm system already uses:
+
+* unique unit IDs
+* property linkage
+
+DO NOT create new data structures.
+
+This is a display + enforcement layer.
+
+---
+
+10. EMPTY / LOW-DATA STATES
+
+Ensure even empty states reflect context.
+
+Example:
+
+"No assets recorded for Unit 10 — Cedar Heights"
+
+NOT:
+
+"No assets recorded for Unit 10"
+
+---
+
+SUCCESS STATE
+
+This fix is complete when:
+
+* No unit appears without property context
+* No asset appears with ambiguous unit reference
+* Control Tower respects full identity
+* Users cannot confuse units across properties
+
+System must feel:
+
+CLEAR
+PRECISE
+TRUSTWORTHY
+
+---
+
+INTERNAL LABEL
+
+"Phase 1 — System Enforcement: Unit Identity + Context Clarity"
+
+---
+
+END OF PROMPT
