@@ -1,0 +1,112 @@
+We are updating navigation and hierarchy to align with real-world property management workflows.
+
+DO NOT change backend logic.
+DO NOT modify scoring, workflows, or calculations.
+
+This is a STRUCTURE + NAVIGATION update.
+
+==================================================
+
+CORE CHANGE
+
+Replace "Units" tab in navigation with "Properties".
+
+==================================================
+
+PROPERTIES PAGE (NEW PRIMARY VIEW)
+
+Create a dedicated /properties route.
+
+This page must:
+
+- display ALL properties for the organization
+- use clean card layout (grid or vertical stack)
+- avoid clutter, filters, or complex controls
+- support fast scanning
+
+Each property card must include:
+
+- property name
+- operational health score
+- stoplight color
+- mini indicators for:
+  - flow
+  - risk
+  - execution
+  - improvement
+- critical item count
+- bottleneck indicator
+- evidence/document signal (reuse existing system)
+
+==================================================
+
+PROPERTY CARD INTERACTION
+
+Entire card must be clickable.
+
+On click:
+
+→ Navigate to Property Control Tower
+
+This must:
+
+- reuse existing Control Tower UI
+- filter ALL data to that specific property only
+- NOT create a new dashboard system
+- simply scope existing intelligence
+
+==================================================
+
+UNITS ACCESS (SECONDARY)
+
+Each property card must include a "View Units" button.
+
+On click:
+
+→ Navigate to Units page filtered by selected property
+
+Units page must:
+
+- show only units for that property
+- preserve existing unit structure and behavior
+
+==================================================
+
+NAVIGATION LOGIC
+
+- "Properties" becomes the primary entry point for location-level visibility
+- "Units" should no longer be a top-level navigation item
+- Units remain accessible ONLY through properties
+
+==================================================
+
+ROLE BEHAVIOR
+
+- Property-level users: see only their property
+- Regional users: see all assigned properties
+- Maintain existing role restrictions
+
+==================================================
+
+SUCCESS STATE
+
+System is complete when:
+
+- Users click "Properties" and immediately see all properties
+- Users can click a property and view its control tower instantly
+- Users can drill down into units from that property
+- No user needs to search to find their property
+
+==================================================
+
+IMPORTANT
+
+DO NOT:
+
+- rebuild control tower
+- duplicate data logic
+- introduce new scoring
+
+This is a STRUCTURAL UPGRADE ONLY.
+
+==================================================

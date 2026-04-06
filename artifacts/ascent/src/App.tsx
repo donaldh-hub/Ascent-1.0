@@ -17,6 +17,8 @@ import Analytics from "@/pages/analytics";
 import Alerts from "@/pages/alerts";
 import Units from "@/pages/units";
 import UnitDetail from "@/pages/unit-detail";
+import Properties from "@/pages/properties";
+import PropertyDetail from "@/pages/property-detail";
 import Documents from "@/pages/documents";
 import Assignments from "@/pages/assignments";
 import AssignmentsReview from "@/pages/assignments-review";
@@ -70,6 +72,8 @@ function Router() {
         <Route path="/assets" component={Assets} />
         <Route path="/analytics" component={Analytics} />
         <Route path="/alerts" component={Alerts} />
+        <Route path="/properties" component={Properties} />
+        <Route path="/properties/:id" component={PropertyDetail} />
         <Route path="/units" component={Units} />
         <Route path="/units/:id" component={UnitDetail} />
         <Route path="/documents" component={Documents} />

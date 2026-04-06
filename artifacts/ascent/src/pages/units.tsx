@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { Search, Building2, Hash, Calendar, Plus, ChevronRight, Layers, Paperclip, Server } from "lucide-react";
+import { useLocation, useSearch } from "wouter";
+import { Search, Building2, Hash, Calendar, Plus, ChevronRight, Layers, Paperclip, Server, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useListUnits, useListProperties } from "@workspace/api-client-react";
@@ -10,7 +10,12 @@ import { cn } from "@/lib/utils";
 
 export default function Units() {
   const [, navigate] = useLocation();
+  const search_params = useSearch();
   const [search, setSearch] = useState("");
+
+  // Read optional propertyId filter from query string
+  const params = new URLSearchParams(search_params);
+  const propertyFilter = params.get("propertyId") ? parseInt(params.get("propertyId")!, 10) : null;
 
   const { data: units = [], isLoading: unitsLoading } = useListUnits({});
   const { data: properties = [] } = useListProperties();
@@ -21,7 +26,12 @@ export default function Units() {
 
   const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
 
-  const filtered = units.filter((u) => {
+  // Apply property filter first, then text search
+  const propertyFiltered = propertyFilter != null
+    ? units.filter((u) => u.propertyId === propertyFilter)
+    : units;
+
+  const filtered = propertyFiltered.filter((u) => {
     const q = search.toLowerCase();
     if (!q) return true;
     const prop = propMap[u.propertyId];
@@ -46,14 +56,31 @@ export default function Units() {
     return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
+  const filteredProperty = propertyFilter != null ? propMap[propertyFilter] : null;
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+      {/* Back link when filtered by property */}
+      {filteredProperty && (
+        <button
+          onClick={() => navigate(`/properties/${filteredProperty.id}`)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors -mb-2 w-fit"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {filteredProperty.name} · Property Control Tower
+        </button>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Units</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {filteredProperty ? `${filteredProperty.name} — Units` : "Units"}
+          </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {units.length} unit{units.length !== 1 ? "s" : ""} across {properties.length} {properties.length !== 1 ? "properties" : "property"}
+            {filteredProperty
+              ? `${propertyFiltered.length} unit${propertyFiltered.length !== 1 ? "s" : ""} in this property`
+              : `${units.length} unit${units.length !== 1 ? "s" : ""} across ${properties.length} ${properties.length !== 1 ? "properties" : "property"}`}
           </p>
         </div>
         <Button onClick={() => navigate("/setup")}>
