@@ -1,0 +1,261 @@
+PHASE 1 — SYSTEM FIX PROMPT (ASSET ↔ UNIT ↔ CONTROL TOWER SYNC)
+COPY + PASTE INTO REPLIT AGENT
+
+---
+
+We are fixing a data consistency and synchronization issue in Ascent 1.0.
+
+This is NOT a new build.
+This is a SYSTEM INTEGRITY CORRECTION.
+
+---
+
+CORE PROBLEM
+
+Assets are being:
+
+* counted in the Control Tower
+* visible in the Asset Registry
+
+BUT
+
+* NOT consistently appearing in the Unit Profile
+* NOT matching the unit-level asset counts
+
+---
+
+WHAT THIS BREAKS
+
+This violates the SINGLE SOURCE OF TRUTH rule across the system.
+
+All surfaces must match:
+
+* Unit Profile
+* Asset Registry
+* Control Tower
+
+Right now — they do NOT.
+
+---
+
+CORE GOAL OF THIS FIX
+
+Force the system into ONE SHARED TRUTH for asset-to-unit relationships.
+
+After this fix:
+
+If an asset is assigned to a unit, it MUST appear:
+
+1. In the Asset Registry under that unit
+2. In the Unit Profile asset list
+3. In the Unit asset count
+4. In Control Tower / dashboard aggregation
+
+NO exceptions.
+
+---
+
+CRITICAL RULE
+
+There must be ONE authoritative linkage path between:
+
+asset → unit
+
+NO:
+
+* duplicate matching logic
+* UI-only filtering
+* soft matching in one place and hard linking in another
+
+ALL views must read from:
+
+persisted database relationships
+
+(unit_id, property_id, organization_id)
+
+---
+
+BUILD REQUIREMENTS
+
+---
+
+1. TRACE THE CURRENT FAILURE (MANDATORY)
+
+Identify EXACTLY:
+
+* how assets are assigned to units
+* how Control Tower aggregates asset data
+* how Asset Registry queries assets
+* how Unit Profile queries assets
+
+Then explicitly detect:
+
+* where logic diverges
+* where filtering differs
+* where data is not persisted correctly
+* where stale or partial linkage is used
+
+RETURN a clear internal diagnosis before applying fixes.
+
+---
+
+2. ENFORCE SINGLE SOURCE OF TRUTH
+
+Refactor system so ALL asset reads come from ONE source:
+
+assets table WITH:
+
+* unit_id (REQUIRED linkage)
+* property_id
+* organization_id
+
+REMOVE or REPLACE any logic that:
+
+* infers unit from text
+* uses temporary matching
+* relies on UI-layer joins
+
+All assignment must be persisted FIRST, then read everywhere.
+
+---
+
+3. FIX ASSIGNMENT COMPLETION FLOW
+
+Ensure assignment engine:
+
+* completes BEFORE UI renders
+* writes final unit_id to asset record
+* confirms persistence success
+
+After assignment:
+
+Trigger system-wide refresh for:
+
+* Unit Profile
+* Asset Registry
+* Control Tower
+
+NO partial states allowed.
+
+---
+
+4. UNIFY QUERY LOGIC ACROSS SYSTEM
+
+STANDARDIZE asset queries:
+
+Unit Profile:
+
+* SELECT * FROM assets WHERE unit_id = currentUnitId
+
+Asset Registry:
+
+* MUST use SAME unit_id linkage (no alternate logic)
+
+Control Tower:
+
+* MUST aggregate ONLY from persisted asset records
+
+NO separate aggregation logic.
+
+---
+
+5. REMOVE STALE OR SHADOW DATA PATHS
+
+Eliminate any:
+
+* cached asset counts not tied to DB
+* derived UI-only counts
+* duplicate state stores
+
+All counts must be computed from real-time database queries.
+
+---
+
+6. FORCE CONSISTENT COUNT LOGIC
+
+Asset counts must be derived ONLY from:
+
+COUNT(assets WHERE unit_id = X)
+
+Apply SAME logic to:
+
+* Unit card counts
+* Unit Profile snapshot
+* Asset Registry grouping
+* Control Tower metrics
+
+---
+
+7. ADD VALIDATION SAFEGUARD
+
+Add system validation check:
+
+When loading Unit Profile:
+
+IF:
+
+asset registry shows N assets for unit
+AND
+unit profile shows M assets
+AND N ≠ M
+
+THEN:
+
+* log system inconsistency error
+* force re-sync query
+
+This prevents silent data drift.
+
+---
+
+8. CONTROL TOWER ALIGNMENT (CRITICAL)
+
+Ensure Control Tower:
+
+* ONLY uses persisted asset records
+* NEVER uses pre-assignment or partial data
+
+Control Tower must reflect:
+
+final resolved system state — NOT ingestion state
+
+---
+
+9. TEST REQUIREMENTS (MANDATORY)
+
+After fix, verify:
+
+1. Assign 2+ assets to Unit 10
+2. Confirm Asset Registry shows both
+3. Confirm Unit Profile shows both
+4. Confirm Unit count = correct number
+5. Confirm Control Tower reflects correct totals
+
+NO mismatches allowed.
+
+---
+
+SUCCESS STATE
+
+This fix is complete when:
+
+* All asset counts match across ALL views
+* Unit Profile shows ALL linked assets
+* Control Tower reflects SAME dataset
+* No drift exists between surfaces
+
+System must feel:
+
+CONSISTENT
+RELIABLE
+TRUSTWORTHY
+
+---
+
+INTERNAL LABEL
+
+"Phase 1 — System Integrity Fix: Asset-Unit-Control Tower Sync"
+
+---
+
+END OF PROMPT

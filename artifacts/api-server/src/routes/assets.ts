@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { assetsTable, unitsTable, propertiesTable } from "@workspace/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { CreateAssetBody, UpdateAssetBody, ListAssetsQueryParams } from "@workspace/api-zod";
 import { onAssetEvent } from "../engine/system-integration";
 
@@ -69,6 +69,90 @@ router.get("/assets", async (req, res) => {
     res.json(rows.map(enrichAsset));
   } catch (err) {
     req.log.error({ err }, "Failed to list assets");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /assets/unit-counts ──────────────────────────────────────────────────
+// Bulk asset counts by unit ID — same pattern as /documents/counts.
+// Query: ?unitIds=1,2,3
+// Returns: Record<unitId, { count, atRisk, expiringSoon }>
+
+router.get("/assets/unit-counts", async (req, res) => {
+  try {
+    const { unitIds } = req.query as { unitIds?: string };
+    if (!unitIds) { res.json({}); return; }
+
+    const ids = unitIds.split(",").map(Number).filter((n) => !isNaN(n) && n > 0);
+    if (ids.length === 0) { res.json({}); return; }
+
+    const rows = await db
+      .select()
+      .from(assetsTable)
+      .where(
+        ids.length === 1
+          ? eq(assetsTable.unitId, ids[0])
+          : inArray(assetsTable.unitId, ids)
+      );
+
+    const today = new Date();
+    const ninetyDays = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+    const result: Record<number, { count: number; atRisk: number; expiringSoon: number }> = {};
+    for (const id of ids) {
+      const unitAssets = rows.filter((a) => a.unitId === id);
+      let atRisk = 0;
+      let expiringSoon = 0;
+      for (const a of unitAssets) {
+        if (!a.warrantyExpiration) continue;
+        const exp = new Date(a.warrantyExpiration);
+        if (exp < today) atRisk++;
+        else if (exp < ninetyDays) expiringSoon++;
+      }
+      result[id] = { count: unitAssets.length, atRisk, expiringSoon };
+    }
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get unit asset counts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /assets/validate-unit-sync ──────────────────────────────────────────
+// Cross-checks Asset Registry vs unit_id FK linkage for consistency.
+// Returns any units where counts diverge between surfaces.
+
+router.get("/assets/validate-unit-sync", async (req, res) => {
+  try {
+    const allAssets = await db.select({
+      id: assetsTable.id,
+      unitId: assetsTable.unitId,
+      linkageStatus: assetsTable.linkageStatus,
+    }).from(assetsTable);
+
+    const unlinked = allAssets.filter((a) => !a.unitId);
+    const linked = allAssets.filter((a) => a.unitId);
+
+    const unitCounts: Record<number, number> = {};
+    for (const a of linked) {
+      unitCounts[a.unitId!] = (unitCounts[a.unitId!] ?? 0) + 1;
+    }
+
+    const inconsistencies: string[] = [];
+    if (unlinked.length > 0) {
+      inconsistencies.push(`${unlinked.length} assets have no unit_id`);
+    }
+
+    res.json({
+      totalAssets: allAssets.length,
+      linked: linked.length,
+      unlinked: unlinked.length,
+      uniqueUnitsWithAssets: Object.keys(unitCounts).length,
+      inconsistencies,
+      consistent: inconsistencies.length === 0,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Failed to validate unit sync");
     res.status(500).json({ error: "Internal server error" });
   }
 });

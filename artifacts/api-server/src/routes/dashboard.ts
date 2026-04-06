@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { workflowsTable, stagesTable, alertsTable, assetsTable, workflowItemsTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNotNull } from "drizzle-orm";
 import { loadAllWorkflowInputs, loadAlerts } from "../engine/loader";
 import { calcOperationalHealth, calcStoplight } from "../engine/scoring";
 import { buildDashboardIntelligence } from "../engine/intelligence";
@@ -10,10 +10,27 @@ const router: IRouter = Router();
 
 router.get("/dashboard/summary", async (req, res) => {
   try {
-    const [workflowInputs, alerts] = await Promise.all([
+    const [workflowInputs, alerts, allAssets] = await Promise.all([
       loadAllWorkflowInputs(),
       loadAlerts(),
+      db.select({
+        id: assetsTable.id,
+        warrantyExpiration: assetsTable.warrantyExpiration,
+        unitId: assetsTable.unitId,
+      }).from(assetsTable),
     ]);
+
+    // ── Asset health metrics (single authoritative pass) ─────────────────────
+    const today = new Date();
+    const ninetyDays = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+    let atRiskAssets = 0;
+    let expiringSoonAssets = 0;
+    for (const a of allAssets) {
+      if (!a.warrantyExpiration) continue;
+      const exp = new Date(a.warrantyExpiration);
+      if (exp < today) atRiskAssets++;
+      else if (exp < ninetyDays) expiringSoonAssets++;
+    }
 
     const operational = calcOperationalHealth(workflowInputs, alerts);
 
@@ -68,6 +85,10 @@ router.get("/dashboard/summary", async (req, res) => {
       biggestBottleneck,
       throughput,
       improvementSummary,
+      // ── Asset health (all from persisted unit_id FK) ──────────────────────
+      totalAssets: allAssets.length,
+      atRiskAssets,
+      expiringSoonAssets,
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard summary");

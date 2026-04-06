@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Search, Building2, Hash, Calendar, Plus, ChevronRight, Layers, Paperclip } from "lucide-react";
+import { Search, Building2, Hash, Calendar, Plus, ChevronRight, Layers, Paperclip, Server } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useListUnits, useListProperties } from "@workspace/api-client-react";
 import { useDocCounts } from "@/hooks/use-doc-counts";
+import { useAssetCounts } from "@/hooks/use-asset-counts";
 import { cn } from "@/lib/utils";
 
 export default function Units() {
@@ -16,6 +17,7 @@ export default function Units() {
 
   const unitIds = units.map((u) => u.id);
   const { data: docCounts = {} } = useDocCounts("unit", unitIds, { enabled: unitIds.length > 0 });
+  const { data: assetCounts = {} } = useAssetCounts(unitIds, { enabled: unitIds.length > 0 });
 
   const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
 
@@ -121,6 +123,10 @@ export default function Units() {
                     const docs = docCounts[unit.id];
                     const hasDoc = docs?.hasDocuments;
                     const docCount = docs?.count ?? 0;
+                    const assetInfo = assetCounts[unit.id];
+                    const assetCount = assetInfo?.count ?? 0;
+                    const hasAtRisk = (assetInfo?.atRisk ?? 0) > 0;
+                    const hasExpiring = (assetInfo?.expiringSoon ?? 0) > 0;
                     return (
                       <button
                         key={unit.id}
@@ -141,6 +147,24 @@ export default function Units() {
                             </div>
                           </div>
                         </div>
+                        {/* Asset count signal */}
+                        {assetCount > 0 ? (
+                          <span className={cn(
+                            "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mr-2",
+                            hasAtRisk
+                              ? "bg-red-500/10 text-red-400"
+                              : hasExpiring
+                                ? "bg-amber-500/10 text-amber-400"
+                                : "bg-secondary text-muted-foreground"
+                          )}>
+                            <Server className="h-3 w-3" />
+                            {assetCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/30 mr-2 flex items-center gap-1">
+                            <Server className="h-3 w-3" />
+                          </span>
+                        )}
                         {/* Doc signal */}
                         {hasDoc ? (
                           <span className={cn(
@@ -151,7 +175,7 @@ export default function Units() {
                             {docCount}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground/50 mr-2 flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground/30 mr-2 flex items-center gap-1">
                             <Paperclip className="h-3 w-3" />
                           </span>
                         )}

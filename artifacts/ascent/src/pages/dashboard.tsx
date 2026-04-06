@@ -242,6 +242,49 @@ export default function Dashboard() {
         <BottleneckPanel bottleneck={intel?.primaryBottleneck ?? null} isLoading={isLoading} />
       </div>
 
+      {/* ─── Row 3b: Asset Health Pulse ─── */}
+      <Card className="bg-card border-border/50">
+        <CardHeader className="pb-2 pt-4 px-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-semibold">Asset Health Pulse</CardTitle>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">
+              Live · persisted FK linkage
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="px-5 pb-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex flex-col">
+              <span className="text-2xl font-black tracking-tight">
+                {summary?.totalAssets ?? <Skeleton className="h-7 w-10 inline-block" />}
+              </span>
+              <span className="text-xs text-muted-foreground mt-0.5">Total assets</span>
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-2xl font-black tracking-tight ${(summary?.atRiskAssets ?? 0) > 0 ? "text-red-400" : "text-muted-foreground"}`}>
+                {summary?.atRiskAssets ?? 0}
+              </span>
+              <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3 text-red-400" />
+                At risk (expired)
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-2xl font-black tracking-tight ${(summary?.expiringSoonAssets ?? 0) > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+                {summary?.expiringSoonAssets ?? 0}
+              </span>
+              <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                <Clock className="h-3 w-3 text-amber-400" />
+                Expiring soon (90d)
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* ─── Row 4: Stage Distribution + Spotlight ─── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="col-span-1 md:col-span-5">
