@@ -60,6 +60,28 @@ function getStoplightColor(sl: string | undefined) {
   return "#22c55e";
 }
 
+function severityLabel(value: number, type: "critical" | "overdue" | "throughput" | "age"): string {
+  if (type === "throughput") {
+    if (value === 0) return "CRITICAL — no progress";
+    if (value < 25) return "SEVERE";
+    if (value < 50) return "HIGH";
+    if (value < 75) return "MODERATE";
+    return "LOW";
+  }
+  if (type === "age") {
+    if (value > 200) return "SEVERE — systemic slowdown";
+    if (value > 90)  return "HIGH — escalation required";
+    if (value > 30)  return "MODERATE — review needed";
+    return "LOW";
+  }
+  // critical / overdue counts
+  if (value > 200) return "SEVERE — immediate action required";
+  if (value > 100) return "HIGH — escalation required";
+  if (value > 50)  return "HIGH — requires immediate attention";
+  if (value > 20)  return "MODERATE — review needed";
+  return "LOW";
+}
+
 function urgencyBg(urgency: string) {
   if (urgency === "critical") return "border-red-500/40 bg-red-500/5";
   if (urgency === "high") return "border-amber-500/40 bg-amber-500/5";
@@ -200,6 +222,38 @@ export default function Dashboard() {
               <p className="text-[11px] text-muted-foreground mt-4 text-center leading-relaxed line-clamp-3">
                 {snap.insight}
               </p>
+            )}
+
+            {/* DRIVEN BY block */}
+            {snap && (
+              <div className="mt-4 w-full rounded-lg bg-secondary/50 border border-border/40 px-3 py-3 text-left">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">
+                  Driven By
+                </p>
+                <ul className="space-y-1.5">
+                  <li className="flex items-start gap-2 text-xs">
+                    <span className="text-status-red font-bold mt-0.5">•</span>
+                    <span className="text-foreground/80">
+                      <span className="font-semibold text-status-red">{snap.criticalItemsCount} critical items</span>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2 text-xs">
+                    <span className="text-status-yellow font-bold mt-0.5">•</span>
+                    <span className="text-foreground/80">
+                      <span className="font-semibold text-status-yellow">{snap.overdueItemsCount} overdue items</span>
+                    </span>
+                  </li>
+                  {intel?.primaryBottleneck && (
+                    <li className="flex items-start gap-2 text-xs">
+                      <span className="text-status-red font-bold mt-0.5">•</span>
+                      <span className="text-foreground/75 leading-snug">
+                        <span className="font-semibold text-foreground/90">{intel.primaryBottleneck.workflowTitle}</span> bottleneck
+                        <span className="text-muted-foreground"> ({intel.primaryBottleneck.maxAgeDays}d max age)</span>
+                      </span>
+                    </li>
+                  )}
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -470,35 +524,108 @@ function MetricRevealSection({
   summary: any;
   onClose: () => void;
 }) {
-  const config: Record<MetricKey, { title: string; why: string; color: string }> = {
-    flow: {
-      title: "Why Flow is constrained",
-      why: summary?.flowInsight ?? "Flow analysis unavailable.",
-      color: "border-blue-500/30 bg-blue-500/5",
-    },
-    risk: {
-      title: "Why Risk is elevated",
-      why: summary?.riskInsight ?? "Risk analysis unavailable.",
-      color: "border-red-500/30 bg-red-500/5",
-    },
-    execution: {
-      title: "Why Execution is low",
-      why: summary?.executionInsight ?? "Execution analysis unavailable.",
-      color: "border-green-500/30 bg-green-500/5",
-    },
-    improvement: {
-      title: "Why Improvement is trending this way",
-      why: summary?.improvementInsight ?? "Improvement analysis unavailable.",
-      color: "border-purple-500/30 bg-purple-500/5",
-    },
-  };
-
-  const cfg = config[metric];
   const bottleneck = intel?.primaryBottleneck;
   const spotlight = intel?.workflowSpotlight ?? [];
   const actions = intel?.actions ?? [];
   const snap = intel?.executiveSnapshot;
   const trends = intel?.trends ?? [];
+
+  // ── Per-metric config ──
+  const config: Record<MetricKey, {
+    title: string;
+    why: string;
+    accentClass: string;
+    borderClass: string;
+    bgClass: string;
+    headerColor: string;
+  }> = {
+    flow: {
+      title: "FLOW — Why Movement is Constrained",
+      why: summary?.flowInsight ?? "Flow analysis unavailable.",
+      accentClass: "bg-blue-500",
+      borderClass: "border-blue-500/50",
+      bgClass: "bg-blue-500/5",
+      headerColor: "text-blue-400",
+    },
+    risk: {
+      title: "RISK — Why Exposure is Elevated",
+      why: summary?.riskInsight ?? "Risk analysis unavailable.",
+      accentClass: "bg-red-500",
+      borderClass: "border-red-500/50",
+      bgClass: "bg-red-500/5",
+      headerColor: "text-red-400",
+    },
+    execution: {
+      title: "EXECUTION — Why Progress is Low",
+      why: summary?.executionInsight ?? "Execution analysis unavailable.",
+      accentClass: "bg-green-500",
+      borderClass: "border-green-500/50",
+      bgClass: "bg-green-500/5",
+      headerColor: "text-green-400",
+    },
+    improvement: {
+      title: "IMPROVEMENT — Trend Analysis",
+      why: summary?.improvementInsight ?? "Improvement analysis unavailable.",
+      accentClass: "bg-purple-500",
+      borderClass: "border-purple-500/50",
+      bgClass: "bg-purple-500/5",
+      headerColor: "text-purple-400",
+    },
+  };
+
+  const cfg = config[metric];
+
+  // ── PRIMARY CAUSE (derived from real data) ──
+  let primaryCause = cfg.why;
+  if (metric === "flow" && bottleneck) {
+    primaryCause = `${bottleneck.itemCount} items stuck in "${bottleneck.stageName}" stage (${bottleneck.workflowTitle}) — ${bottleneck.maxAgeDays}d max age`;
+  } else if (metric === "risk" && snap) {
+    const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
+    primaryCause = `${snap.criticalItemsCount} critical-priority items open with ${snap.overdueItemsCount} past due date — active exposure across ${redCount} at-risk workflow${redCount !== 1 ? "s" : ""}`;
+  } else if (metric === "execution" && snap) {
+    if (snap.longestAgingItem) {
+      primaryCause = `${snap.throughputPercent}% workflow completion rate — longest item stuck ${snap.longestAgingItem.daysInStage}d in "${snap.longestAgingItem.workflowTitle}"`;
+    } else {
+      primaryCause = `${snap.throughputPercent}% workflow completion rate — ${snap.overdueItemsCount} overdue items contributing to execution drag`;
+    }
+  } else if (metric === "improvement") {
+    const completionTrend = trends.find((t) => t.label === "Completion Activity");
+    if (completionTrend && snap) {
+      primaryCause = `Completion trend ${completionTrend.direction} — ${completionTrend.value} with ${snap.throughputPercent}% overall throughput`;
+    }
+  }
+
+  // ── RECOMMENDED ACTION (derived from real data) ──
+  let recommendedAction = "";
+  if (metric === "flow") {
+    if (bottleneck) {
+      recommendedAction = `Escalate the top ${Math.min(3, bottleneck.itemCount)} aging items in "${bottleneck.stageName}" immediately to restore flow`;
+    } else {
+      recommendedAction = "Review stage assignments and reassign items stuck beyond 7 days";
+    }
+  } else if (metric === "risk") {
+    const missingCount = actions.filter((a) => a.missingDocs).length;
+    if (missingCount > 0) {
+      recommendedAction = `Address ${snap?.criticalItemsCount ?? 0} critical items immediately — prioritize the ${missingCount} missing documentation case${missingCount !== 1 ? "s" : ""} first`;
+    } else {
+      recommendedAction = `Address ${snap?.criticalItemsCount ?? 0} critical items immediately, starting with the highest-priority overdue cases`;
+    }
+  } else if (metric === "execution") {
+    if (snap?.longestAgingItem) {
+      recommendedAction = `Assign ownership to all open items and resolve "${snap.longestAgingItem.title}" first (stuck ${snap.longestAgingItem.daysInStage}d in stage)`;
+    } else {
+      recommendedAction = "Assign ownership to all unassigned items and review completion blockers across active workflows";
+    }
+  } else if (metric === "improvement") {
+    const completionTrend = trends.find((t) => t.label === "Completion Activity");
+    if (completionTrend?.direction === "down") {
+      recommendedAction = "Prioritize clearing overdue backlog to reverse declining trend — focus on completing in-flight items before adding new ones";
+    } else if (completionTrend?.direction === "stable") {
+      recommendedAction = "Push 2–3 near-complete workflows to completion this week to build momentum and improve trend";
+    } else {
+      recommendedAction = "Maintain current momentum — close out oldest open items and reduce stage congestion to sustain improvement";
+    }
+  }
 
   return (
     <motion.div
@@ -506,42 +633,78 @@ function MetricRevealSection({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.22 }}
-      className={cn("rounded-xl border p-5 space-y-4", cfg.color)}
+      className={cn(
+        "rounded-xl border-2 overflow-hidden shadow-md",
+        cfg.borderClass,
+        cfg.bgClass,
+      )}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">
-            Diagnostic · {metric.toUpperCase()}
-          </p>
-          <h3 className="text-sm font-semibold text-foreground">{cfg.title}</h3>
+      {/* Metric color accent bar */}
+      <div className={cn("h-1 w-full", cfg.accentClass)} />
+
+      <div className="p-5 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className={cn("text-sm font-bold tracking-wide", cfg.headerColor)}>
+            {cfg.title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 border border-border/40 rounded-md px-2 py-1 shrink-0 ml-4"
+          >
+            <X className="h-3 w-3" /> Close
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 border border-border/40 rounded-md px-2 py-1"
-        >
-          <X className="h-3 w-3" /> Close
-        </button>
-      </div>
 
-      {/* WHY summary */}
-      <div className="rounded-lg bg-background/60 border border-border/30 px-4 py-3">
-        <p className="text-sm text-foreground/80 leading-relaxed">{cfg.why}</p>
-      </div>
+        {/* PRIMARY CAUSE */}
+        <div className={cn(
+          "rounded-lg border px-4 py-3 flex items-start gap-3",
+          cfg.borderClass.replace("/50", "/30"),
+          "bg-background/70",
+        )}>
+          <div className="shrink-0 mt-0.5">
+            <div className={cn("w-2 h-2 rounded-full mt-1", cfg.accentClass)} />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
+              Primary Cause
+            </p>
+            <p className="text-sm font-semibold text-foreground leading-snug">{primaryCause}</p>
+          </div>
+        </div>
 
-      {/* Per-metric detail rows */}
-      {metric === "flow" && (
-        <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} />
-      )}
-      {metric === "risk" && (
-        <RiskReveal actions={actions} spotlight={spotlight} summary={summary} />
-      )}
-      {metric === "execution" && (
-        <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} />
-      )}
-      {metric === "improvement" && (
-        <ImprovementReveal snap={snap} trends={trends} summary={summary} />
-      )}
+        {/* Insight context */}
+        <div className="rounded-lg bg-background/50 border border-border/25 px-4 py-2.5">
+          <p className="text-xs text-muted-foreground leading-relaxed">{cfg.why}</p>
+        </div>
+
+        {/* Per-metric detail rows */}
+        {metric === "flow" && (
+          <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} />
+        )}
+        {metric === "risk" && (
+          <RiskReveal actions={actions} spotlight={spotlight} summary={summary} />
+        )}
+        {metric === "execution" && (
+          <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} />
+        )}
+        {metric === "improvement" && (
+          <ImprovementReveal snap={snap} trends={trends} summary={summary} />
+        )}
+
+        {/* RECOMMENDED ACTION */}
+        {recommendedAction && (
+          <div className="rounded-lg bg-background/80 border border-border/50 px-4 py-3 flex items-start gap-3">
+            <Zap className={cn("h-4 w-4 shrink-0 mt-0.5", cfg.headerColor)} />
+            <div>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">
+                Recommended Action
+              </p>
+              <p className="text-sm text-foreground/90 leading-snug">{recommendedAction}</p>
+            </div>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -568,9 +731,16 @@ function FlowReveal({
           <>
             <p className="font-semibold text-sm">{bottleneck.stageName}</p>
             <p className="text-xs text-muted-foreground mt-1">{bottleneck.workflowTitle}</p>
-            <div className="flex gap-3 mt-2 text-xs">
-              <span className="text-status-red font-medium">{bottleneck.itemCount} items stuck</span>
-              <span className="text-muted-foreground">{bottleneck.maxAgeDays}d max age</span>
+            <div className="mt-2 space-y-1">
+              <div className="text-xs">
+                <span className="text-status-red font-semibold">{bottleneck.itemCount} items stuck</span>
+              </div>
+              <div className="text-xs">
+                <span className="font-medium text-foreground/80">{bottleneck.maxAgeDays}d max age</span>
+                <span className="ml-1.5 text-[10px] text-status-red/80 font-semibold uppercase">
+                  ({severityLabel(bottleneck.maxAgeDays, "age")})
+                </span>
+              </div>
             </div>
           </>
         ) : (
@@ -634,6 +804,9 @@ function RiskReveal({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <RevealCard label="Critical Items" icon={ShieldAlert}>
         <p className="text-2xl font-bold text-status-red tabular-nums">{summary?.criticalItemsCount ?? 0}</p>
+        <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+          {severityLabel(summary?.criticalItemsCount ?? 0, "critical")}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">open critical-priority items</p>
         {criticalActions.length > 0 && (
           <p className="text-xs text-status-red/80 mt-2 leading-snug">
@@ -644,6 +817,9 @@ function RiskReveal({
 
       <RevealCard label="Overdue Items" icon={Clock}>
         <p className="text-2xl font-bold text-status-yellow tabular-nums">{summary?.overdueItemsCount ?? 0}</p>
+        <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+          {severityLabel(summary?.overdueItemsCount ?? 0, "overdue")} backlog
+        </p>
         <p className="text-xs text-muted-foreground mt-1">items past their due date</p>
         {missingDocActions.length > 0 && (
           <p className="text-xs text-status-yellow/80 mt-2 leading-snug">
@@ -691,6 +867,9 @@ function ExecutionReveal({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <RevealCard label="Completion Rate" icon={Target}>
         <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+          {severityLabel(snap?.throughputPercent ?? 0, "throughput")}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">{snap?.throughputLabel ?? "workflows completed"}</p>
         {completionTrend && (
           <p className="text-xs text-muted-foreground mt-2 leading-snug">{completionTrend.explanation}</p>
@@ -768,6 +947,9 @@ function ImprovementReveal({
 
       <RevealCard label="Completion Momentum" icon={Zap}>
         <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
+        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+          {severityLabel(snap?.throughputPercent ?? 0, "throughput")}
+        </p>
         <p className="text-xs text-muted-foreground mt-1">{snap?.improvementSignal ?? "No signal available"}</p>
       </RevealCard>
 

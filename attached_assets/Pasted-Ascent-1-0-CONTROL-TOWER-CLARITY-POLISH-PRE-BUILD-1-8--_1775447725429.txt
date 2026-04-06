@@ -1,0 +1,163 @@
+Ascent 1.0 — CONTROL TOWER CLARITY POLISH (PRE-BUILD 1.8)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are refining the existing Control Tower.
+
+This is a CLARITY + INTERPRETATION upgrade.
+
+DO NOT:
+
+* change scoring logic
+* change calculations
+* rebuild components
+
+This is VISUAL + TEXT OUTPUT ONLY.
+
+==================================================
+CORE GOAL
+=========
+
+Make the system explain itself instantly.
+
+User must understand:
+
+* WHAT is wrong
+* WHY it is happening
+* WHAT to do next
+
+WITHOUT external explanation.
+
+==================================================
+UPDATE 1 — PRIMARY CAUSE LINE
+=============================
+
+For every diagnostic section (Flow, Risk, Execution, Improvement):
+
+Add a top line labeled:
+
+"PRIMARY CAUSE"
+
+This must:
+
+* summarize the biggest driver
+* be one clear sentence
+* use real data
+
+Example:
+"Approval bottleneck with 84 items aging >14 days"
+
+Place this ABOVE all other diagnostic content.
+
+==================================================
+UPDATE 2 — NUMBER CONTEXT LABELS
+================================
+
+All major numbers must include context labels.
+
+Examples:
+
+* "647 critical items (HIGH — requires immediate attention)"
+* "206 overdue (SEVERE backlog)"
+* "0% completion (CRITICAL — no progress)"
+
+Rules:
+
+* use HIGH / MODERATE / LOW / SEVERE / CRITICAL
+* derive label from existing scoring thresholds
+* DO NOT invent new scoring logic
+
+==================================================
+UPDATE 3 — RECOMMENDED ACTION BLOCK
+===================================
+
+At the bottom of every diagnostic section add:
+
+"RECOMMENDED ACTION"
+
+This must:
+
+* be 1–2 lines
+* based on actual system signals
+* point to immediate next step
+
+Example:
+"Review approval delays and resolve top 3 aging items first"
+
+==================================================
+UPDATE 4 — DIAGNOSTIC VISUAL EMPHASIS
+=====================================
+
+Make diagnostic sections visually distinct from standard cards.
+
+Apply ONE OR MORE:
+
+* stronger border (color tied to metric)
+* subtle glow or highlight
+* bold section header
+
+Goal:
+User must instantly recognize:
+"This is the answer to what I clicked"
+
+==================================================
+UPDATE 5 — TOP-LEVEL WHY (CRITICAL)
+===================================
+
+Under the main Operational Health score, add:
+
+"DRIVEN BY"
+
+This must list:
+
+* critical item count
+* overdue items
+* primary bottleneck
+
+Example:
+
+"DRIVEN BY:
+
+* 329 critical items
+* 206 overdue items
+* Appliance Maintenance bottleneck (359d max age)"
+
+This must always reflect REAL data.
+
+==================================================
+SUCCESS STATE
+=============
+
+System is complete when:
+
+1. Every diagnostic shows PRIMARY CAUSE immediately
+2. All key numbers include context labels
+3. Every section ends with RECOMMENDED ACTION
+4. Diagnostic sections visually stand out
+5. Top score clearly explains WHY it is low
+
+User can understand system state in under 5 seconds.
+
+==================================================
+IMPORTANT LIMITS
+================
+
+DO NOT:
+
+* change backend logic
+* add new calculations
+* introduce AI
+
+This is INTERPRETATION ONLY.
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Control Tower Clarity Polish"
+
+==================================================
+END OF PROMPT
+=============
