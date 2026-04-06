@@ -1,0 +1,384 @@
+Ascent 1.0 — PHASE 1 ADD-ON BUILD
+MULTI-PROPERTY CONTROL TOWER + SUPERVISOR OUTREACH LAYER
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are extending Ascent 1.0.
+
+This is NOT a rebuild.
+This is NOT a redesign.
+This is a VISIBILITY + ACTION LAYER UPGRADE.
+
+The system already has:
+
+* authentication
+* role-based access
+* app shell
+* workflow engine
+* scoring + stoplight engine
+* alert engine
+* dashboard intelligence layer
+* document + evidence engine
+* evidence visibility layer
+* signal strength + language layer
+
+DO NOT break or replace any existing systems.
+DO NOT duplicate scoring logic.
+DO NOT create fake data.
+
+==================================================
+CORE GOALS
+==========
+
+1. Create a MULTI-PROPERTY CONTROL TOWER for regional users
+2. Enable INSTANT VISIBILITY of what matters (no searching)
+3. Add a SUPERVISOR OUTREACH LAYER using Outlook (mailto)
+
+CRITICAL RULES:
+
+* NO critical insight should require a click
+* CLICKS are for ACTION, not discovery
+
+==================================================
+NEW SERVICE LAYER
+=================
+
+Create a new service:
+
+portfolio_control_tower_service
+
+Responsibilities:
+
+* aggregate property-level data
+* reuse scoring engine outputs
+* reuse alert signals
+* reuse evidence signals
+* generate ranked property summaries
+* generate communication-ready summaries (email content)
+
+Keep logic OUT of UI components.
+
+==================================================
+PROPERTY-LEVEL AGGREGATION
+==========================
+
+For each property compute:
+
+* health_score (0–100)
+
+* stoplight (green/yellow/red)
+
+* flow_score
+
+* risk_score
+
+* improvement_score
+
+* execution_score
+
+* critical_items_count
+
+* top_bottleneck (stage/workflow)
+
+* bottleneck_aging
+
+* missing_docs_count (CRITICAL only)
+
+* document_count (optional)
+
+* trend_direction (if available)
+
+* supervisor_name
+
+* supervisor_email
+
+Return shape:
+
+{
+property_id,
+property_name,
+health_score,
+stoplight,
+flow_score,
+risk_score,
+improvement_score,
+execution_score,
+critical_items_count,
+top_bottleneck,
+bottleneck_aging,
+missing_docs_count,
+document_count,
+trend_direction,
+supervisor_name,
+supervisor_email,
+insight_summary,
+communication_summary
+}
+
+==================================================
+PRIORITIZATION ENGINE
+=====================
+
+Sort properties by urgency:
+
+1. RED first
+2. then YELLOW
+3. then GREEN
+
+Within group sort by:
+
+* highest risk
+* highest aging
+* highest critical_items_count
+
+DO NOT sort alphabetically.
+
+==================================================
+DASHBOARD INTEGRATION
+=====================
+
+Add new section:
+
+"PORTFOLIO CONTROL TOWER"
+
+Requirements:
+
+* show property cards
+* ranked by urgency
+* real data only
+
+==================================================
+PROPERTY CARD UI
+================
+
+Each card shows:
+
+HEADER:
+
+* property_name
+* stoplight
+* health_score
+* trend_direction
+
+CORE METRICS:
+
+* flow
+* risk
+* improvement
+* execution
+
+SIGNALS:
+
+* critical_items_count
+* top_bottleneck
+* bottleneck_aging
+
+EVIDENCE:
+
+* "⚠ Missing documentation (X items)" OR
+* "📎 X documents"
+
+INSIGHT (REQUIRED):
+
+* 1–2 line explanation of what is happening
+
+==================================================
+EXPANSION BEHAVIOR (CRITICAL)
+=============================
+
+Clicking a property card must NOT navigate.
+
+Instead:
+
+* expand inline OR
+* open side panel
+
+Expanded view must include:
+
+* top issue
+* affected workflows
+* affected units
+* document warnings
+* workflow-level health
+
+==================================================
+SUPERVISOR OUTREACH LAYER (NEW)
+===============================
+
+Inside expanded property view add:
+
+SUPERVISOR ACTION BLOCK
+
+Display:
+
+* supervisor_name
+* role label (Maintenance Supervisor)
+
+Actions:
+
+* Email Supervisor
+* Copy Summary
+
+==================================================
+EMAIL GENERATION (CRITICAL FEATURE)
+===================================
+
+Clicking "Email Supervisor" must:
+
+* open default email client (Outlook via mailto)
+* prefill subject and body
+
+Use mailto format:
+
+mailto:{supervisor_email}?subject={subject}&body={body}
+
+==================================================
+EMAIL CONTENT GENERATION
+========================
+
+Subject format:
+
+{Property Name} — {Top Bottleneck} / Risk Alert
+
+Body must include:
+
+* greeting (supervisor_name)
+* property_name
+* health_score + stoplight
+
+Signals:
+
+* top_bottleneck
+* critical_items_count
+* missing_docs_count
+
+Explanation:
+
+* insight_summary
+
+Call to action:
+
+"Please review and provide an update on:"
+
+1. bottleneck cause
+2. documentation status
+3. resolution timeline
+
+Signature:
+"— Sent from Ascent 1.0"
+
+IMPORTANT:
+
+* use ONLY real data
+* no fabricated insights
+
+==================================================
+COPY SUMMARY ACTION
+===================
+
+"Copy Summary" must:
+
+* copy same communication_summary text to clipboard
+* allow manual paste into email or notes
+
+==================================================
+DRILL-DOWN RULE
+===============
+
+Deep navigation (workflow/unit/documents) only allowed after expansion.
+
+==================================================
+ROLE-BASED VISIBILITY
+=====================
+
+* Property Manager → only their property
+* Regional Manager → assigned properties
+* Admin → all properties
+
+==================================================
+EMPTY STATES
+============
+
+No properties:
+"No properties available"
+
+Low data:
+"Limited data — insights will improve with activity"
+
+No fake green states.
+
+==================================================
+EXPLAINABILITY
+==============
+
+Each property MUST include WHY text.
+
+Examples:
+
+* "Risk elevated due to aging approvals"
+* "Flow reduced due to stage congestion"
+
+==================================================
+LIGHT UI STRUCTURE (KEEP SIMPLE)
+================================
+
+Use these exact UI section names so the build stays clean without overcomplicating the prompt:
+
+* PortfolioControlTowerSection
+* PropertyCard
+* PropertyCardHeader
+* PropertyMetricsRow
+* PropertySignalsBlock
+* PropertyInsightText
+* PropertyExpandedView
+* WorkflowBreakdownSection
+* UnitImpactSection
+* DocumentWarningSection
+* SupervisorActionBlock
+
+IMPORTANT:
+
+* These are naming and structure guides only
+* Do NOT add new business logic because of these names
+* Do NOT create extra screens
+* Do NOT overengineer the UI
+* Keep all existing behavior from this prompt exactly the same
+
+==================================================
+SUCCESS STATE
+=============
+
+System is complete when:
+
+1. Regional user opens dashboard
+2. Sees ranked properties instantly
+3. Identifies worst property in <3 seconds
+4. Understands WHY without clicking
+5. Expands property inline
+6. Clicks Email → Outlook opens with full context
+7. Can copy summary instantly
+
+==================================================
+LIMITS
+======
+
+DO NOT build:
+
+* internal messaging
+* inbox system
+* push notifications
+* new scoring logic
+
+This is VISIBILITY + OUTREACH ONLY.
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Portfolio Control Tower + Supervisor Outreach Layer"
+
+==================================================
+END OF PROMPT
+=============

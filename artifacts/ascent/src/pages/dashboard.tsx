@@ -8,6 +8,7 @@ import {
   type TrendSignal,
 } from "@workspace/api-client-react";
 import { useDocCounts } from "@/hooks/use-doc-counts";
+import { PortfolioControlTowerSection } from "@/components/portfolio-control-tower";
 import { AttachmentBadge } from "@/components/attachment-badge";
 import { EVIDENCE } from "@/lib/evidence-language";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -300,6 +301,9 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {/* ─── Row 5: Portfolio Control Tower ─── */}
+      <PortfolioControlTowerSection />
     </div>
   );
 }

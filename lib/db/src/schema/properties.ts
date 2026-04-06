@@ -6,6 +6,8 @@ export const propertiesTable = pgTable("properties", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   address: text("address"),
+  supervisorName: text("supervisor_name"),
+  supervisorEmail: text("supervisor_email"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

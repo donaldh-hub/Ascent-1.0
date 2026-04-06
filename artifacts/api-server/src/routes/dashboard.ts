@@ -5,6 +5,7 @@ import { eq, isNotNull } from "drizzle-orm";
 import { loadAllWorkflowInputs, loadAlerts } from "../engine/loader";
 import { calcOperationalHealth, calcStoplight } from "../engine/scoring";
 import { buildDashboardIntelligence } from "../engine/intelligence";
+import { buildPortfolioControlTower } from "../services/portfolio_control_tower";
 
 const router: IRouter = Router();
 
@@ -304,6 +305,16 @@ router.get("/dashboard/intelligence", async (req, res) => {
     res.json(intelligence);
   } catch (err) {
     req.log.error({ err }, "Failed to build dashboard intelligence");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/dashboard/portfolio", async (req, res) => {
+  try {
+    const portfolio = await buildPortfolioControlTower();
+    res.json(portfolio);
+  } catch (err) {
+    req.log.error({ err }, "Failed to build portfolio control tower");
     res.status(500).json({ error: "Internal server error" });
   }
 });
