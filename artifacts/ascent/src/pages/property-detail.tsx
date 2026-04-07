@@ -54,6 +54,41 @@ function usePropertyTurnStats(propertyId: number) {
   });
 }
 
+// ── Turn-derived score computation (property-scoped) ──────────────────────────
+
+interface TurnDerivedScores {
+  flowScore: number;
+  riskScore: number;
+  executionScore: number;
+  improvementScore: number;
+}
+
+function computeTurnScores(s: PropertyTurnStats): TurnDerivedScores | null {
+  if (!s.hasData || s.totalTurns === 0) return null;
+  const { totalTurns, blockedTurns, reworkTurns, notRentReadyCount, avgCompletionPct, completedTurns } = s;
+  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+
+  const blockedRate       = blockedTurns / totalTurns;
+  const reworkRate        = reworkTurns  / totalTurns;
+  const notRentReadyRate  = notRentReadyCount / totalTurns;
+  const completedRate     = completedTurns / totalTurns;
+  const rentReadyRate     = 1 - notRentReadyRate;
+
+  // Flow: how freely turns are progressing through stages
+  const flowScore = clamp(avgCompletionPct - blockedRate * 40 - reworkRate * 15);
+
+  // Risk: pressure from blocked turns, unready units, and rework
+  const riskScore = clamp(100 - (blockedRate * 50 + notRentReadyRate * 30 + reworkRate * 20));
+
+  // Execution: completion throughput (blend avg progress + % fully done)
+  const executionScore = clamp(avgCompletionPct * 0.5 + completedRate * 100 * 0.5);
+
+  // Improvement: recovery momentum (blend completion rate + rent-ready conversion)
+  const improvementScore = clamp(completedRate * 60 + rentReadyRate * 40);
+
+  return { flowScore, riskScore, executionScore, improvementScore };
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type MetricKey = "flow" | "risk" | "execution" | "improvement";
@@ -210,7 +245,42 @@ function RevealCard({ label, icon: Icon, children }: {
 
 // ── Per-metric reveal content (scoped to this property) ───────────────────────
 
-function FlowReveal({ card }: { card: PropertyPortfolioCard }) {
+function FlowReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+  if (turnStats?.hasData) {
+    const blockedRate = turnStats.totalTurns > 0 ? Math.round((turnStats.blockedTurns / turnStats.totalTurns) * 100) : 0;
+    const reworkRate  = turnStats.totalTurns > 0 ? Math.round((turnStats.reworkTurns  / turnStats.totalTurns) * 100) : 0;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <RevealCard label="Stage Bottleneck" icon={Activity}>
+          <p className="font-semibold text-sm">{turnStats.primaryBottleneckStage ?? "None"}</p>
+          {turnStats.bottleneckExplanation && (
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">{turnStats.bottleneckExplanation}</p>
+          )}
+        </RevealCard>
+
+        <RevealCard label="Avg Completion" icon={Package}>
+          <p className="text-2xl font-bold tabular-nums">{turnStats.avgCompletionPct}%</p>
+          <div className="mt-2 h-2 w-full rounded-full bg-border/40 overflow-hidden">
+            <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${turnStats.avgCompletionPct}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1.5">avg turn completion across {turnStats.totalTurns} turns</p>
+        </RevealCard>
+
+        <RevealCard label="Blocked Rate" icon={Layers}>
+          <p className={cn("text-2xl font-bold tabular-nums", blockedRate > 15 ? "text-status-red" : "text-foreground")}>
+            {blockedRate}%
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide mt-0.5 text-muted-foreground">
+            {turnStats.blockedTurns} blocked · {turnStats.reworkTurns} in rework
+          </p>
+          {reworkRate > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">{reworkRate}% rework rate adding back-pressure</p>
+          )}
+        </RevealCard>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <RevealCard label="Top Bottleneck" icon={Activity}>
@@ -250,8 +320,48 @@ function FlowReveal({ card }: { card: PropertyPortfolioCard }) {
   );
 }
 
-function RiskReveal({ card }: { card: PropertyPortfolioCard }) {
+function RiskReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
   const doc = docStatus(card);
+
+  if (turnStats?.hasData) {
+    const notRentReadyRate = turnStats.totalTurns > 0 ? Math.round((turnStats.notRentReadyCount / turnStats.totalTurns) * 100) : 0;
+    const reworkRate       = turnStats.totalTurns > 0 ? Math.round((turnStats.reworkTurns  / turnStats.totalTurns) * 100) : 0;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <RevealCard label="Blocked Turns" icon={ShieldAlert}>
+          <p className={cn("text-2xl font-bold tabular-nums", turnStats.blockedTurns > 0 ? "text-status-red" : "text-foreground")}>
+            {turnStats.blockedTurns}
+          </p>
+          <p className="text-[10px] font-bold uppercase mt-0.5 tracking-wide text-muted-foreground">
+            {severityLabel(turnStats.blockedTurns, "count")} — turn blockers
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">turns stalled &gt;7 days in current stage</p>
+        </RevealCard>
+
+        <RevealCard label="Rent-Ready Gap" icon={Clock}>
+          <p className={cn("text-2xl font-bold tabular-nums", notRentReadyRate > 50 ? "text-status-yellow" : "text-foreground")}>
+            {turnStats.notRentReadyCount}
+          </p>
+          <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+            {notRentReadyRate}% not rent-ready
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {turnStats.notRentReadyCount} of {turnStats.totalTurns} units not ready for occupancy
+          </p>
+        </RevealCard>
+
+        <RevealCard label="Rework Load" icon={FileWarning}>
+          <p className={cn("text-2xl font-bold tabular-nums", reworkRate > 10 ? "text-status-yellow" : "text-foreground")}>
+            {turnStats.reworkTurns}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-wide mt-0.5 text-muted-foreground">
+            {reworkRate}% rework rate
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">turns recycled through a previous stage</p>
+        </RevealCard>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -293,7 +403,39 @@ function RiskReveal({ card }: { card: PropertyPortfolioCard }) {
   );
 }
 
-function ExecutionReveal({ card }: { card: PropertyPortfolioCard }) {
+function ExecutionReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+  if (turnStats?.hasData) {
+    const completedRate   = turnStats.totalTurns > 0 ? Math.round((turnStats.completedTurns / turnStats.totalTurns) * 100) : 0;
+    const inProgressCount = Math.max(0, turnStats.activeTurns - turnStats.blockedTurns);
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <RevealCard label="Avg Completion" icon={Target}>
+          <p className="text-2xl font-bold tabular-nums">{turnStats.avgCompletionPct}%</p>
+          <div className="mt-2 h-2 w-full rounded-full bg-border/40 overflow-hidden">
+            <div className="h-full rounded-full bg-violet-500 transition-all" style={{ width: `${turnStats.avgCompletionPct}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1.5">weighted avg across all {turnStats.totalTurns} turns</p>
+        </RevealCard>
+
+        <RevealCard label="Turns Completed" icon={AlertTriangle}>
+          <p className="text-2xl font-bold tabular-nums">{turnStats.completedTurns}</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+            {completedRate}% completion rate
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">of {turnStats.totalTurns} turns fully completed</p>
+        </RevealCard>
+
+        <RevealCard label="Active vs Blocked" icon={Workflow}>
+          <p className="text-2xl font-bold tabular-nums">{inProgressCount}</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+            in progress · {turnStats.blockedTurns} blocked
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 leading-snug">turns actively progressing vs stalled in stage</p>
+        </RevealCard>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <RevealCard label="Execution Score" icon={Target}>
@@ -315,9 +457,7 @@ function ExecutionReveal({ card }: { card: PropertyPortfolioCard }) {
       <RevealCard label="Bottleneck Stage" icon={Workflow}>
         <p className="font-semibold text-sm">{card.topBottleneck}</p>
         {card.bottleneckAging > 0 && (
-          <>
-            <p className="text-xs text-muted-foreground mt-1">longest aging: <span className="text-status-yellow font-medium">{card.bottleneckAging}d</span></p>
-          </>
+          <p className="text-xs text-muted-foreground mt-1">longest aging: <span className="text-status-yellow font-medium">{card.bottleneckAging}d</span></p>
         )}
         <p className="text-xs text-muted-foreground mt-1 leading-snug">primary stage slowing execution throughput</p>
       </RevealCard>
@@ -325,7 +465,50 @@ function ExecutionReveal({ card }: { card: PropertyPortfolioCard }) {
   );
 }
 
-function ImprovementReveal({ card }: { card: PropertyPortfolioCard }) {
+function ImprovementReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+  if (turnStats?.hasData) {
+    const completedRate  = turnStats.totalTurns > 0 ? Math.round((turnStats.completedTurns / turnStats.totalTurns) * 100) : 0;
+    const rentReadyCount = turnStats.totalTurns - turnStats.notRentReadyCount;
+    const rentReadyRate  = turnStats.totalTurns > 0 ? Math.round((rentReadyCount / turnStats.totalTurns) * 100) : 0;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <RevealCard label="Completed Turns" icon={TrendingUp}>
+          <p className="text-2xl font-bold tabular-nums">{turnStats.completedTurns}</p>
+          <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+            {completedRate}% done
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">fully completed make-ready turns at this property</p>
+        </RevealCard>
+
+        <RevealCard label="Rent-Ready Rate" icon={Activity}>
+          <p className={cn("text-2xl font-bold tabular-nums", rentReadyRate < 50 ? "text-status-yellow" : "text-foreground")}>
+            {rentReadyRate}%
+          </p>
+          <p className="text-[10px] font-bold uppercase mt-0.5 tracking-wide text-muted-foreground">
+            {rentReadyCount} of {turnStats.totalTurns} units
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {rentReadyRate < 50
+              ? "Recovery gap — majority of units not yet rent-ready"
+              : "Improving — most units are rent-ready"}
+          </p>
+        </RevealCard>
+
+        <RevealCard label="Recovery Target" icon={Clock}>
+          <p className="text-2xl font-bold tabular-nums text-status-yellow">{turnStats.notRentReadyCount}</p>
+          <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+            units still to recover
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {turnStats.notRentReadyCount > 0
+              ? `Clear ${turnStats.blockedTurns} blocked turns first to unlock recovery`
+              : "All units rent-ready — recovery complete"}
+          </p>
+        </RevealCard>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <RevealCard label="Trend Direction" icon={TrendingUp}>
@@ -380,10 +563,12 @@ function ImprovementReveal({ card }: { card: PropertyPortfolioCard }) {
 function PropertyMetricRevealSection({
   metric,
   card,
+  turnStats,
   onClose,
 }: {
   metric: MetricKey;
   card: PropertyPortfolioCard;
+  turnStats?: PropertyTurnStats | null;
   onClose: () => void;
 }) {
   const doc = docStatus(card);
@@ -427,47 +612,71 @@ function PropertyMetricRevealSection({
 
   const cfg = config[metric];
 
-  // ── PRIMARY CAUSE (derived from property data) ──
+  // ── PRIMARY CAUSE & RECOMMENDED ACTION ─────────────────────────────────────
+  // When turn data is available for this property, use turn-scoped text.
+  // Otherwise fall back to asset/warranty-based text.
   let primaryCause = "";
   let recommendedAction = "";
+  const ts = turnStats?.hasData ? turnStats : null;
 
   if (metric === "flow") {
-    if (card.bottleneckAging > 0) {
+    if (ts) {
+      const blockedRate = ts.totalTurns > 0 ? Math.round(ts.blockedTurns / ts.totalTurns * 100) : 0;
+      primaryCause = `${ts.blockedTurns} turns blocked in "${ts.primaryBottleneckStage ?? "unknown stage"}" — ${blockedRate}% block rate with ${ts.avgCompletionPct}% avg completion across ${ts.totalTurns} turns at ${card.propertyName}`;
+      recommendedAction = `Clear the "${ts.primaryBottleneckStage ?? "primary"}" bottleneck — resolve the ${ts.blockedTurns} blocked turns and unblock ${ts.reworkTurns} in rework to restore flow`;
+    } else if (card.bottleneckAging > 0) {
       primaryCause = `${card.atRiskAssets} expired-warranty assets creating "${card.topBottleneck}" bottleneck — ${card.bottleneckAging}d max age accumulating`;
+      recommendedAction = `Escalate the "${card.topBottleneck}" stage at ${card.propertyName} — address the ${Math.min(card.atRiskAssets, 5)} highest-priority expired-warranty assets first to restore flow`;
     } else {
       primaryCause = `"${card.topBottleneck}" is the primary flow constraint — ${card.atRiskAssets} expired assets contributing to slowdown`;
+      recommendedAction = `Escalate the "${card.topBottleneck}" stage at ${card.propertyName} — address the ${Math.min(card.atRiskAssets, 5)} highest-priority expired-warranty assets first to restore flow`;
     }
-    recommendedAction = `Escalate the "${card.topBottleneck}" stage at ${card.propertyName} — address the ${Math.min(card.atRiskAssets, 5)} highest-priority expired-warranty assets first to restore flow`;
   } else if (metric === "risk") {
-    if (card.missingDocsCount > 0) {
+    if (ts) {
+      const notRentReadyRate = ts.totalTurns > 0 ? Math.round(ts.notRentReadyCount / ts.totalTurns * 100) : 0;
+      primaryCause = `${ts.notRentReadyCount} of ${ts.totalTurns} turns not rent-ready at ${card.propertyName} (${notRentReadyRate}%) — ${ts.blockedTurns} blocked + ${ts.reworkTurns} in rework represent active operational liability`;
+      recommendedAction = `Prioritize the ${ts.blockedTurns} blocked turns — clear "${ts.primaryBottleneckStage ?? "primary stage"}" blockers to shrink the rent-ready gap`;
+    } else if (card.missingDocsCount > 0) {
       primaryCause = `Missing documentation on ${card.missingDocsCount} critical asset${card.missingDocsCount !== 1 ? "s" : ""} — unable to verify warranty or tenant liability`;
-    } else {
-      primaryCause = `${card.atRiskAssets} assets with expired warranty — ${card.criticalItemsCount} critical items open at ${card.propertyName}`;
-    }
-    if (card.missingDocsCount > 0) {
       recommendedAction = `Address documentation gaps first — upload warranty and service records for ${card.missingDocsCount} critical asset${card.missingDocsCount !== 1 ? "s" : ""} to restore liability coverage`;
     } else {
+      primaryCause = `${card.atRiskAssets} assets with expired warranty — ${card.criticalItemsCount} critical items open at ${card.propertyName}`;
       recommendedAction = `Review ${card.atRiskAssets} expired-warranty assets and initiate renewal for the highest-risk items — prioritize ${card.criticalItemsCount} critical items`;
     }
   } else if (metric === "execution") {
-    primaryCause = `${card.executionScore}/100 execution score at ${card.propertyName} — ${card.criticalItemsCount} critical items and "${card.topBottleneck}" stage creating completion drag`;
-    recommendedAction = `Assign ownership to all open items — resolve "${card.topBottleneck}" stage congestion and clear ${card.criticalItemsCount} critical backlog items`;
-  } else if (metric === "improvement") {
-    const trendText = card.trendDirection === "down" ? "declining" : card.trendDirection === "up" ? "improving" : "stable";
-    primaryCause = `${card.propertyName} trend is ${trendText} (${card.improvementScore}/100 improvement score) — ${card.expiringSoonAssets} assets expiring in 90 days represent forward risk`;
-    if (card.trendDirection === "down") {
-      recommendedAction = "Prioritize clearing the critical backlog to reverse declining trend — complete near-ready items and address expiring assets before they become failures";
-    } else if (card.trendDirection === "stable") {
-      recommendedAction = "Push 2–3 near-complete items to resolution and renew expiring warranties to build positive momentum";
+    if (ts) {
+      const inProgress = Math.max(0, ts.activeTurns - ts.blockedTurns);
+      primaryCause = `${ts.avgCompletionPct}% avg completion across ${ts.totalTurns} turns at ${card.propertyName} — only ${ts.completedTurns} completed, ${ts.blockedTurns} blocked and ${ts.reworkTurns} in rework dragging throughput`;
+      recommendedAction = `Drive ${inProgress} in-progress turns to completion — clear ${ts.blockedTurns} blockers to unlock throughput and convert not-rent-ready units`;
     } else {
-      recommendedAction = "Maintain current momentum — lock in gains by addressing expiring warranties before they impact future scores";
+      primaryCause = `${card.executionScore}/100 execution score at ${card.propertyName} — ${card.criticalItemsCount} critical items and "${card.topBottleneck}" stage creating completion drag`;
+      recommendedAction = `Assign ownership to all open items — resolve "${card.topBottleneck}" stage congestion and clear ${card.criticalItemsCount} critical backlog items`;
+    }
+  } else if (metric === "improvement") {
+    if (ts) {
+      const completedRate = ts.totalTurns > 0 ? Math.round(ts.completedTurns / ts.totalTurns * 100) : 0;
+      const rentReadyCount = ts.totalTurns - ts.notRentReadyCount;
+      primaryCause = `${ts.completedTurns} of ${ts.totalTurns} turns completed (${completedRate}%) at ${card.propertyName} — ${ts.notRentReadyCount} units still not rent-ready represent the recovery gap to close`;
+      recommendedAction = `Convert the ${ts.notRentReadyCount} not-rent-ready units — target the ${ts.blockedTurns} blocked turns as first priority to build recovery momentum`;
+    } else {
+      const trendText = card.trendDirection === "down" ? "declining" : card.trendDirection === "up" ? "improving" : "stable";
+      primaryCause = `${card.propertyName} trend is ${trendText} (${card.improvementScore}/100 improvement score) — ${card.expiringSoonAssets} assets expiring in 90 days represent forward risk`;
+      if (card.trendDirection === "down") {
+        recommendedAction = "Prioritize clearing the critical backlog to reverse declining trend — complete near-ready items and address expiring assets before they become failures";
+      } else if (card.trendDirection === "stable") {
+        recommendedAction = "Push 2–3 near-complete items to resolution and renew expiring warranties to build positive momentum";
+      } else {
+        recommendedAction = "Maintain current momentum — lock in gains by addressing expiring warranties before they impact future scores";
+      }
     }
   }
 
-  // Insight text based on metric
-  const insightText = metric === "risk" && card.missingDocsCount > 0
-    ? `Documentation: MISSING (CRITICAL — cannot verify warranty or tenant liability). ${card.insightSummary}`
-    : card.insightSummary;
+  // Insight context
+  const insightText = ts
+    ? ts.dataQuality
+    : metric === "risk" && card.missingDocsCount > 0
+      ? `Documentation: MISSING (CRITICAL — cannot verify warranty or tenant liability). ${card.insightSummary}`
+      : card.insightSummary;
 
   return (
     <motion.div
@@ -514,11 +723,11 @@ function PropertyMetricRevealSection({
           <p className="text-xs text-muted-foreground leading-relaxed">{insightText}</p>
         </div>
 
-        {/* Per-metric reveal rows */}
-        {metric === "flow" && <FlowReveal card={card} />}
-        {metric === "risk" && <RiskReveal card={card} />}
-        {metric === "execution" && <ExecutionReveal card={card} />}
-        {metric === "improvement" && <ImprovementReveal card={card} />}
+        {/* Per-metric reveal rows — turn-context-aware when data is available */}
+        {metric === "flow" && <FlowReveal card={card} turnStats={turnStats} />}
+        {metric === "risk" && <RiskReveal card={card} turnStats={turnStats} />}
+        {metric === "execution" && <ExecutionReveal card={card} turnStats={turnStats} />}
+        {metric === "improvement" && <ImprovementReveal card={card} turnStats={turnStats} />}
 
         {/* RECOMMENDED ACTION */}
         {recommendedAction && (
@@ -675,6 +884,7 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
   const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
   const [drillState, setDrillState] = useState<DrillState>(null);
   const { data: turnStats } = usePropertyTurnStats(propertyId);
+  const turnScores = turnStats?.hasData ? computeTurnScores(turnStats) : null;
 
   const doc = docStatus(card);
 
@@ -690,12 +900,14 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
     setDrillState(null);
   }
 
+  // When turn data exists for this property, replace asset-based scores with
+  // turn-derived scores so all 4 dimension cards reflect property-scoped operations.
   const dimCards = [
-    { key: "flow"        as MetricKey, label: "Flow",        score: card.flowScore,        icon: Activity,  colorClass: "text-blue-400",    barColor: "bg-blue-500",    desc: "Stage movement & throughput" },
-    { key: "risk"        as MetricKey, label: "Risk",        score: card.riskScore,        icon: Shield,    colorClass: "text-red-400",     barColor: "bg-status-red",  desc: "Asset exposure & critical items" },
-    { key: "execution"   as MetricKey, label: "Execution",   score: card.executionScore,   icon: Zap,       colorClass: "text-violet-400",  barColor: "bg-violet-500",  desc: "Completion rate & responsiveness" },
-    { key: "improvement" as MetricKey, label: "Improvement", score: card.improvementScore, icon: BarChart2, colorClass: "text-emerald-400", barColor: "bg-emerald-500", desc: "Recovery trend & momentum" },
-  ] as const;
+    { key: "flow"        as MetricKey, label: "Flow",        score: turnScores?.flowScore        ?? card.flowScore,        icon: Activity,  colorClass: "text-blue-400",    barColor: "bg-blue-500",    desc: turnScores ? "Turn-stage throughput · property-scoped"  : "Stage movement & throughput" },
+    { key: "risk"        as MetricKey, label: "Risk",        score: turnScores?.riskScore        ?? card.riskScore,        icon: Shield,    colorClass: "text-red-400",     barColor: "bg-status-red",  desc: turnScores ? "Blocked + not-rent-ready pressure"        : "Asset exposure & critical items" },
+    { key: "execution"   as MetricKey, label: "Execution",   score: turnScores?.executionScore   ?? card.executionScore,   icon: Zap,       colorClass: "text-violet-400",  barColor: "bg-violet-500",  desc: turnScores ? "Completion & throughput rate"             : "Completion rate & responsiveness" },
+    { key: "improvement" as MetricKey, label: "Improvement", score: turnScores?.improvementScore ?? card.improvementScore, icon: BarChart2, colorClass: "text-emerald-400", barColor: "bg-emerald-500", desc: turnScores ? "Completed turns + rent-ready conversion"  : "Recovery trend & momentum" },
+  ];
 
   return (
     <>
@@ -837,6 +1049,7 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
             key={activeMetric}
             metric={activeMetric}
             card={card}
+            turnStats={turnStats}
             onClose={() => setActiveMetric(null)}
           />
         )}

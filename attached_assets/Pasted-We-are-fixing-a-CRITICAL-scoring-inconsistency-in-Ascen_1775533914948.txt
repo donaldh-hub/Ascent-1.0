@@ -1,0 +1,158 @@
+We are fixing a CRITICAL scoring inconsistency in Ascent 1.0.
+
+This is NOT a new feature.
+
+This is a CONTEXTUAL SCORING CORRECTION.
+
+==================================================
+CORE PROBLEM
+============
+
+Turn data is correctly scoped at:
+
+* property level
+* unit level
+* drill-down panels
+
+BUT:
+
+Flow, Risk, Execution, Improvement scores are NOT correctly scoped.
+
+They are still:
+
+* global
+* or partially using non-turn inputs
+
+This causes:
+
+* incorrect scores at property level
+* mismatch between turn data and system scores
+
+==================================================
+CORE OBJECTIVE
+==============
+
+Ensure ALL system scores are:
+
+CONTEXT-AWARE
+
+==================================================
+CRITICAL RULE
+=============
+
+ALL scoring must respect context:
+
+GLOBAL VIEW:
+→ all turns
+
+PROPERTY VIEW:
+→ turns WHERE property_id = current_property
+
+UNIT VIEW:
+→ turns WHERE unit_id = current_unit
+
+==================================================
+
+1. FLOW ENGINE FIX
+   ==================================================
+
+Recalculate flow using ONLY:
+
+turns WHERE property_id = current_property
+
+Inputs:
+
+* stage congestion
+* blocked turns
+* avg days in stage
+
+==================================================
+2. EXECUTION ENGINE FIX
+=======================
+
+Use:
+
+* completion %
+* rent_ready_rate
+* rework_rate
+
+Scoped to property
+
+==================================================
+3. RISK ENGINE FIX
+==================
+
+Use:
+
+* blocked_turns
+* overdue_turns
+* rework
+
+Scoped to property
+
+==================================================
+4. IMPROVEMENT ENGINE FIX
+=========================
+
+Use:
+
+* completion trend
+* blocked reduction
+
+Scoped to property
+
+==================================================
+5. DRIVER FIX (CRITICAL)
+========================
+
+Drivers must reflect PROPERTY data
+
+Example:
+
+“6 blocked turns at Stonewood Village”
+
+NOT:
+
+“30 blocked turns globally”
+
+==================================================
+6. DATA FLOW FIX
+================
+
+When loading property page:
+
+Pass:
+
+property_id → scoring engine
+
+==================================================
+7. UI VALIDATION
+================
+
+Scores must MATCH:
+
+* Turn Overview metrics
+* Drill-down data
+
+If mismatch occurs:
+
+Return error state
+
+==================================================
+SUCCESS STATE
+=============
+
+This fix is complete when:
+
+1. Property scores reflect ONLY that property
+2. Execution score aligns with rent-ready rate
+3. Risk aligns with blocked + aging turns
+4. Flow aligns with stage congestion
+5. No global leakage into property view
+
+==================================================
+INTERNAL LABEL
+
+“Build 1.10.9 — Contextual Turn Impact Engine”
+
+==================================================
