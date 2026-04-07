@@ -1,0 +1,303 @@
+We are applying a SYSTEM CORRECTION to Ascent 1.0.
+
+This is NOT a new feature build.
+
+This is a DATA AUTHORITY + WIRING CORRECTION.
+
+==================================================
+CORE PROBLEM
+============
+
+The system is currently split between:
+
+* workflow-based data (Build 2)
+* turn-based data (Build 1.10)
+
+This is causing:
+
+* incorrect dashboard metrics
+* incorrect labeling (“Flow” instead of “Turns”)
+* workflows showing unrelated data
+* turn matrix not fully driving system behavior
+
+This must be corrected.
+
+==================================================
+CORE OBJECTIVE
+==============
+
+Make the TURN MATRIX (1.10) the PRIMARY operational data source.
+
+All operational intelligence must come from:
+
+* turns
+* turn_stage_history
+* turn_metrics
+
+NOT from workflow_items.
+
+==================================================
+CRITICAL SYSTEM RULE
+====================
+
+For operational dashboards:
+
+TURNS = SOURCE OF TRUTH
+
+WORKFLOWS = SUPPORTING CONTEXT ONLY
+
+==================================================
+
+1. DASHBOARD REWIRING (MANDATORY)
+   ==================================================
+
+REPLACE ALL references:
+
+FROM:
+
+* workflow_items
+* workflow stages
+* workflow congestion
+
+TO:
+
+* turns
+* turn stages
+* turn metrics
+
+---
+
+FLOW CARD → RENAME + REWIRE
+
+CHANGE:
+
+Label:
+"FLOW" → "TURNS"
+
+DATA SOURCE:
+
+Use turn_metrics:
+
+* total_turns
+* active_turns
+* avg_completion_percentage
+* blocked_turn_count
+* stage_congestion (from turns)
+
+REMOVE:
+
+* workflow stage references
+* workflow item counts
+
+---
+
+RISK CARD
+
+Replace inputs with:
+
+* blocked_turn_count
+* rework_count
+* inspection_failures
+* overdue_turns (based on aging)
+
+---
+
+EXECUTION CARD
+
+Use:
+
+* completion_rate
+* rent_ready_rate
+* movement consistency (stage transitions)
+
+---
+
+IMPROVEMENT CARD
+
+Use:
+
+* change in avg completion %
+* reduction in blocked turns
+* trend from turn history
+
+==================================================
+2. CONTROL TOWER (TOP SECTION)
+==============================
+
+REPLACE ALL:
+
+* workflow-driven insights
+
+WITH:
+
+turn-driven insights
+
+Example:
+
+OLD:
+“Items stuck in Open stage (Appliance Maintenance)”
+
+NEW:
+“Turns stuck in Maintenance stage (10 units, avg 7 days)”
+
+==================================================
+3. BOTTLENECK PANEL REWRITE
+===========================
+
+REMOVE:
+
+* workflow names (HVAC, Appliance Maintenance)
+
+REPLACE WITH:
+
+turn stage analysis:
+
+* Maintenance
+* Flooring
+* Cleaning
+* etc.
+
+OUTPUT FORMAT:
+
+“Maintenance is the primary bottleneck:
+
+* 10 turns blocked
+* avg 7 days in stage”
+
+==================================================
+4. WORKFLOWS PAGE CORRECTION
+============================
+
+We DO NOT delete workflows.
+
+But we MUST:
+
+---
+
+OPTION A (RECOMMENDED):
+
+Rename page:
+
+"Workflows" → "Turn Pipelines"
+
+---
+
+REWIRE DATA SOURCE:
+
+Each row should represent:
+
+* turn stage grouping OR
+* operational category derived from turns
+
+---
+
+REMOVE:
+
+* workflow_items dependency
+
+REPLACE WITH:
+
+aggregated turn data:
+
+* turns in stage
+* blocked count
+* avg aging
+* completion %
+
+---
+
+IF keeping workflows:
+
+They must ONLY:
+
+* organize turns
+* NOT drive metrics
+
+==================================================
+5. SIGNAL → DATA ALIGNMENT (1.8 FIX)
+====================================
+
+All signals must now query:
+
+turns table
+
+Examples:
+
+“12 blocked turns” → query turns WHERE is_blocked = true
+
+“Flooring bottleneck” → query turns WHERE stage = 'Flooring'
+
+REMOVE ANY:
+
+workflow_item-based queries
+
+==================================================
+6. DATA MODEL ENFORCEMENT
+=========================
+
+Ensure:
+
+turn_metrics is primary aggregation table
+
+Fields required:
+
+* total_turns
+* active_turns
+* completed_turns
+* blocked_turns
+* avg_completion
+* rent_ready_count
+* bottleneck_stage
+
+All dashboard reads from THIS layer
+
+==================================================
+7. LABEL STANDARDIZATION
+========================
+
+Replace globally:
+
+“Flow” → “Turns”
+
+“Items” → “Turns”
+
+“Workflow congestion” → “Turn congestion”
+
+==================================================
+8. CLEANUP
+==========
+
+REMOVE:
+
+* any UI references to:
+
+  * Appliance Maintenance (as system driver)
+  * HVAC (as system driver)
+
+These can exist ONLY as:
+
+* tags
+* filters
+* categories
+
+NOT as primary logic drivers
+
+==================================================
+SUCCESS STATE
+=============
+
+This fix is complete when:
+
+1. Dashboard shows ONLY turn-based metrics
+2. No workflow language appears in control tower
+3. Bottlenecks reference stages (Maintenance, Flooring, etc.)
+4. Workflows page reflects turn data OR is renamed
+5. Clicking signals returns TURN data only
+6. System feels consistent and truthful
+
+==================================================
+INTERNAL LABEL
+
+“Patch — Turn System Authority (1.10.5)”
+
+==================================================
