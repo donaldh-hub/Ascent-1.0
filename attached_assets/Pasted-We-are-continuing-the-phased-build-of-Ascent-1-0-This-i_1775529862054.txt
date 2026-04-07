@@ -1,0 +1,409 @@
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.10.
+
+The system already has:
+
+* authentication
+* organization / property / unit structure
+* workflow engine
+* scoring + stoplight engine
+* alert + warning engine
+* dashboard intelligence layer
+* document + evidence system
+* assignment engine
+* system integration + reaction layer (1.8)
+
+DO NOT rebuild any existing systems.
+DO NOT introduce fake or simulated data.
+DO NOT create standalone analytics disconnected from real inputs.
+
+This build is the TURN MATRIX ENGINE.
+
+==================================================
+CORE GOAL
+=========
+
+Create a real, data-driven Turn Matrix Engine that:
+
+* accepts real turn/make-ready data
+* calculates completion, stage progress, and delays
+* identifies bottlenecks and blocked turns
+* feeds scoring, dashboard, and reaction layers
+* enables full signal → click → data behavior
+
+This system must reflect REAL operational conditions — not assumptions.
+
+==================================================
+CRITICAL SYSTEM RULE (NON-NEGOTIABLE)
+=====================================
+
+The Turn Matrix MUST:
+
+* use ONLY real input data (CSV or system records)
+* NEVER generate mock or placeholder turns
+* NEVER simulate bottlenecks internally
+* NEVER infer missing data beyond safe calculation
+
+If data is missing:
+
+Return partial calculation + explanation
+DO NOT fabricate values
+
+==================================================
+INPUT REQUIREMENTS (TURN DATA)
+==============================
+
+Accept structured input from:
+
+* CSV upload
+* assignment engine (structured records)
+* future API ingestion
+
+Minimum required fields:
+
+* turn_id
+* property_id or property_name
+* unit_id
+* current_stage
+* stage_start_date or days_in_stage
+* status (active, completed, in_rework)
+
+Optional but supported:
+
+* inspection_passed
+* rework_required
+* rework_completed
+* timestamps for each stage
+* assigned vendor or staff
+
+==================================================
+TURN STAGE MODEL (STANDARDIZED)
+===============================
+
+The system must support the following stage sequence:
+
+1. Trash Out
+2. Maintenance
+3. Paint Prep
+4. Paint
+5. Flooring
+6. Cleaning
+7. Inspection
+8. Rework (conditional only)
+
+Stages must:
+
+* follow strict sequence
+* support backward movement (rework)
+* track entry and exit timestamps
+* track time spent in each stage
+
+==================================================
+CORE CALCULATIONS
+=================
+
+1. TURN COMPLETION %
+
+Calculate completion using weighted stage progress.
+
+Example structure:
+
+* Each stage contributes proportionally
+* Completed stages = full weight
+* Current stage = partial weight
+* Future stages = 0
+
+Output:
+
+* completion_percentage (0–100)
+
+---
+
+2. STAGE AGING
+
+Calculate:
+
+* days_in_stage
+* total_days_open
+
+Outputs:
+
+* aging severity
+* longest-aging stage
+* aging rank per turn
+
+---
+
+3. BLOCKED TURN DETECTION
+
+A turn is BLOCKED if:
+
+* days_in_stage exceeds defined threshold
+* OR no movement detected within threshold window
+
+Output fields:
+
+* is_blocked (true/false)
+* blocked_stage
+* blocked_duration
+
+---
+
+4. REWORK LOGIC
+
+If:
+
+* inspection fails OR rework_required = true
+
+Then:
+
+* activate Rework stage
+* reduce effective completion % confidence
+* flag as execution risk
+
+Outputs:
+
+* rework_flag
+* rework_count (if repeat)
+
+---
+
+5. RENT-READY STATUS
+
+A turn is RENT READY only if:
+
+* completion = 100%
+* inspection_passed = true
+* no active rework
+
+Output:
+
+* rent_ready (true/false)
+
+==================================================
+BOTTLENECK DETECTION (CRITICAL)
+===============================
+
+Aggregate across all turns:
+
+Identify:
+
+* stage with highest volume
+* stage with highest average aging
+* stage with most blocked turns
+
+Outputs:
+
+* primary_bottleneck_stage
+* bottleneck_severity_score
+* bottleneck_explanation
+
+Example:
+
+“Flooring is the primary bottleneck due to high aging and blocked volume.”
+
+==================================================
+AGGREGATION LEVELS
+==================
+
+The Turn Matrix must support:
+
+1. UNIT LEVEL
+
+* individual turn performance
+
+2. PROPERTY LEVEL
+
+* total turns
+* avg completion %
+* blocked turns count
+* bottleneck stage
+
+3. REGIONAL / ORG LEVEL
+
+* cross-property aggregation
+* bottleneck distribution
+* performance comparison
+
+==================================================
+SCORING ENGINE INTEGRATION (BUILD 3)
+====================================
+
+Turn data must feed:
+
+FLOW:
+
+* stage congestion
+* blocked turns
+* aging
+
+RISK:
+
+* blocked turns
+* rework presence
+* inspection failures
+
+EXECUTION:
+
+* completion rate
+* movement consistency
+
+IMPROVEMENT:
+
+* reduction in aging over time (future-ready)
+
+NO duplicate scoring logic allowed.
+Use shared engine outputs only.
+
+==================================================
+DASHBOARD INTEGRATION (BUILD 5)
+===============================
+
+Turn Matrix must power:
+
+* Open Turns count
+* Avg Completion %
+* Not Rent Ready count
+* Bottleneck stage
+* Aging indicators
+
+All values must be:
+
+* real
+* explainable
+* clickable (via 1.8 reaction layer)
+
+==================================================
+REACTION LAYER INTEGRATION (1.8)
+================================
+
+ALL outputs must support drill-down:
+
+Example signals:
+
+* “12 blocked turns” → show those turns
+* “Flooring bottleneck” → show affected units
+* “8 not rent ready” → show those records
+
+Each signal must:
+
+* map to a query
+* return real data
+* preserve context
+
+==================================================
+EXPLAINABILITY (MANDATORY)
+==========================
+
+Every major output must include explanation text:
+
+Examples:
+
+* “Completion reduced due to aging in Maintenance.”
+* “3 turns blocked in Flooring exceeding 7-day threshold.”
+* “Rework triggered by failed inspections.”
+
+Users must trust the system.
+
+==================================================
+EMPTY / LOW-DATA HANDLING
+=========================
+
+If insufficient data:
+
+Return:
+
+* partial metrics
+* clear explanation
+
+Examples:
+
+* “Limited turn data available — metrics are provisional.”
+* “No completed turns yet — execution score not stable.”
+
+NEVER show false green states.
+
+==================================================
+DATA MODEL SUPPORT
+==================
+
+Extend schema as needed:
+
+turns
+turn_stage_history
+turn_metrics (derived)
+
+Ensure:
+
+* no duplicate storage
+* no orphan records
+* full linkage to unit/property
+
+==================================================
+ROLE-BASED VISIBILITY
+=====================
+
+Admin / Supervisor / Manager:
+
+* full turn visibility
+
+Technician:
+
+* assigned scope only
+
+Viewer:
+
+* read-only
+
+==================================================
+CODE QUALITY RULES
+==================
+
+DO:
+
+* build clean calculation layer
+* reuse scoring + dashboard engines
+* ensure deterministic outputs
+* support future reporting
+
+DO NOT:
+
+* simulate turn data
+* hardcode metrics
+* duplicate scoring logic
+* create disconnected analytics
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. Real turn data can be uploaded (CSV)
+2. Completion % is calculated accurately
+3. Blocked turns are identified correctly
+4. Bottlenecks are surfaced clearly
+5. Dashboard reflects real turn metrics
+6. Signals are clickable and return real data
+7. System explains WHY results exist
+
+==================================================
+INTERNAL LABEL
+
+“Phase 1 — Build 1.10: Turn Matrix Engine (Real Data Driven)”
+
+==================================================
+
+BUILD INTENT
+
+Build 2 created workflow movement
+Build 3 created scoring
+Build 5 created intelligence
+Build 1.8 created action
+
+Build 1.10 connects REAL OPERATIONS to the system.
+
+This is where the system stops being theoretical…
+
+…and starts telling the truth.

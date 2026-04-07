@@ -143,6 +143,9 @@ importers:
 
   artifacts/ascent:
     dependencies:
+      '@types/papaparse':
+        specifier: ^5.5.2
+        version: 5.5.2
       '@uppy/aws-s3':
         specifier: ^5.1.0
         version: 5.1.0(@uppy/core@5.2.0)
@@ -155,6 +158,9 @@ importers:
       '@uppy/react':
         specifier: ^5.2.0
         version: 5.2.0(@uppy/core@5.2.0)(@uppy/dashboard@5.1.1(@uppy/core@5.2.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      papaparse:
+        specifier: ^5.5.3
+        version: 5.5.3
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -2311,6 +2317,9 @@ packages:
   '@types/node@25.3.5':
     resolution: {integrity: sha512-oX8xrhvpiyRCQkG1MFchB09f+cXftgIXb3a7UUa4Y3wpmZPw5tyZGTLWhlESOLq1Rq6oDlc8npVU2/9xiCuXMA==}
 
+  '@types/papaparse@5.5.2':
+    resolution: {integrity: sha512-gFnFp/JMzLHCwRf7tQHrNnfhN4eYBVYYI897CGX4MY1tzY9l2aLkVyx2IlKZ/SAqDbB3I1AOZW5gTMGGsqWliA==}
+
   '@types/pg@8.18.0':
     resolution: {integrity: sha512-gT+oueVQkqnj6ajGJXblFR4iavIXWsGAFCk3dP4Kki5+a9R4NMt0JARdk6s8cUKcfUoqP5dAtDSLU8xYUTFV+Q==}
 
@@ -3576,6 +3585,9 @@ packages:
   p-timeout@6.1.4:
     resolution: {integrity: sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg==}
     engines: {node: '>=14.16'}
+
+  papaparse@5.5.3:
+    resolution: {integrity: sha512-5QvjGxYVjxO59MGU2lHVYpRWBBtKHnlIAcSe1uNFCkkptUh63NFRj0FJQm7nR67puEruUci/ZkjmEFrjCAyP4A==}
 
   parse-ms@4.0.0:
     resolution: {integrity: sha512-TXfryirbmq34y8QBwgqCVLi+8oA3oWx2eAnSn62ITyEhEYaWRlVZ2DvMM9eZbMs/RfxPu/PK/aBLyGj4IrqMHw==}
@@ -5871,6 +5883,10 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
+  '@types/papaparse@5.5.2':
+    dependencies:
+      '@types/node': 25.3.5
+
   '@types/pg@8.18.0':
     dependencies:
       '@types/node': 25.3.5
@@ -7111,6 +7127,8 @@ snapshots:
       retry: 0.13.1
 
   p-timeout@6.1.4: {}
+
+  papaparse@5.5.3: {}
 
   parse-ms@4.0.0: {}
 

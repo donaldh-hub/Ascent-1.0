@@ -20,6 +20,7 @@ import {
 import type { WorkflowInput, ItemInput } from "./scoring";
 import { getWorkOrderStats, type WorkOrderStats } from "../services/work-order-service";
 import { buildImpactAnalysis, type TopPriority, type PropertyImpact, type CategoryImpact } from "../services/work-order-impact-service";
+import { getTurnStats, type TurnStats } from "../services/turn-matrix-service";
 
 // ─────────────────────────────────────────────
 // Helper utilities
@@ -653,21 +654,32 @@ export interface DashboardIntelligence {
   woTopPriorities: TopPriority[];
   woPropertyImpact: PropertyImpact[];
   woCategoryImpact: CategoryImpact[];
+  turnStats: TurnStats | null;
   generatedAt: string;
 }
 
 export async function buildDashboardIntelligence(): Promise<DashboardIntelligence> {
-  const [executiveSnapshot, actions, primaryBottleneck, stageDistribution, workflowSpotlight, trends, workOrderStats, impactAnalysis] =
-    await Promise.all([
-      buildExecutiveSnapshot(),
-      buildActionPanel(6),
-      buildBottleneckIntelligence(),
-      buildStageDistribution(),
-      buildWorkflowSpotlight(6),
-      buildTrendSignals(),
-      getWorkOrderStats().catch(() => null),
-      buildImpactAnalysis().catch(() => null),
-    ]);
+  const [
+    executiveSnapshot,
+    actions,
+    primaryBottleneck,
+    stageDistribution,
+    workflowSpotlight,
+    trends,
+    workOrderStats,
+    impactAnalysis,
+    turnStats,
+  ] = await Promise.all([
+    buildExecutiveSnapshot(),
+    buildActionPanel(6),
+    buildBottleneckIntelligence(),
+    buildStageDistribution(),
+    buildWorkflowSpotlight(6),
+    buildTrendSignals(),
+    getWorkOrderStats().catch(() => null),
+    buildImpactAnalysis().catch(() => null),
+    getTurnStats().catch(() => null),
+  ]);
 
   return {
     executiveSnapshot,
@@ -680,6 +692,7 @@ export async function buildDashboardIntelligence(): Promise<DashboardIntelligenc
     woTopPriorities: impactAnalysis?.topPriorities ?? [],
     woPropertyImpact: impactAnalysis?.propertyImpact ?? [],
     woCategoryImpact: impactAnalysis?.categoryImpact ?? [],
+    turnStats: turnStats ?? null,
     generatedAt: new Date().toISOString(),
   };
 }

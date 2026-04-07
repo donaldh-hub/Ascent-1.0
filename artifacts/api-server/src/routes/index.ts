@@ -11,6 +11,7 @@ import propertiesRouter from "./properties";
 import assignmentsRouter from "./assignments";
 import drillRouter from "./drill";
 import workOrdersRouter from "./work-orders";
+import turnsRouter from "./turns";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(propertiesRouter);
 router.use(assignmentsRouter);
 router.use(drillRouter);
 router.use(workOrdersRouter);
+router.use(turnsRouter);
 
 export default router;
