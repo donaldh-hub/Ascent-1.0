@@ -2,7 +2,8 @@ import { useParams, useLocation } from "wouter";
 import {
   ArrowLeft, Hash, Building2, Calendar, FileText, Briefcase, Server,
   Clock, PlusCircle, Upload, AlertCircle, Info, ChevronRight,
-  Shield, ShieldOff, ShieldAlert,
+  Shield, ShieldOff, ShieldAlert, Wrench, RotateCcw, CheckSquare,
+  XCircle, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,50 @@ function useUnitAssets(unitId: number) {
     queryFn: async () => {
       const res = await fetch(`/api/assets/unit/${unitId}`);
       if (!res.ok) throw new Error("Failed to fetch unit assets");
+      return res.json();
+    },
+    enabled: unitId > 0,
+    staleTime: 60_000,
+  });
+}
+
+// ─── Unit Turns hook ─────────────────────────────────────────────────────────
+
+interface UnitTurn {
+  id: number;
+  turnId: string | null;
+  currentStage: string | null;
+  daysInStage: number;
+  completionPercentage: number;
+  completionCalc: number;
+  isBlocked: boolean;
+  isBlockedCalc: boolean;
+  blockReason: string | null;
+  blockedStage: string | null;
+  turnStatus: string;
+  rentReady: boolean;
+  rentReadyCalc: boolean;
+  reworkRequired: boolean;
+  reworkCompleted: boolean;
+  inspectionPassed: boolean;
+  statusLabel: string;
+  explanation: string;
+  totalDaysOpen: number;
+  propertyNameRaw: string | null;
+}
+
+interface UnitTurnsResponse {
+  hasData: boolean;
+  turns: UnitTurn[];
+  activeTurn: UnitTurn | null;
+}
+
+function useUnitTurns(unitId: number) {
+  return useQuery<UnitTurnsResponse>({
+    queryKey: ["turns", "unit", unitId],
+    queryFn: async () => {
+      const res = await fetch(`/api/turns/unit/${unitId}`);
+      if (!res.ok) throw new Error("Failed to fetch unit turns");
       return res.json();
     },
     enabled: unitId > 0,
@@ -209,6 +254,7 @@ export default function UnitDetail() {
     { query: { queryKey: ["documents", "unit", unitId] } }
   );
   const { data: unitAssets = [], isLoading: assetsLoading } = useUnitAssets(unitId);
+  const { data: unitTurns } = useUnitTurns(unitId);
 
   const assetsWithCost = unitAssets.map(a => ({ ...a, replacementCost: getReplacementCost(a.assetType) }));
   const unitTotalCost = assetsWithCost.reduce<number | null>((acc, a) => {
@@ -378,6 +424,144 @@ export default function UnitDetail() {
             View All Workflows <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
+      </Section>
+
+      {/* ── Turn Status ── */}
+      <Section title="Turn Status" icon={Wrench}>
+        {!unitTurns ? (
+          <div className="px-5 py-6 text-sm text-muted-foreground">Loading turn data…</div>
+        ) : !unitTurns.hasData ? (
+          <EmptySection
+            message={`No turn records linked to ${unitLabel}`}
+            sub="Turn records are linked when a CSV import matches this unit's number and property. Import turn data via the Turns page."
+          />
+        ) : (
+          <div className="divide-y divide-border">
+            {/* Active Turn summary */}
+            {unitTurns.activeTurn && (() => {
+              const t = unitTurns.activeTurn!;
+              const pct = t.completionCalc ?? t.completionPercentage ?? 0;
+              const statusColor = t.isBlockedCalc
+                ? "text-status-red"
+                : t.turnStatus === "in_rework"
+                ? "text-status-yellow"
+                : t.turnStatus === "completed"
+                ? "text-status-green"
+                : "text-primary";
+              const StatusIcon = t.isBlockedCalc
+                ? XCircle
+                : t.turnStatus === "in_rework"
+                ? RotateCcw
+                : t.turnStatus === "completed"
+                ? CheckCircle2
+                : Wrench;
+
+              return (
+                <div className="px-5 py-4 space-y-3">
+                  {/* Status + Stage row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <StatusIcon className={cn("h-4 w-4 shrink-0", statusColor)} />
+                      <span className={cn("text-sm font-semibold", statusColor)}>{t.statusLabel}</span>
+                    </div>
+                    {t.turnId && (
+                      <span className="text-[10px] font-mono text-muted-foreground">Turn {t.turnId}</span>
+                    )}
+                  </div>
+
+                  {/* Completion bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-muted-foreground">Completion</span>
+                      <span className={cn("text-xs font-bold tabular-nums", pct < 50 ? "text-status-red" : pct < 80 ? "text-status-yellow" : "text-status-green")}>
+                        {Math.round(pct)}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-border/40 overflow-hidden">
+                      <div
+                        className={cn("h-full rounded-full transition-all duration-700", pct < 50 ? "bg-status-red" : pct < 80 ? "bg-status-yellow" : "bg-status-green")}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Key fields */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md bg-secondary/30 border border-border/30 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Current Stage</p>
+                      <p className="text-sm font-semibold">{t.currentStage ?? "Unknown"}</p>
+                    </div>
+                    <div className="rounded-md bg-secondary/30 border border-border/30 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Days in Stage</p>
+                      <p className={cn("text-sm font-semibold", (t.daysInStage ?? 0) > 7 ? "text-status-red" : "text-foreground")}>
+                        {t.daysInStage ?? 0}d
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-secondary/30 border border-border/30 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Rent Ready</p>
+                      <div className="flex items-center gap-1.5">
+                        {t.rentReadyCalc
+                          ? <CheckSquare className="h-3.5 w-3.5 text-status-green" />
+                          : <XCircle className="h-3.5 w-3.5 text-status-red" />}
+                        <span className={cn("text-sm font-semibold", t.rentReadyCalc ? "text-status-green" : "text-status-red")}>
+                          {t.rentReadyCalc ? "Yes" : "No"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-md bg-secondary/30 border border-border/30 px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-0.5">Inspection</p>
+                      <div className="flex items-center gap-1.5">
+                        {t.inspectionPassed
+                          ? <CheckSquare className="h-3.5 w-3.5 text-status-green" />
+                          : <XCircle className="h-3.5 w-3.5 text-status-yellow" />}
+                        <span className={cn("text-sm font-semibold", t.inspectionPassed ? "text-status-green" : "text-status-yellow")}>
+                          {t.inspectionPassed ? "Passed" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Blocked reason */}
+                  {t.isBlockedCalc && (
+                    <div className="rounded-md bg-status-red/5 border border-status-red/20 px-3 py-2 flex items-start gap-2">
+                      <XCircle className="h-3.5 w-3.5 shrink-0 text-status-red mt-0.5" />
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider font-bold text-status-red mb-0.5">Blocked</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t.blockReason ?? (t.blockedStage ? `Stalled at ${t.blockedStage}` : `${t.daysInStage ?? 0}d in stage exceeds 7-day threshold`)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Explanation */}
+                  {t.explanation && (
+                    <p className="text-xs text-muted-foreground leading-relaxed">{t.explanation}</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Additional turns (history) */}
+            {unitTurns.turns.length > 1 && (
+              <div className="px-5 py-3">
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+                  Turn History ({unitTurns.turns.length - 1} additional)
+                </p>
+                <div className="space-y-1.5">
+                  {unitTurns.turns.slice(1).map(t => (
+                    <div key={t.id} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">{t.turnId ?? `Turn #${t.id}`} · {t.currentStage}</span>
+                      <Badge variant="outline" className="text-[10px] py-0">
+                        {t.statusLabel}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Section>
 
       {/* ── Assets ── */}

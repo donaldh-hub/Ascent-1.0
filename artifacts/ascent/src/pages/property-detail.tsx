@@ -11,10 +11,12 @@ import {
   AlertTriangle, Clock, FileWarning, FileCheck2, Hash,
   TrendingUp, TrendingDown, Minus, Mail, Copy, CheckCircle2,
   User, ArrowRight, Layers, ChevronDown, X, ShieldAlert,
-  Package, Target, Workflow,
+  Package, Target, Workflow, Wrench, RotateCcw, CheckSquare,
+  XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { usePortfolio, type PropertyPortfolioCard } from "@/hooks/use-portfolio";
 import { useListUnits } from "@workspace/api-client-react";
@@ -23,6 +25,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
 import type { SignalType } from "@/hooks/use-signal-drill";
+
+// ── Turn Stats types + hook ────────────────────────────────────────────────────
+
+interface PropertyTurnStats {
+  totalTurns: number;
+  activeTurns: number;
+  completedTurns: number;
+  blockedTurns: number;
+  reworkTurns: number;
+  notRentReadyCount: number;
+  avgCompletionPct: number;
+  primaryBottleneckStage: string | null;
+  bottleneckExplanation: string | null;
+  hasData: boolean;
+  dataQuality: string;
+}
+
+function usePropertyTurnStats(propertyId: number) {
+  return useQuery<PropertyTurnStats>({
+    queryKey: ["turns", "stats", "property", propertyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/turns/stats?propertyId=${propertyId}`);
+      if (!res.ok) throw new Error("Failed to fetch turn stats");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -644,6 +674,7 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
   const propertyUnits = allUnits.filter((u) => u.propertyId === propertyId);
   const [activeMetric, setActiveMetric] = useState<MetricKey | null>(null);
   const [drillState, setDrillState] = useState<DrillState>(null);
+  const { data: turnStats } = usePropertyTurnStats(propertyId);
 
   const doc = docStatus(card);
 
@@ -751,6 +782,30 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
                   </span>
                 </span>
               </li>
+              {turnStats?.hasData && turnStats.blockedTurns > 0 && (
+                <li className="flex items-start gap-2 text-xs">
+                  <ClickableSignal onClick={() => openDrill("blocked_turns")} title="View blocked turns">
+                    <span className="text-status-red font-bold mt-0.5">•</span>
+                    <span className="text-foreground/80 ml-2">
+                      <span className="font-semibold text-status-red">{turnStats.blockedTurns} turns blocked</span>
+                      {turnStats.reworkTurns > 0 && (
+                        <span className="text-muted-foreground"> · {turnStats.reworkTurns} in rework</span>
+                      )}
+                    </span>
+                  </ClickableSignal>
+                </li>
+              )}
+              {turnStats?.hasData && turnStats.notRentReadyCount > 0 && (
+                <li className="flex items-start gap-2 text-xs">
+                  <ClickableSignal onClick={() => openDrill("not_rent_ready")} title="View not rent-ready units">
+                    <span className="text-status-yellow font-bold mt-0.5">•</span>
+                    <span className="text-foreground/80 ml-2">
+                      <span className="font-semibold text-status-yellow">{turnStats.notRentReadyCount} not rent-ready</span>
+                      <span className="text-muted-foreground"> · {turnStats.avgCompletionPct}% avg completion</span>
+                    </span>
+                  </ClickableSignal>
+                </li>
+              )}
             </ul>
           </div>
         </div>
@@ -895,6 +950,88 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Turn Overview — property-scoped */}
+      {turnStats && (
+        <div className="rounded-xl border border-border/50 bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-2">
+              <Wrench className="h-3.5 w-3.5" /> Turn Overview
+            </p>
+            {turnStats.hasData && (
+              <p className="text-[10px] text-muted-foreground">{turnStats.dataQuality}</p>
+            )}
+          </div>
+
+          {!turnStats.hasData ? (
+            <div className="rounded-lg border border-border/30 bg-secondary/20 px-4 py-5 flex items-start gap-3">
+              <XCircle className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">No turn data for this property</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Import turn records via the Turns page to enable make-ready tracking at this property.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {/* Total Turns */}
+              <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+                <div className="text-xl font-bold tabular-nums">{turnStats.totalTurns}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Total Turns</div>
+              </div>
+
+              {/* Blocked — clickable */}
+              <ClickableSignal
+                onClick={() => openDrill("blocked_turns")}
+                className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center w-full block"
+                disabled={turnStats.blockedTurns === 0}
+                title="View blocked turns at this property"
+              >
+                <div className={cn("text-xl font-bold tabular-nums flex items-baseline justify-center gap-1", turnStats.blockedTurns > 0 ? "text-status-red" : "text-foreground")}>
+                  {turnStats.blockedTurns}
+                  {turnStats.blockedTurns > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Blocked</div>
+              </ClickableSignal>
+
+              {/* Not Rent-Ready — clickable */}
+              <ClickableSignal
+                onClick={() => openDrill("not_rent_ready")}
+                className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center w-full block"
+                disabled={turnStats.notRentReadyCount === 0}
+                title="View not rent-ready turns at this property"
+              >
+                <div className={cn("text-xl font-bold tabular-nums flex items-baseline justify-center gap-1", turnStats.notRentReadyCount > 0 ? "text-status-yellow" : "text-foreground")}>
+                  {turnStats.notRentReadyCount}
+                  {turnStats.notRentReadyCount > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Not Rent-Ready</div>
+              </ClickableSignal>
+
+              {/* Avg Completion */}
+              <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+                <div className={cn("text-xl font-bold tabular-nums", turnStats.avgCompletionPct < 50 ? "text-status-red" : turnStats.avgCompletionPct < 75 ? "text-status-yellow" : "text-status-green")}>
+                  {turnStats.avgCompletionPct}%
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Avg Completion</div>
+              </div>
+
+              {/* Bottleneck Stage — clickable */}
+              <ClickableSignal
+                onClick={() => openDrill("stage_congestion")}
+                className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center w-full block"
+                disabled={!turnStats.primaryBottleneckStage}
+                title="View stage congestion at this property"
+              >
+                <div className="text-sm font-bold text-status-yellow truncate">
+                  {turnStats.primaryBottleneckStage ?? "None"}
+                  {turnStats.primaryBottleneckStage && <span className="text-[11px] text-primary/50 ml-1">↗</span>}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">Bottleneck Stage</div>
+              </ClickableSignal>
+            </div>
+          )}
         </div>
       )}
 

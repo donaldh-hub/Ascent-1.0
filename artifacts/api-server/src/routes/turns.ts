@@ -16,6 +16,7 @@ import { randomUUID } from "crypto";
 import {
   buildTurnMatrix,
   getTurnStats,
+  getTurnStatsByProperty,
   resolvePropertyForTurn,
   resolveUnitForTurn,
   computeRentReady,
@@ -165,11 +166,56 @@ router.post("/turns/import", async (req, res) => {
 
 router.get("/turns/stats", async (req, res) => {
   try {
-    const stats = await getTurnStats();
+    const { propertyId: propertyIdStr } = req.query as Record<string, string>;
+    const propertyId = propertyIdStr ? parseInt(propertyIdStr, 10) : undefined;
+    const stats = propertyId && !isNaN(propertyId)
+      ? await getTurnStatsByProperty(propertyId)
+      : await getTurnStats();
     res.json(stats);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: "Failed to fetch turn stats", detail: msg });
+  }
+});
+
+// ─── GET /api/turns/unit/:unitId ─────────────────────────────────────────────
+
+router.get("/turns/unit/:unitId", async (req, res) => {
+  try {
+    const unitId = parseInt(req.params["unitId"] ?? "", 10);
+    if (isNaN(unitId)) {
+      res.status(400).json({ error: "Invalid unitId" });
+      return;
+    }
+
+    const rawTurns = await db
+      .select()
+      .from(turnsTable)
+      .where(eq(turnsTable.unitId, unitId))
+      .limit(10);
+
+    if (rawTurns.length === 0) {
+      res.json({ hasData: false, turns: [], activeTurn: null });
+      return;
+    }
+
+    const enriched = rawTurns.map(t => enrichTurn(t, t.propertyNameRaw ?? ""));
+    const sortedByRecency = [...enriched].sort((a, b) => {
+      if (!a.isCompleted && b.isCompleted) return -1;
+      if (a.isCompleted && !b.isCompleted) return 1;
+      return (b.daysInStage ?? 0) - (a.daysInStage ?? 0);
+    });
+
+    const activeTurn = sortedByRecency.find(t => !t.isCompleted) ?? sortedByRecency[0] ?? null;
+
+    res.json({
+      hasData: true,
+      turns: sortedByRecency,
+      activeTurn,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: "Failed to fetch unit turns", detail: msg });
   }
 });
 

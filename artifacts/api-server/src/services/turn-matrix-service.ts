@@ -489,6 +489,59 @@ export async function getTurnStats(): Promise<TurnStats> {
   };
 }
 
+export async function getTurnStatsByProperty(propertyId: number): Promise<TurnStats> {
+  const rawTurns = await db
+    .select()
+    .from(turnsTable)
+    .where(eq(turnsTable.propertyId, propertyId));
+
+  if (rawTurns.length === 0) {
+    return {
+      totalTurns: 0, activeTurns: 0, completedTurns: 0,
+      blockedTurns: 0, reworkTurns: 0, notRentReadyCount: 0,
+      avgCompletionPct: 0, primaryBottleneckStage: null,
+      bottleneckSeverity: 0, bottleneckExplanation: null,
+      propertyCount: 0, hasData: false,
+      dataQuality: "No turn data imported for this property yet.",
+    };
+  }
+
+  const [prop] = await db
+    .select({ name: propertiesTable.name })
+    .from(propertiesTable)
+    .where(eq(propertiesTable.id, propertyId))
+    .limit(1);
+  const propertyName = prop?.name ?? "Unknown";
+
+  const enriched = rawTurns.map(t => enrichTurn(t, propertyName));
+  const active = enriched.filter(t => t.isActive);
+  const completed = enriched.filter(t => t.isCompleted);
+  const rework = enriched.filter(t => t.isInRework);
+  const blocked = enriched.filter(t => t.isBlockedCalc);
+  const notRentReady = enriched.filter(t => !t.rentReadyCalc && !t.isCompleted);
+  const avgCompletionPct = enriched.length > 0
+    ? Math.round(enriched.reduce((s, t) => s + t.completionCalc, 0) / enriched.length)
+    : 0;
+
+  const bottleneck = buildBottleneckAnalysis(enriched);
+
+  return {
+    totalTurns: rawTurns.length,
+    activeTurns: active.length,
+    completedTurns: completed.length,
+    blockedTurns: blocked.length,
+    reworkTurns: rework.length,
+    notRentReadyCount: notRentReady.length,
+    avgCompletionPct,
+    primaryBottleneckStage: bottleneck?.primaryStage ?? null,
+    bottleneckSeverity: bottleneck?.severityScore ?? 0,
+    bottleneckExplanation: bottleneck?.explanation ?? null,
+    propertyCount: 1,
+    hasData: true,
+    dataQuality: `${rawTurns.length} turns at this property — ${completed.length} completed, ${active.length + rework.length} in progress.`,
+  };
+}
+
 // ─── Property Fuzzy Matching (reused from work-order-service pattern) ─────────
 
 function levenshtein(a: string, b: string): number {

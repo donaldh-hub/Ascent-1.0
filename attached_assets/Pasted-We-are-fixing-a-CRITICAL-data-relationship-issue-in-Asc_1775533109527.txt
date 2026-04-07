@@ -1,0 +1,188 @@
+We are fixing a CRITICAL data relationship issue in Ascent 1.0.
+
+This is NOT a UI issue.
+
+This is NOT a reporting issue.
+
+This is a TURN CONTEXT + PROPAGATION FIX.
+
+==================================================
+CORE PROBLEM
+============
+
+Turns exist in the system.
+
+BUT:
+
+* They are not properly linked to properties
+* They are not visible at the unit level
+* Property pages do not reflect turn data
+* Drill-down does not respect context
+
+This breaks the system hierarchy:
+
+Organization → Property → Unit → Turn
+
+==================================================
+CORE OBJECTIVE
+==============
+
+Ensure turns are fully integrated into:
+
+* property-level views
+* unit-level views
+* contextual queries
+* drill-down panels
+
+==================================================
+
+1. DATA MODEL ENFORCEMENT (MANDATORY)
+   ==================================================
+
+Each turn MUST include:
+
+* turn_id
+* unit_id
+* property_id (explicit OR derived from unit)
+
+If property_id is missing:
+
+Derive using:
+
+unit → property mapping
+
+==================================================
+2. PROPERTY-LEVEL TURN INTEGRATION
+==================================
+
+When viewing a property:
+
+ALL turn metrics must be scoped:
+
+WHERE property_id = current_property
+
+---
+
+DISPLAY:
+
+* total_turns
+* blocked_turns
+* avg_completion
+* rent_ready_count
+* bottleneck_stage
+
+---
+
+These must appear:
+
+* on property dashboard
+* inside Flow / Risk / Execution / Improvement cards
+
+==================================================
+3. UNIT-LEVEL TURN VISIBILITY
+=============================
+
+When opening a unit:
+
+Display:
+
+* turn status
+* current stage
+* days in stage
+* completion %
+* blocked status
+* blocked reason
+
+---
+
+Unit view must include:
+
+“Turn Details” section
+
+==================================================
+4. PROPERTY-SCOPED DRILL-DOWN
+=============================
+
+All clicks inside a property must include:
+
+WHERE property_id = current_property
+
+Examples:
+
+Blocked Turns click:
+
+SELECT * FROM turns
+WHERE is_blocked = true
+AND property_id = current_property
+
+---
+
+Stage click:
+
+WHERE current_stage = 'Maintenance'
+AND property_id = current_property
+
+==================================================
+5. GLOBAL VS LOCAL CONTEXT
+==========================
+
+System must support:
+
+* GLOBAL (overview)
+* PROPERTY (filtered)
+* UNIT (single record)
+
+Each must behave correctly.
+
+==================================================
+6. UI REQUIREMENTS
+==================
+
+PROPERTY PAGE MUST SHOW:
+
+Section:
+
+“Turn Overview”
+
+With:
+
+* key metrics
+* bottleneck
+* stage distribution
+
+---
+
+UNIT PAGE MUST SHOW:
+
+Section:
+
+“Turn Status”
+
+==================================================
+7. DRILL-DOWN PANEL FIX
+=======================
+
+Ensure ALL drill-down panels:
+
+* respect context
+* filter correctly
+* show only relevant turns
+
+==================================================
+8. SUCCESS STATE
+================
+
+This fix is complete when:
+
+1. Property page shows its own turn metrics
+2. Unit page shows turn details
+3. Drill-down returns property-scoped data
+4. Turns are no longer “floating” globally
+5. System hierarchy is intact
+
+==================================================
+INTERNAL LABEL
+
+“Build 1.10.8 — Turn Context + Property/Unit Propagation”
+
+==================================================
