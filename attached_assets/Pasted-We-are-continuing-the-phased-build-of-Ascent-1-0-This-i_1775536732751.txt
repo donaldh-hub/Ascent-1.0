@@ -1,0 +1,210 @@
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 1.11.
+
+The system already has:
+
+* Turn Matrix Engine (1.10)
+* Contextual scoring (1.10.9)
+* Control Tower source override (1.10.10)
+* Legacy cleanup (1.10.10.1)
+* Reaction layer (1.8)
+
+All prior systems are COMPLETE and TRUSTED.
+
+Do NOT rebuild prior systems.
+Do NOT introduce fake reporting.
+Do NOT reference workflows.
+Do NOT use placeholder logic.
+
+==================================================
+CORE PURPOSE
+============
+
+Turn data is now accurate.
+
+This build makes it UNDERSTANDABLE.
+
+We are building the Narrative Intelligence Layer.
+
+This layer translates turn data into:
+
+* clear explanations
+* decision-ready insights
+* actionable direction
+
+==================================================
+CORE OUTPUT STRUCTURE (MANDATORY)
+=================================
+
+Every insight must follow this structure:
+
+1. WHAT (Headline)
+2. WHY (Driver)
+3. IMPACT (Operational consequence)
+4. ACTION (What to do next)
+
+---
+
+Example:
+
+"Execution is low because 120 units are not rent-ready, primarily due to maintenance delays. This is reducing throughput and extending vacancy time. Focus on clearing maintenance bottlenecks to restore flow."
+
+==================================================
+NARRATIVE GENERATION RULES
+==========================
+
+ALL narratives MUST:
+
+* use turn data only
+* match actual metrics
+* be property-scoped when on property page
+* be global when on overview
+* never contradict displayed numbers
+
+==================================================
+
+1. FLOW NARRATIVE
+   ==================================================
+
+Inputs:
+
+* stage congestion
+* blocked turns
+* avg days in stage
+
+Output must explain:
+
+* where movement is constrained
+* which stage is slowing progress
+
+==================================================
+2. RISK NARRATIVE
+=================
+
+Inputs:
+
+* blocked_turns
+* not_rent_ready
+* overdue_turns
+
+Output must explain:
+
+* exposure level
+* what is at risk (units, time, cost)
+
+==================================================
+3. EXECUTION NARRATIVE
+======================
+
+Inputs:
+
+* completion %
+* rent_ready_rate
+
+Output must explain:
+
+* how well work is being completed
+* what is preventing completion
+
+==================================================
+4. IMPROVEMENT NARRATIVE
+========================
+
+Inputs:
+
+* completion trend
+* blocked reduction
+
+Output must explain:
+
+* whether performance is improving or declining
+
+==================================================
+5. PRIMARY BOTTLENECK NARRATIVE
+===============================
+
+Identify:
+
+* stage with highest delay
+* number of affected turns
+
+Explain:
+
+* why it is the bottleneck
+* how it impacts system performance
+
+==================================================
+6. PROPERTY PERFORMANCE SUMMARY
+===============================
+
+For each property:
+
+* total turns
+* blocked turns
+* completion rate
+* rent-ready rate
+
+Generate summary:
+
+* strong / weak / critical classification
+
+==================================================
+7. ACTION ENGINE (CRITICAL)
+===========================
+
+Each narrative MUST end with:
+
+A CLEAR ACTION
+
+Examples:
+
+* "Resolve 6 blocked maintenance turns immediately"
+* "Prioritize inspection to convert 24 units to rent-ready"
+
+==================================================
+8. CLICK INTEGRATION (1.8 REQUIRED)
+===================================
+
+Every narrative must be clickable.
+
+Click must:
+
+* open drill-down panel
+* show exact turns referenced
+
+==================================================
+9. CONSISTENCY RULE
+===================
+
+If narrative references a number:
+
+That number MUST exist in:
+
+* Turn Overview
+* Drill-down panel
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. Every card has a clear explanation
+2. Every explanation matches turn data
+3. Every explanation leads to an action
+4. Every insight is clickable
+5. No contradictions exist
+
+==================================================
+INTERNAL LABEL
+
+"Build 1.11 — Narrative Intelligence Layer"
+
+==================================================
+
+BUILD INTENT
+
+The system no longer just shows data.
+
+It now explains the operation.

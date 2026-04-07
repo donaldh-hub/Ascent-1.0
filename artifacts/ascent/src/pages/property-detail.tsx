@@ -24,6 +24,13 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
+import { NarrativeBlock } from "@/components/narrative-block";
+import {
+  generateFlowNarrative,
+  generateRiskNarrative,
+  generateExecutionNarrative,
+  generateImprovementNarrative,
+} from "@/lib/turn-narratives";
 import type { SignalType } from "@/hooks/use-signal-drill";
 
 // ── Turn Stats types + hook ────────────────────────────────────────────────────
@@ -245,11 +252,16 @@ function RevealCard({ label, icon: Icon, children }: {
 
 // ── Per-metric reveal content (scoped to this property) ───────────────────────
 
-function FlowReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+function FlowReveal({ card, turnStats, onDrill }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null; onDrill: (signal: SignalType) => void }) {
   if (turnStats?.hasData) {
     const blockedRate = turnStats.totalTurns > 0 ? Math.round((turnStats.blockedTurns / turnStats.totalTurns) * 100) : 0;
     const reworkRate  = turnStats.totalTurns > 0 ? Math.round((turnStats.reworkTurns  / turnStats.totalTurns) * 100) : 0;
+    const flowNarrative = generateFlowNarrative(turnStats);
     return (
+      <div className="space-y-3">
+      {flowNarrative && (
+        <NarrativeBlock narrative={flowNarrative} onDrill={onDrill} accentColor="blue" />
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <RevealCard label="Stage Bottleneck" icon={Activity}>
           <p className="font-semibold text-sm">{turnStats.primaryBottleneckStage ?? "None"}</p>
@@ -277,6 +289,7 @@ function FlowReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStat
             <p className="text-xs text-muted-foreground mt-1">{reworkRate}% rework rate adding back-pressure</p>
           )}
         </RevealCard>
+      </div>
       </div>
     );
   }
@@ -320,13 +333,18 @@ function FlowReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStat
   );
 }
 
-function RiskReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+function RiskReveal({ card, turnStats, onDrill }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null; onDrill: (signal: SignalType) => void }) {
   const doc = docStatus(card);
 
   if (turnStats?.hasData) {
     const notRentReadyRate = turnStats.totalTurns > 0 ? Math.round((turnStats.notRentReadyCount / turnStats.totalTurns) * 100) : 0;
     const reworkRate       = turnStats.totalTurns > 0 ? Math.round((turnStats.reworkTurns  / turnStats.totalTurns) * 100) : 0;
+    const riskNarrative    = generateRiskNarrative(turnStats);
     return (
+      <div className="space-y-3">
+      {riskNarrative && (
+        <NarrativeBlock narrative={riskNarrative} onDrill={onDrill} accentColor="red" />
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <RevealCard label="Blocked Turns" icon={ShieldAlert}>
           <p className={cn("text-2xl font-bold tabular-nums", turnStats.blockedTurns > 0 ? "text-status-red" : "text-foreground")}>
@@ -359,6 +377,7 @@ function RiskReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStat
           </p>
           <p className="text-xs text-muted-foreground mt-1">turns recycled through a previous stage</p>
         </RevealCard>
+      </div>
       </div>
     );
   }
@@ -403,11 +422,16 @@ function RiskReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStat
   );
 }
 
-function ExecutionReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+function ExecutionReveal({ card, turnStats, onDrill }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null; onDrill: (signal: SignalType) => void }) {
   if (turnStats?.hasData) {
     const completedRate   = turnStats.totalTurns > 0 ? Math.round((turnStats.completedTurns / turnStats.totalTurns) * 100) : 0;
     const inProgressCount = Math.max(0, turnStats.activeTurns - turnStats.blockedTurns);
+    const execNarrative   = generateExecutionNarrative(turnStats);
     return (
+      <div className="space-y-3">
+      {execNarrative && (
+        <NarrativeBlock narrative={execNarrative} onDrill={onDrill} accentColor="green" />
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <RevealCard label="Avg Completion" icon={Target}>
           <p className="text-2xl font-bold tabular-nums">{turnStats.avgCompletionPct}%</p>
@@ -432,6 +456,7 @@ function ExecutionReveal({ card, turnStats }: { card: PropertyPortfolioCard; tur
           </p>
           <p className="text-xs text-muted-foreground mt-1 leading-snug">turns actively progressing vs stalled in stage</p>
         </RevealCard>
+      </div>
       </div>
     );
   }
@@ -465,12 +490,17 @@ function ExecutionReveal({ card, turnStats }: { card: PropertyPortfolioCard; tur
   );
 }
 
-function ImprovementReveal({ card, turnStats }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null }) {
+function ImprovementReveal({ card, turnStats, onDrill }: { card: PropertyPortfolioCard; turnStats?: PropertyTurnStats | null; onDrill: (signal: SignalType) => void }) {
   if (turnStats?.hasData) {
     const completedRate  = turnStats.totalTurns > 0 ? Math.round((turnStats.completedTurns / turnStats.totalTurns) * 100) : 0;
     const rentReadyCount = turnStats.totalTurns - turnStats.notRentReadyCount;
     const rentReadyRate  = turnStats.totalTurns > 0 ? Math.round((rentReadyCount / turnStats.totalTurns) * 100) : 0;
+    const improvNarrative = generateImprovementNarrative(turnStats);
     return (
+      <div className="space-y-3">
+      {improvNarrative && (
+        <NarrativeBlock narrative={improvNarrative} onDrill={onDrill} accentColor="purple" />
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <RevealCard label="Completed Turns" icon={TrendingUp}>
           <p className="text-2xl font-bold tabular-nums">{turnStats.completedTurns}</p>
@@ -505,6 +535,7 @@ function ImprovementReveal({ card, turnStats }: { card: PropertyPortfolioCard; t
               : "All units rent-ready — recovery complete"}
           </p>
         </RevealCard>
+      </div>
       </div>
     );
   }
@@ -565,11 +596,13 @@ function PropertyMetricRevealSection({
   card,
   turnStats,
   onClose,
+  onDrill,
 }: {
   metric: MetricKey;
   card: PropertyPortfolioCard;
   turnStats?: PropertyTurnStats | null;
   onClose: () => void;
+  onDrill: (signal: SignalType) => void;
 }) {
   const doc = docStatus(card);
 
@@ -724,10 +757,10 @@ function PropertyMetricRevealSection({
         </div>
 
         {/* Per-metric reveal rows — turn-context-aware when data is available */}
-        {metric === "flow" && <FlowReveal card={card} turnStats={turnStats} />}
-        {metric === "risk" && <RiskReveal card={card} turnStats={turnStats} />}
-        {metric === "execution" && <ExecutionReveal card={card} turnStats={turnStats} />}
-        {metric === "improvement" && <ImprovementReveal card={card} turnStats={turnStats} />}
+        {metric === "flow" && <FlowReveal card={card} turnStats={turnStats} onDrill={onDrill} />}
+        {metric === "risk" && <RiskReveal card={card} turnStats={turnStats} onDrill={onDrill} />}
+        {metric === "execution" && <ExecutionReveal card={card} turnStats={turnStats} onDrill={onDrill} />}
+        {metric === "improvement" && <ImprovementReveal card={card} turnStats={turnStats} onDrill={onDrill} />}
 
         {/* RECOMMENDED ACTION */}
         {recommendedAction && (
@@ -1051,6 +1084,7 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
             card={card}
             turnStats={turnStats}
             onClose={() => setActiveMetric(null)}
+            onDrill={openDrill}
           />
         )}
       </AnimatePresence>

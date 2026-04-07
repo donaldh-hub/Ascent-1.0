@@ -11,6 +11,14 @@ import {
   type TurnStats,
 } from "@workspace/api-client-react";
 import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
+import { NarrativeBlock } from "@/components/narrative-block";
+import {
+  generateFlowNarrative,
+  generateRiskNarrative,
+  generateExecutionNarrative,
+  generateImprovementNarrative,
+  generateBottleneckNarrative,
+} from "@/lib/turn-narratives";
 import type { SignalType } from "@/hooks/use-signal-drill";
 import { useDocCounts } from "@/hooks/use-doc-counts";
 import { PortfolioControlTowerSection } from "@/components/portfolio-control-tower";
@@ -486,7 +494,7 @@ export default function Dashboard() {
       {/* ─── Row 3: Actions + Turn Bottleneck ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ActionPanel actions={intel?.actions ?? []} isLoading={isLoading} />
-        <TurnBottleneckPanel turnStats={intel?.turnStats} isLoading={isLoading} />
+        <TurnBottleneckPanel turnStats={intel?.turnStats} isLoading={isLoading} onDrill={openDrill} />
       </div>
 
       {/* ─── Row 4: Stage Distribution + Turn Aging ─── */}
@@ -1078,9 +1086,19 @@ function FlowReveal({
 }) {
   const congestionTrend = trends.find((t) => t.label === "Stage Congestion");
   const agingTrend = trends.find((t) => t.label === "Aging Items");
+  const flowNarrative = generateFlowNarrative(turnStats);
 
   return (
     <div className="space-y-3">
+      {/* ── Narrative Intelligence Block ── */}
+      {flowNarrative && (
+        <NarrativeBlock
+          narrative={flowNarrative}
+          onDrill={(sig) => onDrill(sig as SignalType)}
+          accentColor="blue"
+        />
+      )}
+
       {/* Turn-derived inputs (first-class) */}
       <div>
         <p className="text-[10px] uppercase tracking-wider font-bold text-blue-400/70 mb-2 flex items-center gap-1.5">
@@ -1223,9 +1241,19 @@ function RiskReveal({
   const criticalActions = actions.filter((a) => a.urgency === "critical");
   const missingDocActions = actions.filter((a) => a.missingDocs);
   const redWorkflows = spotlight.filter((w) => w.concernLevel === "critical");
+  const riskNarrative = generateRiskNarrative(turnStats);
 
   return (
     <div className="space-y-3">
+      {/* ── Narrative Intelligence Block ── */}
+      {riskNarrative && (
+        <NarrativeBlock
+          narrative={riskNarrative}
+          onDrill={(sig) => onDrill(sig as SignalType)}
+          accentColor="red"
+        />
+      )}
+
       {/* Turn-derived risk inputs (first-class) */}
       <div>
         <p className="text-[10px] uppercase tracking-wider font-bold text-red-400/70 mb-2 flex items-center gap-1.5">
@@ -1400,9 +1428,19 @@ function ExecutionReveal({
   const rentReadyRate = turnStats?.hasData && turnStats.totalTurns > 0
     ? Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)
     : null;
+  const execNarrative = generateExecutionNarrative(turnStats);
 
   return (
     <div className="space-y-3">
+      {/* ── Narrative Intelligence Block ── */}
+      {execNarrative && (
+        <NarrativeBlock
+          narrative={execNarrative}
+          onDrill={(sig) => onDrill(sig as SignalType)}
+          accentColor="green"
+        />
+      )}
+
       {/* Turn-derived execution inputs (first-class) */}
       <div>
         <p className="text-[10px] uppercase tracking-wider font-bold text-green-400/70 mb-2 flex items-center gap-1.5">
@@ -1551,10 +1589,20 @@ function ImprovementReveal({
 }) {
   const completionTrend = trends.find((t) => t.label === "Completion Activity");
   const agingTrend = trends.find((t) => t.label === "Aging Items");
+  const improvNarrative = generateImprovementNarrative(turnStats);
 
   return (
     <div className="space-y-3">
-      {/* Turn-derived improvement status — explicitly not connected */}
+      {/* ── Narrative Intelligence Block ── */}
+      {improvNarrative && (
+        <NarrativeBlock
+          narrative={improvNarrative}
+          onDrill={(sig) => onDrill(sig as SignalType)}
+          accentColor="purple"
+        />
+      )}
+
+      {/* Turn-derived improvement status */}
       <div>
         <p className="text-[10px] uppercase tracking-wider font-bold text-purple-400/70 mb-2 flex items-center gap-1.5">
           <Wrench className="h-3 w-3" /> Turn-Derived Improvement Inputs
@@ -1562,9 +1610,9 @@ function ImprovementReveal({
         <div className="rounded-lg border border-border/40 bg-background/60 px-4 py-3 flex items-start gap-3">
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
           <div>
-            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Not Yet Connected</p>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Trend Data Required</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              This card is not yet connected to turn-derived inputs. Improvement scoring requires historical turn trend data — velocity over time, stage progression rates, and rework cycle reduction — which accumulates after multiple Turn Matrix imports.
+              Improvement trend scoring requires historical snapshots — velocity over time, stage progression rates, and rework cycle reduction accumulate after multiple Turn Matrix imports.
             </p>
             {turnStats?.hasData && (
               <p className="text-xs text-muted-foreground/70 mt-2 leading-relaxed">
@@ -1873,11 +1921,14 @@ function ActionPanel({
 function TurnBottleneckPanel({
   turnStats,
   isLoading,
+  onDrill,
 }: {
   turnStats: TurnStats | null | undefined;
   isLoading: boolean;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const stageName = turnStats?.primaryBottleneckStage ?? null;
+  const bottleneckNarrative = generateBottleneckNarrative(turnStats);
   const blocked = turnStats?.blockedTurns ?? 0;
   const total = turnStats?.totalTurns ?? 0;
   const active = turnStats?.activeTurns ?? 0;
@@ -1957,22 +2008,20 @@ function TurnBottleneckPanel({
               </div>
             </div>
 
-            <div className="bg-background rounded-lg border border-border/50 p-3">
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                <span className="text-foreground font-semibold">Impact: </span>
-                {stageName} stage is blocking {blocked} of {active} active turns, delaying {notRentReady} unit{notRentReady !== 1 ? "s" : ""} from reaching rent-ready status.
-                {rework > 0 && ` ${rework} additional turn${rework !== 1 ? "s" : ""} in rework loop.`}
-              </p>
-            </div>
-
-            <div className={`rounded-lg border p-3 ${hasCritical ? "border-red-500/40 bg-red-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
-              <p className="text-[11px] leading-relaxed">
-                <span className={`font-semibold ${hasCritical ? "text-red-400" : "text-amber-400"}`}>
-                  Recommendation:{" "}
-                </span>
-                Prioritize clearing the {stageName} bottleneck — assign resources to unblock {blocked} stalled turn{blocked !== 1 ? "s" : ""} and accelerate {notRentReady} unit{notRentReady !== 1 ? "s" : ""} toward rent-ready status.
-              </p>
-            </div>
+            {bottleneckNarrative ? (
+              <NarrativeBlock
+                narrative={bottleneckNarrative}
+                onDrill={(sig) => onDrill(sig as SignalType)}
+                accentColor={hasCritical ? "red" : "amber"}
+              />
+            ) : (
+              <div className="bg-background rounded-lg border border-border/50 p-3">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="text-foreground font-semibold">Impact: </span>
+                  {stageName} stage is blocking {blocked} of {active} active turns, delaying {notRentReady} unit{notRentReady !== 1 ? "s" : ""} from reaching rent-ready status.
+                </p>
+              </div>
+            )}
           </>
         )}
       </CardContent>
