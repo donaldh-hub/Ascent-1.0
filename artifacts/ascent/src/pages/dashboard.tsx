@@ -14,7 +14,6 @@ import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
 import type { SignalType } from "@/hooks/use-signal-drill";
 import { useDocCounts } from "@/hooks/use-doc-counts";
 import { PortfolioControlTowerSection } from "@/components/portfolio-control-tower";
-import { usePortfolio } from "@/hooks/use-portfolio";
 import { AttachmentBadge } from "@/components/attachment-badge";
 import { EVIDENCE } from "@/lib/evidence-language";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -41,6 +40,8 @@ import {
   BarChart2,
   Wrench,
   AlertCircle,
+  RefreshCw,
+  Home,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
@@ -100,12 +101,6 @@ function urgencyLabel(urgency: string) {
   return "text-muted-foreground";
 }
 
-function concernBorder(level: string) {
-  if (level === "critical") return "border-red-500/60";
-  if (level === "warning") return "border-amber-500/60";
-  return "border-border/50";
-}
-
 function categoryIcon(category: string) {
   switch (category) {
     case "critical_item": return <ShieldAlert className="h-3.5 w-3.5" />;
@@ -131,9 +126,6 @@ function HealthGaugeSkeleton() {
 
 type DrillState = { signal: SignalType; workflowId?: number; stageId?: number } | null;
 
-const fmtCost = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-
 function computeOrgTurnScores(ts: NonNullable<ReturnType<typeof useGetDashboardIntelligence>["data"]>["turnStats"]) {
   if (!ts || !ts.hasData || ts.totalTurns === 0) return null;
   const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
@@ -158,20 +150,6 @@ function dimStoplight(score: number): string {
 export default function Dashboard() {
   const { data: intel, isLoading } = useGetDashboardIntelligence();
   const { data: summary } = useGetDashboardSummary();
-  const { data: portfolioCards = [] } = usePortfolio();
-
-  const portfolioExpiredCost = portfolioCards.reduce<number | null>((acc, c) => {
-    if (c.expiredWarrantyCost == null) return acc;
-    return (acc ?? 0) + c.expiredWarrantyCost;
-  }, null);
-  const portfolioExpiringSoonCost = portfolioCards.reduce<number | null>((acc, c) => {
-    if (c.expiringSoonCost == null) return acc;
-    return (acc ?? 0) + c.expiringSoonCost;
-  }, null);
-  const portfolioTotalAssetCost = portfolioCards.reduce<number | null>((acc, c) => {
-    if (c.totalAssetCost == null) return acc;
-    return (acc ?? 0) + c.totalAssetCost;
-  }, null);
   const [activeMetric, setActiveMetric] = useState<"flow" | "risk" | "execution" | "improvement" | null>(null);
   const [drillState, setDrillState] = useState<DrillState>(null);
 
@@ -502,114 +480,16 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* ─── Row 2: Trend Signals ─── */}
-      <TrendSignalStrip trends={intel?.trends ?? []} isLoading={isLoading} />
+      {/* ─── Row 2: Turn Signal Strip ─── */}
+      <TurnInsightStrip turnStats={intel?.turnStats} isLoading={isLoading} />
 
-      {/* ─── Row 3: Actions + Bottleneck Story ─── */}
+      {/* ─── Row 3: Actions + Turn Bottleneck ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ActionPanel actions={intel?.actions ?? []} isLoading={isLoading} />
-        <BottleneckPanel bottleneck={intel?.primaryBottleneck ?? null} isLoading={isLoading} />
+        <TurnBottleneckPanel turnStats={intel?.turnStats} isLoading={isLoading} />
       </div>
 
-      {/* ─── Row 3b: Asset Health Pulse ─── */}
-      <Card className="bg-card border-border/50">
-        <CardHeader className="pb-2 pt-4 px-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">Asset Health Pulse</CardTitle>
-            </div>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">
-              Live · persisted FK linkage
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent className="px-5 pb-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col">
-              <span className="text-2xl font-black tracking-tight">
-                {summary?.totalAssets ?? <Skeleton className="h-7 w-10 inline-block" />}
-              </span>
-              <span className="text-xs text-muted-foreground mt-0.5">Total assets</span>
-            </div>
-            <ClickableSignal
-              onClick={() => openDrill("expired_warranty")}
-              className="flex flex-col px-2 py-1 -mx-2 -my-1 rounded-lg"
-              disabled={(summary?.atRiskAssets ?? 0) === 0}
-              title="View expired warranty assets"
-            >
-              <span className={`text-2xl font-black tracking-tight ${(summary?.atRiskAssets ?? 0) > 0 ? "text-red-400" : "text-muted-foreground"}`}>
-                {summary?.atRiskAssets ?? 0}
-              </span>
-              <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                <ShieldAlert className="h-3 w-3 text-red-400" />
-                At risk (expired)
-                {(summary?.atRiskAssets ?? 0) > 0 && <span className="text-[10px] text-primary/50 ml-1">↗</span>}
-              </span>
-            </ClickableSignal>
-            <ClickableSignal
-              onClick={() => openDrill("expiring_soon")}
-              className="flex flex-col px-2 py-1 -mx-2 -my-1 rounded-lg"
-              disabled={(summary?.expiringSoonAssets ?? 0) === 0}
-              title="View assets expiring soon"
-            >
-              <span className={`text-2xl font-black tracking-tight ${(summary?.expiringSoonAssets ?? 0) > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
-                {summary?.expiringSoonAssets ?? 0}
-              </span>
-              <span className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                <Clock className="h-3 w-3 text-amber-400" />
-                Expiring soon (90d)
-                {(summary?.expiringSoonAssets ?? 0) > 0 && <span className="text-[10px] text-primary/50 ml-1">↗</span>}
-              </span>
-            </ClickableSignal>
-          </div>
-
-          {/* Financial exposure strip */}
-          {(portfolioExpiredCost != null || portfolioExpiringSoonCost != null || portfolioTotalAssetCost != null) && (
-            <div className="mt-4 pt-4 border-t border-border/40">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-3">Replacement Exposure</p>
-              <div className="grid grid-cols-3 gap-3">
-                {portfolioTotalAssetCost != null && (
-                  <div>
-                    <div className="text-sm font-bold tabular-nums text-foreground">{fmtCost(portfolioTotalAssetCost)}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">Total portfolio value</div>
-                  </div>
-                )}
-                {portfolioExpiredCost != null ? (
-                  <ClickableSignal
-                    onClick={() => openDrill("expired_warranty")}
-                    className="px-1 py-0.5 -mx-1 rounded"
-                    title="View expired warranty exposure"
-                  >
-                    <div className="text-sm font-bold tabular-nums text-red-400">{fmtCost(portfolioExpiredCost)}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
-                      Expired exposure <span className="text-[9px] text-primary/50">↗</span>
-                    </div>
-                  </ClickableSignal>
-                ) : (
-                  <div />
-                )}
-                {portfolioExpiringSoonCost != null ? (
-                  <ClickableSignal
-                    onClick={() => openDrill("expiring_soon")}
-                    className="px-1 py-0.5 -mx-1 rounded"
-                    title="View 90-day expiry risk"
-                  >
-                    <div className="text-sm font-bold tabular-nums text-amber-400">{fmtCost(portfolioExpiringSoonCost)}</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-0.5">
-                      90d at risk <span className="text-[9px] text-primary/50">↗</span>
-                    </div>
-                  </ClickableSignal>
-                ) : (
-                  <div />
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ─── Row 4: Stage Distribution + Spotlight ─── */}
+      {/* ─── Row 4: Stage Distribution + Turn Aging ─── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="col-span-1 md:col-span-5">
           <StageDistributionChart
@@ -618,8 +498,8 @@ export default function Dashboard() {
           />
         </div>
         <div className="col-span-1 md:col-span-7">
-          <WorkflowSpotlight
-            entries={intel?.workflowSpotlight ?? []}
+          <TurnAgingPanel
+            turnStats={intel?.turnStats}
             isLoading={isLoading}
           />
         </div>
@@ -1767,58 +1647,104 @@ function RevealCard({ label, icon: Icon, children }: {
   );
 }
 
-function TrendSignalStrip({
-  trends,
+function TurnInsightStrip({
+  turnStats,
   isLoading,
 }: {
-  trends: TrendSignal[];
+  turnStats: TurnStats | null | undefined;
   isLoading: boolean;
 }) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  const total = turnStats?.totalTurns ?? 0;
+  const active = turnStats?.activeTurns ?? 0;
+  const completed = turnStats?.completedTurns ?? 0;
+  const blocked = turnStats?.blockedTurns ?? 0;
+  const rework = turnStats?.reworkTurns ?? 0;
+  const notRentReady = turnStats?.notRentReadyCount ?? 0;
+  const avgCompletion = turnStats?.avgCompletionPct ?? 0;
+
+  const blockedPct = active > 0 ? Math.round((blocked / active) * 100) : 0;
+  const nrrPct = total > 0 ? Math.round((notRentReady / total) * 100) : 0;
+  const reworkPct = total > 0 ? Math.round((rework / total) * 100) : 0;
+
+  const pills = [
+    {
+      label: "Turn Completion",
+      value: `${completed} completed`,
+      sub: `${avgCompletion}% avg stage completion`,
+      direction: avgCompletion >= 60 ? "up" : avgCompletion >= 35 ? "stable" : "down",
+      colorKey: avgCompletion >= 60 ? "green" : avgCompletion >= 35 ? "yellow" : "red",
+    },
+    {
+      label: "Blocked Turns",
+      value: `${blocked} blocked`,
+      sub: `${blockedPct}% of ${active} active turns`,
+      direction: blocked === 0 ? "up" : blockedPct <= 15 ? "stable" : "down",
+      colorKey: blocked === 0 ? "green" : blockedPct <= 15 ? "yellow" : "red",
+    },
+    {
+      label: "Not Rent-Ready",
+      value: `${notRentReady} units`,
+      sub: `${nrrPct}% of ${total} total turns`,
+      direction: nrrPct <= 20 ? "up" : nrrPct <= 50 ? "stable" : "down",
+      colorKey: nrrPct <= 20 ? "green" : nrrPct <= 50 ? "yellow" : "red",
+    },
+    {
+      label: "Rework Loop",
+      value: `${rework} in rework`,
+      sub: `${reworkPct}% of total turns affected`,
+      direction: rework === 0 ? "up" : reworkPct <= 10 ? "stable" : "down",
+      colorKey: rework === 0 ? "green" : reworkPct <= 10 ? "yellow" : "red",
+    },
+  ];
+
+  const iconBgClass = (c: string) =>
+    c === "green" ? "bg-green-500/15 text-green-400" :
+    c === "red"   ? "bg-red-500/15 text-red-400" :
+                    "bg-amber-500/15 text-amber-400";
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {isLoading
-        ? Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-xl" />
-          ))
-        : trends.map((t, i) => (
-            <motion.div
-              key={t.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <Card className="bg-card border-border/50 hover:border-primary/30 transition-colors">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <div
-                    className={`mt-0.5 rounded-full p-1.5 ${
-                      t.direction === "up"
-                        ? "bg-green-500/15 text-green-400"
-                        : t.direction === "down"
-                        ? "bg-red-500/15 text-red-400"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {t.direction === "up" ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : t.direction === "down" ? (
-                      <TrendingDown className="h-3 w-3" />
-                    ) : (
-                      <Minus className="h-3 w-3" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      {t.label}
-                    </p>
-                    <p className="text-sm font-semibold mt-0.5 truncate">{t.value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-tight line-clamp-2">
-                      {t.explanation}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+      {pills.map((p, i) => (
+        <motion.div
+          key={p.label}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.05 }}
+        >
+          <Card className="bg-card border-border/50 hover:border-primary/30 transition-colors">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className={`mt-0.5 rounded-full p-1.5 ${iconBgClass(p.colorKey)}`}>
+                {p.direction === "up" ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : p.direction === "down" ? (
+                  <TrendingDown className="h-3 w-3" />
+                ) : (
+                  <Minus className="h-3 w-3" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {p.label}
+                </p>
+                <p className="text-sm font-semibold mt-0.5 truncate">{p.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 leading-tight line-clamp-2">
+                  {p.sub}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ))}
     </div>
   );
 }
@@ -1944,18 +1870,22 @@ function ActionPanel({
   );
 }
 
-function BottleneckPanel({
-  bottleneck,
+function TurnBottleneckPanel({
+  turnStats,
   isLoading,
 }: {
-  bottleneck: DashboardIntelligence["primaryBottleneck"];
+  turnStats: TurnStats | null | undefined;
   isLoading: boolean;
 }) {
-  const { data: bnDocs = [] } = useListDocuments(
-    { workflowId: bottleneck?.workflowId } as any,
-    { query: { enabled: !!bottleneck?.workflowId, queryKey: ["docs", "bn", bottleneck?.workflowId] } }
-  );
-  const bnDocCount = (bnDocs as any[]).length;
+  const stageName = turnStats?.primaryBottleneckStage ?? null;
+  const blocked = turnStats?.blockedTurns ?? 0;
+  const total = turnStats?.totalTurns ?? 0;
+  const active = turnStats?.activeTurns ?? 0;
+  const rework = turnStats?.reworkTurns ?? 0;
+  const notRentReady = turnStats?.notRentReadyCount ?? 0;
+  const avgCompletion = turnStats?.avgCompletionPct ?? 0;
+  const blockedPct = active > 0 ? Math.round((blocked / active) * 100) : 0;
+  const hasCritical = blocked > 10 || blockedPct > 25;
 
   return (
     <Card className="bg-card border-border/50 shadow-md flex flex-col h-full">
@@ -1963,14 +1893,14 @@ function BottleneckPanel({
         <div>
           <CardTitle className="text-lg flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            Primary Bottleneck
+            Primary Turn Bottleneck
           </CardTitle>
-          <CardDescription>Most constraining workflow stage</CardDescription>
+          <CardDescription>Most constraining turn stage</CardDescription>
         </div>
-        {bottleneck && (
+        {turnStats?.hasData && (
           <StoplightBadge
-            status={bottleneck.stoplight as any}
-            label={bottleneck.stoplight.toUpperCase()}
+            status={hasCritical ? "red" : blocked > 0 ? "yellow" : "green"}
+            label={hasCritical ? "RED" : blocked > 0 ? "YELLOW" : "GREEN"}
           />
         )}
       </CardHeader>
@@ -1982,98 +1912,67 @@ function BottleneckPanel({
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-16 w-full" />
           </div>
-        ) : !bottleneck ? (
+        ) : !turnStats?.hasData || !stageName ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground py-8">
             <Activity className="h-8 w-8 mb-2 opacity-20" />
-            <p className="text-sm">No critical bottlenecks detected.</p>
-            <p className="text-xs mt-1 opacity-60">Work is flowing through stages.</p>
+            <p className="text-sm">No turn bottleneck data available.</p>
+            <p className="text-xs mt-1 opacity-60">Import turn matrix data to enable.</p>
           </div>
         ) : (
           <>
             <div className="flex items-start justify-between gap-2">
               <div>
-                <Link
-                  href={`/workflows/${bottleneck.workflowId}`}
-                  className="font-semibold text-base hover:text-primary hover:underline"
-                >
-                  {bottleneck.workflowTitle}
-                </Link>
+                <p className="font-semibold text-base">{stageName}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-muted-foreground">Stage:</span>
                   <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
-                    {bottleneck.stageName}
+                    {stageName}
                   </span>
+                  <span className="text-xs text-muted-foreground">·</span>
+                  <span className="text-xs text-muted-foreground">{total} total turns</span>
                 </div>
               </div>
             </div>
 
-            {/* Metrics row */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                <span className="text-2xl font-bold">{bottleneck.itemCount}</span>
+                <span className="text-2xl font-bold text-status-red">{blocked}</span>
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mt-0.5">
-                  Items
+                  Blocked Turns
                 </p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                <span
-                  className={`text-2xl font-bold ${bottleneck.maxAgeDays > 14 ? "text-red-400" : "text-amber-400"}`}
-                >
-                  {bottleneck.maxAgeDays}d
+                <span className={`text-2xl font-bold ${blockedPct > 25 ? "text-red-400" : "text-amber-400"}`}>
+                  {blockedPct}%
                 </span>
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mt-0.5">
-                  Max Age
+                  Of Active
                 </p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3 text-center">
-                <span className="text-2xl font-bold">{bottleneck.avgAgeDays}d</span>
+                <span className="text-2xl font-bold">{avgCompletion}%</span>
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wider mt-0.5">
-                  Avg Age
+                  Avg Complete
                 </p>
               </div>
             </div>
 
-            {/* Impact summary */}
             <div className="bg-background rounded-lg border border-border/50 p-3">
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 <span className="text-foreground font-semibold">Impact: </span>
-                {bottleneck.impactSummary}
+                {stageName} stage is blocking {blocked} of {active} active turns, delaying {notRentReady} unit{notRentReady !== 1 ? "s" : ""} from reaching rent-ready status.
+                {rework > 0 && ` ${rework} additional turn${rework !== 1 ? "s" : ""} in rework loop.`}
               </p>
-              <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/30">
-                <span
-                  className={`text-[10px] font-medium ${bnDocCount > 0 ? "text-muted-foreground" : "text-amber-400/80"}`}
-                >
-                  {bnDocCount > 0
-                    ? EVIDENCE.DOCS_SUPPORTED(bnDocCount)
-                    : EVIDENCE.NO_DOCS_RISK}
-                </span>
-              </div>
             </div>
 
-            {/* Recommendation */}
-            <div
-              className={`rounded-lg border p-3 ${
-                bottleneck.hasCritical
-                  ? "border-red-500/40 bg-red-500/5"
-                  : "border-amber-500/40 bg-amber-500/5"
-              }`}
-            >
+            <div className={`rounded-lg border p-3 ${hasCritical ? "border-red-500/40 bg-red-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
               <p className="text-[11px] leading-relaxed">
-                <span
-                  className={`font-semibold ${bottleneck.hasCritical ? "text-red-400" : "text-amber-400"}`}
-                >
+                <span className={`font-semibold ${hasCritical ? "text-red-400" : "text-amber-400"}`}>
                   Recommendation:{" "}
                 </span>
-                {bottleneck.recommendation}
+                Prioritize clearing the {stageName} bottleneck — assign resources to unblock {blocked} stalled turn{blocked !== 1 ? "s" : ""} and accelerate {notRentReady} unit{notRentReady !== 1 ? "s" : ""} toward rent-ready status.
               </p>
             </div>
-
-            <Link href={`/workflows/${bottleneck.workflowId}`}>
-              <div className="flex items-center justify-end gap-1.5 text-xs text-primary hover:underline cursor-pointer mt-auto">
-                View workflow
-                <ArrowRight className="h-3 w-3" />
-              </div>
-            </Link>
           </>
         )}
       </CardContent>
@@ -2177,84 +2076,112 @@ function StageDistributionChart({
   );
 }
 
-function WorkflowSpotlight({
-  entries,
+function TurnAgingPanel({
+  turnStats,
   isLoading,
 }: {
-  entries: WorkflowSpotlightEntry[];
+  turnStats: TurnStats | null | undefined;
   isLoading: boolean;
 }) {
+  const blocked = turnStats?.blockedTurns ?? 0;
+  const total = turnStats?.totalTurns ?? 0;
+  const active = turnStats?.activeTurns ?? 0;
+  const rework = turnStats?.reworkTurns ?? 0;
+  const notRentReady = turnStats?.notRentReadyCount ?? 0;
+  const avgCompletion = turnStats?.avgCompletionPct ?? 0;
+  const stageName = turnStats?.primaryBottleneckStage ?? "Unknown Stage";
+
+  const agingPct = active > 0 ? Math.round((blocked / active) * 100) : 0;
+  const reworkPct = total > 0 ? Math.round((rework / total) * 100) : 0;
+  const nrrPct = total > 0 ? Math.round((notRentReady / total) * 100) : 0;
+
+  const rows = [
+    {
+      label: "Blocked (≥7d in stage)",
+      count: blocked,
+      pct: agingPct,
+      ofLabel: `of ${active} active`,
+      severity: blocked > 10 ? "red" : blocked > 0 ? "yellow" : "green",
+      Icon: AlertTriangle,
+    },
+    {
+      label: "In Rework Loop",
+      count: rework,
+      pct: reworkPct,
+      ofLabel: `of ${total} total`,
+      severity: rework > 10 ? "red" : rework > 0 ? "yellow" : "green",
+      Icon: RefreshCw,
+    },
+    {
+      label: "Not Rent-Ready",
+      count: notRentReady,
+      pct: nrrPct,
+      ofLabel: `of ${total} units`,
+      severity: nrrPct > 50 ? "red" : nrrPct > 20 ? "yellow" : "green",
+      Icon: Home,
+    },
+  ] as const;
+
   return (
     <Card className="bg-card border-border/50 shadow-sm h-full">
       <CardHeader className="pb-3 border-b border-border/50">
-        <CardTitle className="text-base">Workflow Spotlight</CardTitle>
-        <CardDescription>Active workflows ranked by concern</CardDescription>
+        <CardTitle className="text-base">Turn Aging &amp; Backlog</CardTitle>
+        <CardDescription>Stalled turns · rework loop · not rent-ready</CardDescription>
       </CardHeader>
       <CardContent className="p-0 overflow-auto max-h-[330px]">
         {isLoading ? (
           <div className="p-4 space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
+            {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-14 w-full" />
             ))}
           </div>
-        ) : entries.length === 0 ? (
+        ) : !turnStats?.hasData ? (
           <div className="p-8 text-center text-muted-foreground text-sm">
-            No active workflows
+            No turn data available. Import turn matrix to enable.
           </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {entries.map((entry, i) => (
-              <motion.div
-                key={entry.workflowId}
-                initial={{ opacity: 0, x: 8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className={`flex items-center gap-4 px-4 py-3 hover:bg-secondary/50 transition-colors border-l-2 ${concernBorder(entry.concernLevel)}`}
-              >
-                {/* Score ring */}
-                <div className="relative flex items-center justify-center shrink-0">
-                  <svg className="w-10 h-10 -rotate-90">
-                    <circle cx="20" cy="20" r="16" stroke="hsl(var(--secondary))" strokeWidth="3" fill="none" />
-                    <circle
-                      cx="20" cy="20" r="16"
-                      stroke={getStoplightColor(entry.stoplight)}
-                      strokeWidth="3" fill="none"
-                      strokeDasharray={2 * Math.PI * 16}
-                      strokeDashoffset={2 * Math.PI * 16 * (1 - entry.healthScore / 100)}
-                    />
-                  </svg>
-                  <span className="absolute text-[10px] font-bold">{entry.healthScore}</span>
-                </div>
+            {rows.map((row, i) => {
+              const sColor = row.severity === "red" ? "text-red-400" : row.severity === "yellow" ? "text-amber-400" : "text-green-400";
+              const sBg = row.severity === "red" ? "bg-red-500/10" : row.severity === "yellow" ? "bg-amber-500/10" : "bg-green-500/10";
+              return (
+                <motion.div
+                  key={row.label}
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  className="flex items-center gap-4 px-4 py-4 hover:bg-secondary/50 transition-colors"
+                >
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${sBg}`}>
+                    <row.Icon className={`h-4 w-4 ${sColor}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground/80">{row.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {row.ofLabel} · top stage: {stageName}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-xl font-bold tabular-nums ${sColor}`}>{row.count}</p>
+                    <p className="text-[10px] text-muted-foreground">{row.pct}%</p>
+                  </div>
+                </motion.div>
+              );
+            })}
 
-                <div className="flex-1 min-w-0">
-                  <Link
-                    href={`/workflows/${entry.workflowId}`}
-                    className="font-semibold text-sm hover:text-primary hover:underline truncate block"
-                  >
-                    {entry.title}
-                  </Link>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                    {entry.concernReason}
-                  </p>
+            <div className="px-4 py-4 bg-secondary/20">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60 mb-2">Completion Snapshot</p>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-secondary rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full bg-green-500/60 rounded-full transition-all"
+                    style={{ width: `${avgCompletion}%` }}
+                  />
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
-                  {entry.criticalItems > 0 && (
-                    <span className="flex items-center gap-0.5 text-red-400 font-semibold">
-                      <AlertTriangle className="h-3 w-3" />
-                      {entry.criticalItems}
-                    </span>
-                  )}
-                  {entry.overdueItems > 0 && (
-                    <span className="flex items-center gap-0.5 text-amber-400 font-semibold">
-                      <Clock className="h-3 w-3" />
-                      {entry.overdueItems}
-                    </span>
-                  )}
-                  <span className="text-muted-foreground">{entry.openItems} open</span>
-                </div>
-              </motion.div>
-            ))}
+                <span className="text-xs font-semibold tabular-nums w-12 text-right">{avgCompletion}%</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">{total} total turns · avg stage completion</p>
+            </div>
           </div>
         )}
       </CardContent>

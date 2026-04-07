@@ -1,0 +1,167 @@
+We are replacing ALL remaining legacy insight panels in Ascent 1.0.
+
+This is a FULL REPLACEMENT.
+
+==================================================
+CORE PROBLEM
+============
+
+The Control Tower (top section) is now fully turn-driven.
+
+BUT the bottom panels still use:
+
+* workflow data
+* item-based metrics
+* legacy aggregation
+
+This creates conflicting intelligence.
+
+==================================================
+CORE OBJECTIVE
+==============
+
+Replace ALL bottom panels with:
+
+TURN-DRIVEN INSIGHT PANELS
+
+==================================================
+REMOVE COMPLETELY
+=================
+
+Delete the following panels:
+
+* Completion Activity (items completed)
+* Aging Items
+* Overdue Items
+* Workflow Spotlight
+* Asset Health Pulse (if not turn-linked)
+* Any panel referencing “items” or “workflows”
+
+==================================================
+REPLACE WITH TURN PANELS
+========================
+
+1. TURN COMPLETION PANEL
+
+Show:
+
+* turns completed (last 7 days)
+* avg completion %
+* trend direction
+
+---
+
+2. TURN AGING PANEL
+
+Show:
+
+* turns aging > 7 days
+* avg days in stage
+* oldest turn
+
+---
+
+3. BLOCKED TURN PANEL
+
+Show:
+
+* total blocked turns
+* % of total
+* top blocking stage
+
+---
+
+4. NOT RENT-READY PANEL
+
+Show:
+
+* total not rent-ready
+* % of total units
+* top cause (stage)
+
+---
+
+5. STAGE DISTRIBUTION PANEL
+
+Show:
+
+* turns per stage
+* congestion visualization
+
+---
+
+6. REWORK PANEL
+
+Show:
+
+* total rework turns
+* % of total
+* impact on completion
+
+==================================================
+PRIMARY BOTTLENECK PANEL FIX
+============================
+
+Replace:
+
+“Appliance Maintenance”
+
+WITH:
+
+actual turn stage:
+
+* Maintenance
+* Flooring
+* Cleaning
+* Inspection
+
+---
+
+Display:
+
+* # of turns in that stage
+* avg days in stage
+
+==================================================
+DATA SOURCE RULE
+================
+
+ALL PANELS MUST USE:
+
+turn_metrics
+
+NO workflow data allowed
+
+==================================================
+LANGUAGE RULE
+=============
+
+ONLY USE:
+
+* turns
+* units
+* stages
+
+NEVER USE:
+
+* items
+* workflows
+
+==================================================
+SUCCESS STATE
+=============
+
+This fix is complete when:
+
+1. Entire dashboard is turn-driven
+2. No legacy panels remain
+3. All panels align with Turn Overview
+4. No conflicting data exists
+5. System tells ONE story
+
+==================================================
+INTERNAL LABEL
+
+“Build 1.10.11 — Turn-Based Insight Panel Replacement”
+
+==================================================
