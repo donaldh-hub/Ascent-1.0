@@ -134,6 +134,27 @@ type DrillState = { signal: SignalType; workflowId?: number; stageId?: number } 
 const fmtCost = (n: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
+function computeOrgTurnScores(ts: NonNullable<ReturnType<typeof useGetDashboardIntelligence>["data"]>["turnStats"]) {
+  if (!ts || !ts.hasData || ts.totalTurns === 0) return null;
+  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+  const blockedRate = ts.blockedTurns / ts.totalTurns;
+  const reworkRate = ts.reworkTurns / ts.totalTurns;
+  const notRentReadyRate = ts.notRentReadyCount / ts.totalTurns;
+  const completedRate = ts.completedTurns / ts.totalTurns;
+  const rentReadyRate = 1 - notRentReadyRate;
+  const flowScore = clamp(ts.avgCompletionPct - blockedRate * 40 - reworkRate * 15);
+  const riskScore = clamp(100 - (blockedRate * 50 + notRentReadyRate * 30 + reworkRate * 20));
+  const executionScore = clamp(ts.avgCompletionPct * 0.5 + completedRate * 100 * 0.5);
+  const improvementScore = clamp(completedRate * 60 + rentReadyRate * 40);
+  const ohsScore = Math.round(flowScore * 0.30 + riskScore * 0.30 + executionScore * 0.25 + improvementScore * 0.15);
+  const stoplight = ohsScore >= 75 ? "green" : ohsScore >= 50 ? "yellow" : "red";
+  return { flowScore, riskScore, executionScore, improvementScore, ohsScore, stoplight };
+}
+
+function dimStoplight(score: number): string {
+  return score >= 75 ? "green" : score >= 50 ? "yellow" : "red";
+}
+
 export default function Dashboard() {
   const { data: intel, isLoading } = useGetDashboardIntelligence();
   const { data: summary } = useGetDashboardSummary();
@@ -155,6 +176,24 @@ export default function Dashboard() {
   const [drillState, setDrillState] = useState<DrillState>(null);
 
   const snap = intel?.executiveSnapshot;
+
+  const ts = intel?.turnStats ?? null;
+  const turnScores = ts?.hasData ? computeOrgTurnScores(ts) : null;
+  const displayOHS = turnScores?.ohsScore ?? snap?.operationalHealthScore ?? 0;
+  const displayStoplight = turnScores?.stoplight ?? snap?.stoplight;
+
+  const turnFlowInsight = ts?.hasData
+    ? `${ts.avgCompletionPct}% avg completion · ${ts.blockedTurns} turns blocked at "${ts.primaryBottleneckStage ?? "primary stage"}" · ${ts.reworkTurns} in rework`
+    : undefined;
+  const turnRiskInsight = ts?.hasData
+    ? `${ts.blockedTurns} blocked turns · ${ts.notRentReadyCount} units not rent-ready · ${ts.reworkTurns} in rework loop`
+    : undefined;
+  const turnExecInsight = ts?.hasData
+    ? `${ts.completedTurns} of ${ts.totalTurns} turns completed · ${ts.avgCompletionPct}% avg stage completion across ${ts.propertyCount} properties`
+    : undefined;
+  const turnImprovInsight = ts?.hasData
+    ? `${ts.completedTurns} turns completed · ${Math.round(((ts.totalTurns - ts.notRentReadyCount) / ts.totalTurns) * 100)}% rent-ready rate`
+    : undefined;
 
   function toggleMetric(key: "flow" | "risk" | "execution" | "improvement") {
     setActiveMetric((prev) => (prev === key ? null : key));
@@ -211,18 +250,18 @@ export default function Dashboard() {
                   />
                   <circle
                     cx="96" cy="96" r="88"
-                    stroke={getStoplightColor(snap?.stoplight)}
+                    stroke={getStoplightColor(displayStoplight)}
                     strokeWidth="8" fill="transparent"
                     strokeDasharray={2 * Math.PI * 88}
                     strokeDashoffset={
-                      2 * Math.PI * 88 * (1 - (snap?.operationalHealthScore ?? 0) / 100)
+                      2 * Math.PI * 88 * (1 - displayOHS / 100)
                     }
                     className="transition-all duration-1000 ease-out drop-shadow-md"
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center">
                   <span className="text-5xl font-black tracking-tighter">
-                    {snap?.operationalHealthScore ?? "—"}
+                    {displayOHS || "—"}
                   </span>
                   <span className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mt-1">
                     OHS
@@ -232,100 +271,163 @@ export default function Dashboard() {
             )}
 
             <div className="mt-6 grid grid-cols-3 gap-3 w-full text-center">
-              <StatPill
-                value={snap?.criticalItemsCount ?? 0}
-                label="Critical"
-                color="text-red-400"
-                isLoading={isLoading}
-                onClick={!isLoading && (snap?.criticalItemsCount ?? 0) > 0 ? () => openDrill("critical_items") : undefined}
-              />
-              <StatPill
-                value={snap?.activeWorkflowsCount ?? 0}
-                label="Active"
-                color="text-blue-400"
-                isLoading={isLoading}
-                onClick={!isLoading && (snap?.activeWorkflowsCount ?? 0) > 0 ? () => openDrill("at_risk_workflows") : undefined}
-              />
-              <StatPill
-                value={snap?.overdueItemsCount ?? 0}
-                label="Overdue"
-                color="text-amber-400"
-                isLoading={isLoading}
-                onClick={!isLoading && (snap?.overdueItemsCount ?? 0) > 0 ? () => openDrill("overdue_items") : undefined}
-              />
+              {ts?.hasData ? (
+                <>
+                  <StatPill
+                    value={ts.blockedTurns}
+                    label="Blocked"
+                    color="text-red-400"
+                    isLoading={isLoading}
+                    onClick={!isLoading && ts.blockedTurns > 0 ? () => openDrill("blocked_turns") : undefined}
+                  />
+                  <StatPill
+                    value={ts.activeTurns}
+                    label="Active"
+                    color="text-blue-400"
+                    isLoading={isLoading}
+                  />
+                  <StatPill
+                    value={ts.notRentReadyCount}
+                    label="Not Ready"
+                    color="text-amber-400"
+                    isLoading={isLoading}
+                    onClick={!isLoading && ts.notRentReadyCount > 0 ? () => openDrill("not_rent_ready") : undefined}
+                  />
+                </>
+              ) : (
+                <>
+                  <StatPill
+                    value={snap?.criticalItemsCount ?? 0}
+                    label="Critical"
+                    color="text-red-400"
+                    isLoading={isLoading}
+                    onClick={!isLoading && (snap?.criticalItemsCount ?? 0) > 0 ? () => openDrill("critical_items") : undefined}
+                  />
+                  <StatPill
+                    value={snap?.activeWorkflowsCount ?? 0}
+                    label="Active"
+                    color="text-blue-400"
+                    isLoading={isLoading}
+                    onClick={!isLoading && (snap?.activeWorkflowsCount ?? 0) > 0 ? () => openDrill("at_risk_workflows") : undefined}
+                  />
+                  <StatPill
+                    value={snap?.overdueItemsCount ?? 0}
+                    label="Overdue"
+                    color="text-amber-400"
+                    isLoading={isLoading}
+                    onClick={!isLoading && (snap?.overdueItemsCount ?? 0) > 0 ? () => openDrill("overdue_items") : undefined}
+                  />
+                </>
+              )}
             </div>
 
-            {snap?.insight && (
+            {(ts?.hasData || snap?.insight) && (
               <p className="text-[11px] text-muted-foreground mt-4 text-center leading-relaxed line-clamp-3">
-                {snap.insight}
+                {ts?.hasData
+                  ? `${ts.totalTurns} turns across ${ts.propertyCount} properties — ${ts.blockedTurns} blocked, ${ts.notRentReadyCount} units not rent-ready, ${ts.avgCompletionPct}% avg completion`
+                  : snap!.insight}
               </p>
             )}
 
             {/* DRIVEN BY block */}
-            {snap && (
+            {(ts?.hasData || snap) && (
               <div className="mt-4 w-full rounded-lg bg-secondary/50 border border-border/40 px-3 py-3 text-left">
                 <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-2">
                   Driven By
                 </p>
                 <ul className="space-y-1.5">
-                  <li className="flex items-start gap-2 text-xs">
-                    <span className="text-status-red font-bold mt-0.5">•</span>
-                    <span className="text-foreground/80">
-                      <ClickableSignal
-                        onClick={() => openDrill("critical_items")}
-                        className="px-1 py-0.5 rounded"
-                        title="View critical items"
-                        disabled={snap.criticalItemsCount === 0}
-                      >
-                        <span className="font-semibold text-status-red">{snap.criticalItemsCount} critical items</span>
-                      </ClickableSignal>
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2 text-xs">
-                    <span className="text-status-yellow font-bold mt-0.5">•</span>
-                    <span className="text-foreground/80">
-                      <ClickableSignal
-                        onClick={() => openDrill("overdue_items")}
-                        className="px-1 py-0.5 rounded"
-                        title="View overdue items"
-                        disabled={snap.overdueItemsCount === 0}
-                      >
-                        <span className="font-semibold text-status-yellow">{snap.overdueItemsCount} overdue items</span>
-                      </ClickableSignal>
-                    </span>
-                  </li>
-                  {intel?.primaryBottleneck && (
-                    <li className="flex items-start gap-2 text-xs">
-                      <span className="text-status-red font-bold mt-0.5">•</span>
-                      <span className="text-foreground/75 leading-snug">
-                        <span className="font-semibold text-foreground/90">{intel.primaryBottleneck.workflowTitle}</span> bottleneck
-                        <span className="text-muted-foreground"> ({intel.primaryBottleneck.maxAgeDays}d max age)</span>
-                      </span>
-                    </li>
-                  )}
-                  {intel?.turnStats?.hasData && (intel.turnStats.blockedTurns > 0 || intel.turnStats.reworkTurns > 0) && (
-                    <li className="flex items-start gap-2 text-xs">
-                      <span className="text-amber-400 font-bold mt-0.5">•</span>
-                      <span className="text-foreground/80">
-                        <ClickableSignal
-                          onClick={() => openDrill("blocked_turns")}
-                          className="px-1 py-0.5 rounded"
-                          title="View blocked turn records"
-                          disabled={intel.turnStats!.blockedTurns === 0}
-                        >
-                          <span className="font-semibold text-amber-400">{intel.turnStats.blockedTurns} turns blocked</span>
-                        </ClickableSignal>
-                        {intel.turnStats.reworkTurns > 0 && (
-                          <> · <ClickableSignal
-                            onClick={() => openDrill("rework_loop")}
+                  {ts?.hasData ? (
+                    <>
+                      {ts.blockedTurns > 0 && (
+                        <li className="flex items-start gap-2 text-xs">
+                          <span className="text-status-red font-bold mt-0.5">•</span>
+                          <span className="text-foreground/80">
+                            <ClickableSignal
+                              onClick={() => openDrill("blocked_turns")}
+                              className="px-1 py-0.5 rounded"
+                              title="View blocked turns"
+                            >
+                              <span className="font-semibold text-status-red">{ts.blockedTurns} turns blocked</span>
+                            </ClickableSignal>
+                          </span>
+                        </li>
+                      )}
+                      {ts.notRentReadyCount > 0 && (
+                        <li className="flex items-start gap-2 text-xs">
+                          <span className="text-status-yellow font-bold mt-0.5">•</span>
+                          <span className="text-foreground/80">
+                            <ClickableSignal
+                              onClick={() => openDrill("not_rent_ready")}
+                              className="px-1 py-0.5 rounded"
+                              title="View not-rent-ready units"
+                            >
+                              <span className="font-semibold text-status-yellow">{ts.notRentReadyCount} units not rent-ready</span>
+                            </ClickableSignal>
+                          </span>
+                        </li>
+                      )}
+                      {ts.primaryBottleneckStage && (
+                        <li className="flex items-start gap-2 text-xs">
+                          <span className="text-status-red font-bold mt-0.5">•</span>
+                          <span className="text-foreground/75 leading-snug">
+                            <span className="font-semibold text-foreground/90">{ts.primaryBottleneckStage}</span>
+                            {" "}stage bottleneck — highest turn congestion
+                          </span>
+                        </li>
+                      )}
+                      {ts.reworkTurns > 0 && (
+                        <li className="flex items-start gap-2 text-xs">
+                          <span className="text-amber-400 font-bold mt-0.5">•</span>
+                          <span className="text-foreground/80">
+                            <ClickableSignal
+                              onClick={() => openDrill("rework_loop")}
+                              className="px-1 py-0.5 rounded"
+                              title="View rework turns"
+                            >
+                              <span className="font-semibold text-amber-400">{ts.reworkTurns} turns in rework</span>
+                            </ClickableSignal>
+                          </span>
+                        </li>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <li className="flex items-start gap-2 text-xs">
+                        <span className="text-status-red font-bold mt-0.5">•</span>
+                        <span className="text-foreground/80">
+                          <ClickableSignal
+                            onClick={() => openDrill("critical_items")}
                             className="px-1 py-0.5 rounded"
-                            title="View rework turns"
+                            title="View critical items"
+                            disabled={snap?.criticalItemsCount === 0}
                           >
-                            <span className="font-semibold text-status-red">{intel.turnStats.reworkTurns} in rework</span>
-                          </ClickableSignal></>
-                        )}
-                      </span>
-                    </li>
+                            <span className="font-semibold text-status-red">{snap?.criticalItemsCount} critical items</span>
+                          </ClickableSignal>
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs">
+                        <span className="text-status-yellow font-bold mt-0.5">•</span>
+                        <span className="text-foreground/80">
+                          <ClickableSignal
+                            onClick={() => openDrill("overdue_items")}
+                            className="px-1 py-0.5 rounded"
+                            title="View overdue items"
+                            disabled={snap?.overdueItemsCount === 0}
+                          >
+                            <span className="font-semibold text-status-yellow">{snap?.overdueItemsCount} overdue items</span>
+                          </ClickableSignal>
+                        </span>
+                      </li>
+                      {intel?.primaryBottleneck && (
+                        <li className="flex items-start gap-2 text-xs">
+                          <span className="text-status-red font-bold mt-0.5">•</span>
+                          <span className="text-foreground/75 leading-snug">
+                            <span className="font-semibold text-foreground/90">{intel.primaryBottleneck.workflowTitle}</span> bottleneck
+                            <span className="text-muted-foreground"> ({intel.primaryBottleneck.maxAgeDays}d max age)</span>
+                          </span>
+                        </li>
+                      )}
+                    </>
                   )}
                 </ul>
               </div>
@@ -338,9 +440,9 @@ export default function Dashboard() {
           <ScoreCard
             title="Flow"
             metricKey="flow"
-            score={summary?.flowScore}
-            stoplight={summary?.flowStoplight}
-            insight={summary?.flowInsight}
+            score={turnScores?.flowScore ?? summary?.flowScore}
+            stoplight={turnScores ? dimStoplight(turnScores.flowScore) : summary?.flowStoplight}
+            insight={turnFlowInsight ?? summary?.flowInsight}
             icon={Workflow}
             isLoading={isLoading}
             colorClass="text-blue-400"
@@ -350,9 +452,9 @@ export default function Dashboard() {
           <ScoreCard
             title="Risk"
             metricKey="risk"
-            score={summary?.riskScore}
-            stoplight={summary?.riskStoplight}
-            insight={summary?.riskInsight}
+            score={turnScores?.riskScore ?? summary?.riskScore}
+            stoplight={turnScores ? dimStoplight(turnScores.riskScore) : summary?.riskStoplight}
+            insight={turnRiskInsight ?? summary?.riskInsight}
             icon={AlertTriangle}
             isLoading={isLoading}
             colorClass="text-red-400"
@@ -362,9 +464,9 @@ export default function Dashboard() {
           <ScoreCard
             title="Execution"
             metricKey="execution"
-            score={summary?.executionScore}
-            stoplight={summary?.executionStoplight}
-            insight={summary?.executionInsight}
+            score={turnScores?.executionScore ?? summary?.executionScore}
+            stoplight={turnScores ? dimStoplight(turnScores.executionScore) : summary?.executionStoplight}
+            insight={turnExecInsight ?? summary?.executionInsight}
             icon={Target}
             isLoading={isLoading}
             colorClass="text-green-400"
@@ -374,9 +476,9 @@ export default function Dashboard() {
           <ScoreCard
             title="Improvement"
             metricKey="improvement"
-            score={summary?.improvementScore}
-            stoplight={summary?.improvementStoplight}
-            insight={summary?.improvementInsight}
+            score={turnScores?.improvementScore ?? summary?.improvementScore}
+            stoplight={turnScores ? dimStoplight(turnScores.improvementScore) : summary?.improvementStoplight}
+            insight={turnImprovInsight ?? summary?.improvementInsight}
             icon={Activity}
             isLoading={isLoading}
             colorClass="text-purple-400"
@@ -857,6 +959,19 @@ function MetricRevealSection({
   const turnStats = intel?.turnStats ?? null;
 
   // ── Per-metric config ──
+  const revealFlowWhy = turnStats?.hasData
+    ? `${turnStats.avgCompletionPct}% avg turn completion · ${turnStats.blockedTurns} turns blocked at "${turnStats.primaryBottleneckStage ?? "primary stage"}" · ${turnStats.reworkTurns} turns in rework`
+    : (summary?.flowInsight ?? "Flow analysis unavailable.");
+  const revealRiskWhy = turnStats?.hasData
+    ? `${turnStats.blockedTurns} blocked turns · ${turnStats.notRentReadyCount} units not rent-ready · ${turnStats.reworkTurns} in rework loop`
+    : (summary?.riskInsight ?? "Risk analysis unavailable.");
+  const revealExecWhy = turnStats?.hasData
+    ? `${turnStats.completedTurns} of ${turnStats.totalTurns} turns completed · ${turnStats.avgCompletionPct}% avg stage completion · ${turnStats.notRentReadyCount} units not yet leasable`
+    : (summary?.executionInsight ?? "Execution analysis unavailable.");
+  const revealImprovWhy = turnStats?.hasData
+    ? `${turnStats.completedTurns} turns completed · ${Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)}% rent-ready rate across ${turnStats.propertyCount} properties`
+    : (summary?.improvementInsight ?? "Improvement analysis unavailable.");
+
   const config: Record<MetricKey, {
     title: string;
     why: string;
@@ -867,7 +982,7 @@ function MetricRevealSection({
   }> = {
     flow: {
       title: "FLOW — Why Movement is Constrained",
-      why: summary?.flowInsight ?? "Flow analysis unavailable.",
+      why: revealFlowWhy,
       accentClass: "bg-blue-500",
       borderClass: "border-blue-500/50",
       bgClass: "bg-blue-500/5",
@@ -875,7 +990,7 @@ function MetricRevealSection({
     },
     risk: {
       title: "RISK — Why Exposure is Elevated",
-      why: summary?.riskInsight ?? "Risk analysis unavailable.",
+      why: revealRiskWhy,
       accentClass: "bg-red-500",
       borderClass: "border-red-500/50",
       bgClass: "bg-red-500/5",
@@ -883,7 +998,7 @@ function MetricRevealSection({
     },
     execution: {
       title: "EXECUTION — Why Progress is Low",
-      why: summary?.executionInsight ?? "Execution analysis unavailable.",
+      why: revealExecWhy,
       accentClass: "bg-green-500",
       borderClass: "border-green-500/50",
       bgClass: "bg-green-500/5",
@@ -891,7 +1006,7 @@ function MetricRevealSection({
     },
     improvement: {
       title: "IMPROVEMENT — Trend Analysis",
-      why: summary?.improvementInsight ?? "Improvement analysis unavailable.",
+      why: revealImprovWhy,
       accentClass: "bg-purple-500",
       borderClass: "border-purple-500/50",
       bgClass: "bg-purple-500/5",
@@ -904,38 +1019,45 @@ function MetricRevealSection({
   // ── PRIMARY CAUSE (derived from real data, turn-first when available) ──
   let primaryCause = cfg.why;
   if (metric === "flow") {
-    if (turnStats?.hasData && bottleneck) {
-      primaryCause = `${turnStats.blockedTurns} turns blocked at "${turnStats.primaryBottleneckStage ?? bottleneck.stageName}" stage · ${Math.round(100 - turnStats.avgCompletionPct)}% of active turns incomplete · ${bottleneck.itemCount} items stuck in "${bottleneck.stageName}" (${bottleneck.maxAgeDays}d max age)`;
-    } else if (turnStats?.hasData) {
-      primaryCause = `${turnStats.blockedTurns} turns blocked · ${turnStats.avgCompletionPct}% avg turn completion · Primary bottleneck: ${turnStats.primaryBottleneckStage ?? "undetected"}`;
+    if (turnStats?.hasData) {
+      primaryCause = `${turnStats.blockedTurns} turns blocked at "${turnStats.primaryBottleneckStage ?? "primary stage"}" stage · ${Math.round(100 - turnStats.avgCompletionPct)}% of active turns incomplete · ${turnStats.reworkTurns} turns in rework`;
     } else if (bottleneck) {
-      primaryCause = `${bottleneck.itemCount} items stuck in "${bottleneck.stageName}" stage (${bottleneck.workflowTitle}) — ${bottleneck.maxAgeDays}d max age`;
+      primaryCause = `${bottleneck.itemCount} stages congested in "${bottleneck.stageName}" (${bottleneck.workflowTitle}) — ${bottleneck.maxAgeDays}d max age`;
     }
   } else if (metric === "risk") {
-    if (turnStats?.hasData && snap) {
-      const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
-      primaryCause = `${snap.criticalItemsCount} critical workflow items · ${turnStats.blockedTurns} blocked turns · ${turnStats.reworkTurns} in rework · ${turnStats.notRentReadyCount} units not rent-ready across ${redCount} at-risk workflow${redCount !== 1 ? "s" : ""}`;
-    } else if (snap) {
-      const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
-      primaryCause = `${snap.criticalItemsCount} critical-priority items open with ${snap.overdueItemsCount} past due date — active exposure across ${redCount} at-risk workflow${redCount !== 1 ? "s" : ""}`;
-    }
-  } else if (metric === "execution") {
-    if (turnStats?.hasData && snap) {
+    if (turnStats?.hasData) {
       const rentReadyRate = turnStats.totalTurns > 0
         ? Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)
         : 0;
-      primaryCause = `${rentReadyRate}% rent-ready rate from ${turnStats.totalTurns} turns · ${snap.throughputPercent}% workflow completion · ${turnStats.notRentReadyCount} units not yet leasable`;
+      primaryCause = `${turnStats.blockedTurns} blocked turns · ${turnStats.reworkTurns} in rework · ${turnStats.notRentReadyCount} units not rent-ready (${rentReadyRate}% rent-ready rate)`;
+    } else if (snap) {
+      const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
+      primaryCause = `${snap.overdueItemsCount} overdue units · active exposure across ${redCount} at-risk propert${redCount !== 1 ? "ies" : "y"}`;
+    }
+  } else if (metric === "execution") {
+    if (turnStats?.hasData) {
+      const rentReadyRate = turnStats.totalTurns > 0
+        ? Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)
+        : 0;
+      primaryCause = `${rentReadyRate}% rent-ready rate · ${turnStats.completedTurns} of ${turnStats.totalTurns} turns completed · ${turnStats.notRentReadyCount} units not yet leasable`;
     } else if (snap) {
       if (snap.longestAgingItem) {
-        primaryCause = `${snap.throughputPercent}% workflow completion rate — longest item stuck ${snap.longestAgingItem.daysInStage}d in "${snap.longestAgingItem.workflowTitle}"`;
+        primaryCause = `${snap.overdueItemsCount} units overdue — longest stuck ${snap.longestAgingItem.daysInStage}d in stage`;
       } else {
-        primaryCause = `${snap.throughputPercent}% workflow completion rate — ${snap.overdueItemsCount} overdue items contributing to execution drag`;
+        primaryCause = `${snap.overdueItemsCount} overdue units contributing to execution drag`;
       }
     }
   } else if (metric === "improvement") {
-    const completionTrend = trends.find((t) => t.label === "Completion Activity");
-    if (completionTrend && snap) {
-      primaryCause = `Completion trend ${completionTrend.direction} — ${completionTrend.value} with ${snap.throughputPercent}% overall throughput`;
+    if (turnStats?.hasData) {
+      const rentReadyRate = turnStats.totalTurns > 0
+        ? Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)
+        : 0;
+      primaryCause = `${turnStats.completedTurns} turns completed · ${rentReadyRate}% rent-ready rate · ${turnStats.totalTurns - turnStats.completedTurns} turns still in progress`;
+    } else {
+      const completionTrend = trends.find((t) => t.label === "Completion Activity");
+      if (completionTrend) {
+        primaryCause = `Completion trend ${completionTrend.direction} — ${completionTrend.value}`;
+      }
     }
   }
 

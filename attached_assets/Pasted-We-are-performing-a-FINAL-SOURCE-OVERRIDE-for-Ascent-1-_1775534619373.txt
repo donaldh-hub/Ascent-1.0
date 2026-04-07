@@ -1,0 +1,167 @@
+We are performing a FINAL SOURCE OVERRIDE for Ascent 1.0.
+
+This is NOT a new feature.
+
+This is a SYSTEM AUTHORITY CORRECTION.
+
+==================================================
+CORE PROBLEM
+============
+
+The system currently has TWO competing sources:
+
+1. Turn-based metrics (correct)
+2. Workflow-based metrics (legacy)
+
+The Control Tower is still using workflow-based signals.
+
+This causes:
+
+* score mismatch
+* incorrect drivers
+* misleading insights
+
+==================================================
+CORE OBJECTIVE
+==============
+
+Make the CONTROL TOWER use ONLY:
+
+turn_metrics
+
+==================================================
+CRITICAL RULE
+=============
+
+Control Tower = TURN SYSTEM ONLY
+
+Workflow data MUST NOT:
+
+* drive scores
+* drive bottlenecks
+* drive drivers
+
+==================================================
+
+1. REMOVE WORKFLOW DEPENDENCY
+   ==================================================
+
+REMOVE from Control Tower:
+
+* workflow_items queries
+* workflow bottleneck detection
+* workflow stage references
+* “Appliance Maintenance” as system driver
+
+==================================================
+2. REPLACE WITH TURN METRICS
+============================
+
+ALL Control Tower cards must use:
+
+turn_metrics
+
+---
+
+FLOW:
+
+* stage congestion (turns)
+* blocked turns
+* avg days in stage
+
+---
+
+RISK:
+
+* blocked_turn_count
+* not_rent_ready
+* rework_count
+
+---
+
+EXECUTION:
+
+* completion %
+* rent_ready_rate
+
+---
+
+IMPROVEMENT:
+
+* completion trend
+* blocked reduction
+
+==================================================
+3. DRIVER PANEL REWRITE
+=======================
+
+REPLACE:
+
+“347 critical items”
+
+WITH:
+
+real turn-driven outputs:
+
+Example:
+
+“30 turns blocked”
+“24 units not rent-ready”
+“Maintenance bottleneck affecting 12 units”
+
+==================================================
+4. OHS GAUGE FIX
+================
+
+The main gauge must be calculated from:
+
+* Flow
+* Risk
+* Execution
+* Improvement
+
+All derived from turn data
+
+==================================================
+5. CLEAN LANGUAGE
+=================
+
+REMOVE:
+
+* “items”
+* “workflow”
+* “critical items”
+* “overdue items”
+
+REPLACE WITH:
+
+* turns
+* units
+* stages
+
+==================================================
+6. VALIDATION RULE
+==================
+
+If Control Tower value ≠ Turn Overview:
+
+THROW ERROR
+
+==================================================
+SUCCESS STATE
+=============
+
+This fix is complete when:
+
+1. Control Tower matches Turn Overview
+2. All drivers reference turn data
+3. No workflow language exists
+4. Scores align with formulas
+5. System is fully consistent
+
+==================================================
+INTERNAL LABEL
+
+“Build 1.10.10 — Control Tower Source Override”
+
+==================================================
