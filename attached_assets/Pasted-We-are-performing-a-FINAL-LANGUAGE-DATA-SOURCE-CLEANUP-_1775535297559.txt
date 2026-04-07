@@ -1,0 +1,102 @@
+We are performing a FINAL LANGUAGE + DATA SOURCE CLEANUP for Ascent 1.0.
+
+This is a MICRO FIX.
+
+Do NOT change system structure.
+Do NOT modify scoring formulas.
+Do NOT introduce new features.
+
+==================================================
+CORE OBJECTIVE
+==============
+
+Eliminate ALL remaining legacy (workflow-based) language and signals.
+
+Ensure the ENTIRE system uses:
+
+TURN-BASED LANGUAGE + TURN-BASED DATA ONLY
+
+==================================================
+
+1. LANGUAGE STANDARDIZATION (MANDATORY)
+   ==================================================
+
+REPLACE ALL INSTANCES OF:
+
+* “items” → “turns”
+* “critical items” → “critical turns”
+* “overdue items” → “overdue turns”
+* “items aging” → “turns aging”
+* “stage congestion” → “turn stage congestion”
+* “workflow bottleneck” → “turn bottleneck”
+
+==================================================
+2. DATA SOURCE ENFORCEMENT
+==========================
+
+ALL dashboard metrics MUST come from:
+
+turn_metrics
+
+REMOVE ANY REFERENCES TO:
+
+* workflow tables
+* workflow_items
+* legacy signals
+* workflow-based aggregations
+
+==================================================
+3. BOTTOM PANEL FIX (CRITICAL)
+==============================
+
+The following panels MUST be turn-driven:
+
+* Aging panel
+* Overdue panel
+* Stage congestion panel
+
+---
+
+REPLACE DATA SOURCES:
+
+OLD:
+“382 items aging”
+“206 overdue items”
+
+NEW:
+Use:
+
+* turns_aging_count
+* overdue_turn_count
+* stage_congestion (from turn stages)
+
+==================================================
+4. VALIDATION RULE
+==================
+
+If ANY panel:
+
+* uses the word “items”
+* references workflow data
+* pulls from non-turn tables
+
+THROW ERROR
+
+==================================================
+5. SUCCESS STATE
+================
+
+This fix is complete when:
+
+1. ZERO “items” exist anywhere in UI
+2. ZERO workflow language exists
+3. ALL panels reflect turn data
+4. ALL labels are consistent system-wide
+5. Terminology = Turns, Units, Stages ONLY
+
+==================================================
+INTERNAL LABEL
+
+“Build 1.10.10.1 — Legacy Signal Cleanup”
+
+==================================================
