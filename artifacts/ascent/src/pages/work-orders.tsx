@@ -14,7 +14,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench, Upload, FileText, CheckCircle2, AlertTriangle,
   Clock, RefreshCw, ChevronRight, X, Filter, TrendingDown,
-  AlertCircle, BarChart2, ChevronDown, ArrowRight,
+  AlertCircle, BarChart2, ChevronDown, ArrowRight, ShieldAlert,
+  Layers, RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -458,6 +459,29 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
   );
 }
 
+// ─── Bottleneck type badge ─────────────────────────────────────────────────────
+
+function BottleneckBadge({ type }: { type: string | null }) {
+  if (!type) return null;
+  const map: Record<string, string> = {
+    blocked_gate_stage: "bg-red-500/15 text-red-400 border-red-500/30",
+    rework_loop: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    vendor_delay: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    missed_sla: "bg-red-500/10 text-red-300 border-red-500/20",
+  };
+  const labels: Record<string, string> = {
+    blocked_gate_stage: "Gate Block",
+    rework_loop: "Rework",
+    vendor_delay: "Vendor Delay",
+    missed_sla: "Missed SLA",
+  };
+  return (
+    <Badge className={cn("text-[10px] py-0", map[type] ?? "bg-muted/50 text-muted-foreground border-border")}>
+      {labels[type] ?? type}
+    </Badge>
+  );
+}
+
 // ─── Work Order Row ───────────────────────────────────────────────────────────
 
 function WorkOrderRow({ wo }: { wo: WorkOrder }) {
@@ -469,23 +493,46 @@ function WorkOrderRow({ wo }: { wo: WorkOrder }) {
     : null;
 
   return (
-    <tr className="border-b border-border/20 hover:bg-muted/10 transition-colors">
+    <tr className={cn(
+      "border-b border-border/20 hover:bg-muted/10 transition-colors",
+      wo.isBlocked && "bg-red-500/[0.03]"
+    )}>
       <td className="px-4 py-2.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-medium text-foreground truncate max-w-[240px]">
-            {wo.description?.slice(0, 60) ?? wo.category ?? "Work Order"}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {wo.isBlocked && <ShieldAlert className="h-3 w-3 text-red-400 shrink-0" />}
+            <span className="text-xs font-medium text-foreground truncate max-w-[220px]">
+              {wo.description?.slice(0, 55) ?? wo.category ?? "Work Order"}
+            </span>
+          </div>
           <span className="text-[10px] text-muted-foreground">
             {wo.externalId ? `#${wo.externalId}` : `ID ${wo.id}`}
-            {wo.propertyName ? ` · ${wo.propertyName}` : ""}
+            {wo.propertyNameRaw ?? wo.propertyName ? ` · ${wo.propertyNameRaw ?? wo.propertyName}` : ""}
             {wo.unitNumber ? ` · Unit ${wo.unitNumber}` : ""}
+            {wo.turnId ? ` · Turn ${wo.turnId}` : ""}
           </span>
         </div>
       </td>
       <td className="px-4 py-2.5">
         <span className="text-xs text-muted-foreground">{wo.category ?? "—"}</span>
       </td>
-      <td className="px-4 py-2.5"><PriorityBadge priority={wo.priority} /></td>
+      <td className="px-4 py-2.5">
+        {wo.stage ? (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-foreground/80">{wo.stage}</span>
+            {wo.daysInStage != null && (
+              <span className={cn("text-[10px]", wo.daysInStage >= 7 ? "text-red-400" : "text-muted-foreground")}>
+                {wo.daysInStage}d in stage
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="px-4 py-2.5">
+        <BottleneckBadge type={wo.bottleneckType ?? null} />
+      </td>
       <td className="px-4 py-2.5"><StatusBadge status={wo.status} /></td>
       <td className="px-4 py-2.5"><SlaStatusBadge status={wo.slaStatus} /></td>
       <td className="px-4 py-2.5">
@@ -505,12 +552,17 @@ function WorkOrderRow({ wo }: { wo: WorkOrder }) {
 export default function WorkOrders() {
   const [drillState, setDrillState] = useState<DrillState>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [blockedFilter, setBlockedFilter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useWorkOrderStats();
 
-  const filters = statusFilter !== "all" ? { status: statusFilter } : {};
-  const { data: workOrders, isLoading: listLoading, refetch: refetchList } = useWorkOrders({ ...filters, limit: 200 });
+  const filters = {
+    ...(statusFilter !== "all" ? { status: statusFilter } : {}),
+    ...(blockedFilter ? { isBlocked: true } : {}),
+    limit: 200,
+  };
+  const { data: workOrders, isLoading: listLoading, refetch: refetchList } = useWorkOrders(filters);
 
   const refresh = () => {
     refetchStats();
@@ -531,6 +583,12 @@ export default function WorkOrders() {
   const topCategory = stats?.topCategory ?? null;
   const topCategoryCount = stats?.categories?.[0]?.count ?? 0;
   const slaComplianceRate = stats?.slaComplianceRate ?? 100;
+  const blockedCount = stats?.blockedCount ?? 0;
+  const blockedTurnCount = stats?.blockedTurnCount ?? 0;
+  const topBottleneckStage = stats?.topBottleneckStage ?? null;
+  const topBottleneckType = stats?.topBottleneckType ?? null;
+  const stageCongestion = stats?.stageCongestion ?? [];
+  const reworkCount = stats?.categories?.find(c => c.category === "Rework")?.count ?? 0;
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
@@ -543,7 +601,7 @@ export default function WorkOrders() {
             Work Orders
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            SLA tracking · category intelligence · CSV ingestion
+            Turn-aware · bottleneck intelligence · SLA tracking · CSV ingestion
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={refresh}>
@@ -553,10 +611,11 @@ export default function WorkOrders() {
       </div>
 
       {/* ── Stats Strip ── */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-3">
         {[
-          { label: "Total Work Orders", value: stats?.total ?? 0, sub: "all time", accent: "blue" as const },
+          { label: "Total", value: stats?.total ?? 0, sub: "work orders", accent: "blue" as const },
           { label: "Open", value: stats?.open ?? 0, sub: "active", accent: "yellow" as const },
+          { label: "Blocked", value: blockedCount, sub: "turns blocked", accent: blockedCount > 0 ? "red" as const : "blue" as const },
           { label: "SLA Compliance", value: statsLoading ? "—" : `${slaComplianceRate}%`, sub: "response rate", accent: slaComplianceRate < 75 ? "red" as const : "blue" as const },
           { label: "Completed", value: stats?.completed ?? 0, sub: "resolved", accent: "blue" as const },
         ].map(item => (
@@ -580,9 +639,76 @@ export default function WorkOrders() {
         ))}
       </div>
 
-      {/* ── Intelligence Signals ── */}
+      {/* ── Bottleneck Intelligence ── */}
       <div>
-        <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">Intelligence Signals</p>
+        <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">Bottleneck Intelligence</p>
+        <div className="grid grid-cols-3 gap-4">
+          <SignalTile
+            label="Blocked Turns"
+            value={statsLoading ? "—" : blockedTurnCount}
+            subLabel={topBottleneckStage ? `Top stage: ${topBottleneckStage}` : "no blocked turns"}
+            icon={ShieldAlert}
+            accent="red"
+            onClick={() => openDrill("blocked_turns")}
+            disabled={blockedTurnCount === 0}
+          />
+          <SignalTile
+            label="Stage Congestion"
+            value={statsLoading ? "—" : stageCongestion.length}
+            subLabel={stageCongestion[0] ? `${stageCongestion[0].stage}: ${stageCongestion[0].blockedCount} blocked` : "no congestion"}
+            icon={Layers}
+            accent="yellow"
+            onClick={() => openDrill("stage_congestion")}
+            disabled={stageCongestion.length === 0}
+          />
+          <SignalTile
+            label="Rework Loops"
+            value={statsLoading ? "—" : reworkCount}
+            subLabel={topBottleneckType === "rework_loop" ? "active rework loop detected" : "rework stage items"}
+            icon={RotateCcw}
+            accent="yellow"
+            onClick={() => openDrill("rework_loop")}
+            disabled={reworkCount === 0}
+          />
+        </div>
+
+        {/* Stage Congestion Breakdown */}
+        {!statsLoading && stageCongestion.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 rounded-xl border border-red-500/20 bg-red-500/[0.04] p-4"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldAlert className="h-3.5 w-3.5 text-red-400" />
+              <span className="text-[10px] uppercase tracking-widest font-bold text-red-400">Stage Congestion Map</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {stageCongestion.slice(0, 3).map((sc, i) => (
+                <div key={sc.stage} className="rounded-lg border border-border/50 bg-card/60 p-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-foreground">{sc.stage}</span>
+                    <Badge className={cn("text-[10px] py-0", i === 0 ? "bg-red-500/15 text-red-400 border-red-500/30" : "bg-amber-500/15 text-amber-400 border-amber-500/30")}>
+                      {sc.blockedCount} blocked
+                    </Badge>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Avg <span className="text-foreground/70 font-medium">{sc.avgDaysInStage}d</span> in stage
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                    {sc.properties.slice(0, 2).join(", ")}
+                    {sc.properties.length > 2 && ` +${sc.properties.length - 2} more`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* ── SLA & Category Signals ── */}
+      <div>
+        <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">SLA & Category Signals</p>
         <div className="grid grid-cols-3 gap-4">
           <SignalTile
             label="SLA Violations"
@@ -620,7 +746,7 @@ export default function WorkOrders() {
       {/* ── Work Orders List ── */}
       <Card className="border-border/60">
         <CardHeader className="px-5 py-4 border-b border-border/40">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold">Work Orders</span>
@@ -630,22 +756,37 @@ export default function WorkOrders() {
                 </Badge>
               )}
             </div>
-            {/* Status filter */}
-            <div className="flex gap-1.5">
-              {["all", "submitted", "assigned", "in_progress", "completed"].map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={cn(
-                    "text-[10px] px-2.5 py-1 rounded-full font-semibold border transition-colors",
-                    statusFilter === s
-                      ? "bg-primary/10 text-primary border-primary/30"
-                      : "bg-muted/30 text-muted-foreground border-border hover:border-primary/20"
-                  )}
-                >
-                  {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Blocked filter toggle */}
+              <button
+                onClick={() => setBlockedFilter(b => !b)}
+                className={cn(
+                  "text-[10px] px-2.5 py-1 rounded-full font-semibold border transition-colors flex items-center gap-1",
+                  blockedFilter
+                    ? "bg-red-500/15 text-red-400 border-red-500/30"
+                    : "bg-muted/30 text-muted-foreground border-border hover:border-primary/20"
+                )}
+              >
+                <ShieldAlert className="h-2.5 w-2.5" />
+                Blocked Only
+              </button>
+              {/* Status filter */}
+              <div className="flex gap-1">
+                {["all", "submitted", "in_progress", "completed"].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={cn(
+                      "text-[10px] px-2.5 py-1 rounded-full font-semibold border transition-colors",
+                      statusFilter === s
+                        ? "bg-primary/10 text-primary border-primary/30"
+                        : "bg-muted/30 text-muted-foreground border-border hover:border-primary/20"
+                    )}
+                  >
+                    {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -669,7 +810,8 @@ export default function WorkOrders() {
                   <tr className="border-b border-border/40 bg-muted/20">
                     <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Description</th>
                     <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Category</th>
-                    <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Priority</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Stage</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Bottleneck</th>
                     <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Status</th>
                     <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">SLA</th>
                     <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Created</th>

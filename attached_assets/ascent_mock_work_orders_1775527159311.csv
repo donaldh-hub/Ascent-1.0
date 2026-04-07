@@ -1,0 +1,76 @@
+work_order_id,property_name,unit_number,category,priority,description,status,assigned_to,created_date,scheduled_date,completed_date,estimated_hours,actual_hours,notes
+WO-001,Maple Ridge Apartments,131,Appliance,High,Appliance issue in unit 131,Completed,Tech Sara,2026-03-19,2026-04-05,2026-04-07,1,1,Generated test data
+WO-002,Maple Ridge Apartments,163,HVAC,Medium,HVAC issue in unit 163,Completed,Team B,2026-03-29,2026-03-29,2026-04-05,3,3,Generated test data
+WO-003,Maple Ridge Apartments,168,Appliance,Critical,Appliance issue in unit 168,Open,Tech Sara,2026-03-28,2026-03-29,,8,0,Generated test data
+WO-004,Cedars of Chili,127,General,Medium,General issue in unit 127,Open,Tech Mike,2026-03-26,2026-03-30,,4,1,Generated test data
+WO-005,Cedars of Chili,249,Plumbing,Medium,Plumbing issue in unit 249,Open,Team A,2026-03-27,2026-03-30,,5,5,Generated test data
+WO-006,Maple Ridge Apartments,273,General,Medium,General issue in unit 273,Open,Tech Alex,2026-03-23,2026-04-04,,5,5,Generated test data
+WO-007,Stonewood Village,176,Turn,High,Turn issue in unit 176,Completed,Team A,2026-03-22,2026-04-05,2026-04-04,5,5,Generated test data
+WO-008,Stonewood Village,329,Appliance,Critical,Appliance issue in unit 329,Open,Tech Mike,2026-03-23,2026-04-03,,3,1,Generated test data
+WO-009,Cedars of Chili,277,Appliance,Medium,Appliance issue in unit 277,Open,Team B,2026-03-30,2026-04-02,,8,4,Generated test data
+WO-010,Stonewood Village,291,Turn,Low,Turn issue in unit 291,In Progress,Tech Mike,2026-03-24,2026-04-02,,3,1,Generated test data
+WO-011,Maple Ridge Apartments,224,HVAC,Medium,HVAC issue in unit 224,In Progress,Tech Alex,2026-03-24,2026-04-05,,5,4,Generated test data
+WO-012,Stonewood Village,278,Plumbing,Medium,Plumbing issue in unit 278,Open,Tech Sara,2026-03-18,2026-04-02,,3,2,Generated test data
+WO-013,Maple Ridge Apartments,108,HVAC,Low,HVAC issue in unit 108,In Progress,Tech Mike,2026-04-01,2026-04-03,,2,2,Generated test data
+WO-014,Maple Ridge Apartments,332,Appliance,Medium,Appliance issue in unit 332,Open,Team A,2026-03-24,2026-04-05,,5,0,Generated test data
+WO-015,Stonewood Village,208,General,Critical,General issue in unit 208,Open,Team A,2026-03-26,2026-03-28,,2,0,Generated test data
+WO-016,Maple Ridge Apartments,258,Appliance,High,Appliance issue in unit 258,In Progress,Tech Mike,2026-03-24,2026-03-28,,7,4,Generated test data
+WO-017,Maple Ridge Apartments,294,Appliance,Low,Appliance issue in unit 294,Open,Team B,2026-03-25,2026-03-30,,5,2,Generated test data
+WO-018,Stonewood Village,283,Appliance,Medium,Appliance issue in unit 283,Open,Tech Sara,2026-03-18,2026-04-01,,7,2,Generated test data
+WO-019,Maple Ridge Apartments,340,Electrical,High,Electrical issue in unit 340,Open,Tech Sara,2026-03-18,2026-04-05,,3,1,Generated test data
+WO-020,Maple Ridge Apartments,112,Plumbing,Medium,Plumbing issue in unit 112,In Progress,Team B,2026-04-02,2026-04-05,,8,8,Generated test data
+WO-021,Cedars of Chili,326,General,High,General issue in unit 326,Completed,Team A,2026-03-23,2026-03-29,2026-04-03,5,5,Generated test data
+WO-022,Cedars of Chili,214,Turn,Critical,Turn issue in unit 214,In Progress,Tech Mike,2026-03-27,2026-04-01,,5,5,Generated test data
+WO-023,Cedars of Chili,332,Plumbing,High,Plumbing issue in unit 332,In Progress,Tech Alex,2026-03-19,2026-04-04,,4,1,Generated test data
+WO-024,Maple Ridge Apartments,319,Turn,Critical,Turn issue in unit 319,Open,Tech Sara,2026-03-21,2026-03-30,,7,7,Generated test data
+WO-025,Maple Ridge Apartments,284,Electrical,Critical,Electrical issue in unit 284,Completed,Team A,2026-03-24,2026-04-01,2026-04-04,8,8,Generated test data
+WO-026,Stonewood Village,243,Plumbing,Low,Plumbing issue in unit 243,Open,Tech Sara,2026-04-01,2026-04-01,,1,0,Generated test data
+WO-027,Maple Ridge Apartments,167,Turn,High,Turn issue in unit 167,Open,Tech Alex,2026-04-02,2026-03-29,,1,1,Generated test data
+WO-028,Cedars of Chili,265,Turn,Medium,Turn issue in unit 265,Completed,Tech Sara,2026-03-28,2026-04-05,2026-04-02,6,6,Generated test data
+WO-029,Stonewood Village,152,HVAC,Critical,HVAC issue in unit 152,Open,Tech Mike,2026-03-20,2026-04-02,,4,4,Generated test data
+WO-030,Cedars of Chili,304,Plumbing,High,Plumbing issue in unit 304,Open,Team A,2026-03-20,2026-04-06,,1,1,Generated test data
+WO-031,Stonewood Village,295,General,Medium,General issue in unit 295,Open,Team A,2026-03-25,2026-04-02,,3,0,Generated test data
+WO-032,Cedars of Chili,293,Appliance,Medium,Appliance issue in unit 293,Completed,Tech Sara,2026-03-25,2026-04-02,2026-04-05,7,7,Generated test data
+WO-033,Stonewood Village,111,Turn,Critical,Turn issue in unit 111,In Progress,Team B,2026-03-24,2026-03-29,,3,2,Generated test data
+WO-034,Stonewood Village,243,Turn,High,Turn issue in unit 243,In Progress,Team B,2026-03-30,2026-04-04,,6,3,Generated test data
+WO-035,Maple Ridge Apartments,119,Appliance,Critical,Appliance issue in unit 119,Open,Team B,2026-03-26,2026-03-31,,2,0,Generated test data
+WO-036,Cedars of Chili,255,Appliance,Medium,Appliance issue in unit 255,Open,Tech Mike,2026-04-02,2026-03-31,,5,3,Generated test data
+WO-037,Stonewood Village,315,General,High,General issue in unit 315,Completed,Tech Mike,2026-03-28,2026-03-28,2026-04-04,1,1,Generated test data
+WO-038,Cedars of Chili,341,General,Critical,General issue in unit 341,Open,Team A,2026-03-20,2026-04-01,,4,4,Generated test data
+WO-039,Maple Ridge Apartments,345,HVAC,Medium,HVAC issue in unit 345,In Progress,Tech Mike,2026-03-24,2026-04-01,,7,1,Generated test data
+WO-040,Stonewood Village,163,General,High,General issue in unit 163,Open,Tech Sara,2026-03-27,2026-03-28,,6,2,Generated test data
+WO-041,Cedars of Chili,193,HVAC,Low,HVAC issue in unit 193,Completed,Team A,2026-03-23,2026-04-05,2026-04-05,4,4,Generated test data
+WO-042,Stonewood Village,102,Appliance,Low,Appliance issue in unit 102,In Progress,Tech Alex,2026-03-26,2026-04-05,,1,0,Generated test data
+WO-043,Cedars of Chili,232,Appliance,Low,Appliance issue in unit 232,In Progress,Tech Sara,2026-03-21,2026-04-05,,6,0,Generated test data
+WO-044,Stonewood Village,151,HVAC,High,HVAC issue in unit 151,Open,Team A,2026-03-29,2026-04-05,,2,2,Generated test data
+WO-045,Stonewood Village,202,HVAC,Critical,HVAC issue in unit 202,Completed,Team B,2026-03-24,2026-04-02,2026-04-04,1,1,Generated test data
+WO-046,Cedars of Chili,171,Appliance,Critical,Appliance issue in unit 171,Completed,Tech Mike,2026-03-20,2026-04-05,2026-04-05,4,4,Generated test data
+WO-047,Cedars of Chili,334,Appliance,Medium,Appliance issue in unit 334,Open,Team B,2026-03-21,2026-03-29,,3,2,Generated test data
+WO-048,Maple Ridge Apartments,133,General,Medium,General issue in unit 133,Open,Tech Alex,2026-03-23,2026-04-01,,7,5,Generated test data
+WO-049,Stonewood Village,156,General,High,General issue in unit 156,Completed,Tech Mike,2026-03-19,2026-04-06,2026-04-07,6,6,Generated test data
+WO-050,Maple Ridge Apartments,124,Appliance,Medium,Appliance issue in unit 124,Open,Team A,2026-03-27,2026-04-02,,6,3,Generated test data
+WO-051,Maple Ridge Apartments,336,Turn,Medium,Turn issue in unit 336,Open,Team B,2026-04-02,2026-04-02,,2,1,Generated test data
+WO-052,Maple Ridge Apartments,244,Appliance,Medium,Appliance issue in unit 244,Completed,Tech Alex,2026-03-31,2026-04-03,2026-04-04,8,8,Generated test data
+WO-053,Maple Ridge Apartments,278,Appliance,Medium,Appliance issue in unit 278,In Progress,Tech Alex,2026-03-22,2026-03-28,,8,0,Generated test data
+WO-054,Cedars of Chili,277,Plumbing,Low,Plumbing issue in unit 277,Open,Team A,2026-03-27,2026-04-05,,6,1,Generated test data
+WO-055,Cedars of Chili,346,HVAC,Medium,HVAC issue in unit 346,In Progress,Team A,2026-03-23,2026-04-04,,3,3,Generated test data
+WO-056,Stonewood Village,120,General,Medium,General issue in unit 120,Open,Tech Alex,2026-03-22,2026-03-30,,2,0,Generated test data
+WO-057,Maple Ridge Apartments,163,General,High,General issue in unit 163,Completed,Tech Alex,2026-03-28,2026-03-31,2026-04-03,8,8,Generated test data
+WO-058,Stonewood Village,177,Appliance,Medium,Appliance issue in unit 177,Completed,Tech Sara,2026-03-25,2026-03-28,2026-04-04,5,5,Generated test data
+WO-059,Maple Ridge Apartments,187,Turn,Medium,Turn issue in unit 187,In Progress,Team A,2026-03-30,2026-03-30,,6,1,Generated test data
+WO-060,Stonewood Village,314,Appliance,Critical,Appliance issue in unit 314,In Progress,Team B,2026-03-19,2026-03-29,,5,0,Generated test data
+WO-061,Maple Ridge Apartments,223,General,Medium,General issue in unit 223,Open,Team B,2026-03-18,2026-03-29,,1,1,Generated test data
+WO-062,Stonewood Village,282,Appliance,Medium,Appliance issue in unit 282,In Progress,Tech Sara,2026-03-28,2026-03-29,,6,0,Generated test data
+WO-063,Stonewood Village,159,Turn,High,Turn issue in unit 159,In Progress,Tech Alex,2026-03-28,2026-03-29,,3,2,Generated test data
+WO-064,Cedars of Chili,244,Appliance,High,Appliance issue in unit 244,Completed,Team B,2026-04-01,2026-04-02,2026-04-02,6,6,Generated test data
+WO-065,Maple Ridge Apartments,225,Electrical,Medium,Electrical issue in unit 225,Completed,Tech Mike,2026-03-28,2026-04-03,2026-04-02,3,3,Generated test data
+WO-066,Cedars of Chili,169,Turn,Medium,Turn issue in unit 169,Open,Team A,2026-03-24,2026-04-05,,5,1,Generated test data
+WO-067,Stonewood Village,102,HVAC,Low,HVAC issue in unit 102,Open,Team B,2026-03-20,2026-04-01,,7,2,Generated test data
+WO-068,Cedars of Chili,152,Turn,High,Turn issue in unit 152,Open,Team B,2026-03-30,2026-03-30,,2,1,Generated test data
+WO-069,Maple Ridge Apartments,148,General,High,General issue in unit 148,In Progress,Team B,2026-03-29,2026-04-03,,4,1,Generated test data
+WO-070,Maple Ridge Apartments,160,Appliance,Medium,Appliance issue in unit 160,Open,Team B,2026-03-30,2026-03-28,,7,7,Generated test data
+WO-071,Stonewood Village,179,Turn,Medium,Turn issue in unit 179,In Progress,Tech Sara,2026-03-20,2026-03-30,,4,1,Generated test data
+WO-072,Cedars of Chili,120,General,Medium,General issue in unit 120,Completed,Team A,2026-03-23,2026-03-30,2026-04-06,2,2,Generated test data
+WO-073,Stonewood Village,299,HVAC,Medium,HVAC issue in unit 299,In Progress,Tech Mike,2026-03-28,2026-04-06,,5,2,Generated test data
+WO-074,Maple Ridge Apartments,217,Appliance,Medium,Appliance issue in unit 217,Open,Team B,2026-03-22,2026-03-29,,7,6,Generated test data
+WO-075,Maple Ridge Apartments,168,Plumbing,Critical,Plumbing issue in unit 168,Completed,Team B,2026-04-02,2026-03-28,2026-04-07,2,2,Generated test data

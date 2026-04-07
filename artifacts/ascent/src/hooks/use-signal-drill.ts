@@ -17,7 +17,10 @@ export type SignalType =
   | "at_risk_workflows"
   | "sla_violations"
   | "aging_work_orders"
-  | "category_spike";
+  | "category_spike"
+  | "blocked_turns"
+  | "stage_congestion"
+  | "rework_loop";
 
 export type BadgeColor = "red" | "yellow" | "green" | "blue";
 
@@ -49,6 +52,7 @@ export interface SignalDrillParams {
   propertyId?: number;
   workflowId?: number;
   stageId?: number;
+  stage?: string;
   enabled?: boolean;
 }
 
@@ -57,6 +61,7 @@ export function useSignalDrill({
   propertyId,
   workflowId,
   stageId,
+  stage,
   enabled = true,
 }: SignalDrillParams): { data: DrillData | null; isLoading: boolean; error: string | null } {
   const [data, setData] = useState<DrillData | null>(null);
@@ -70,6 +75,7 @@ export function useSignalDrill({
     if (propertyId != null) params.set("propertyId", String(propertyId));
     if (workflowId != null) params.set("workflowId", String(workflowId));
     if (stageId != null) params.set("stageId", String(stageId));
+    if (stage != null) params.set("stage", stage);
 
     setIsLoading(true);
     setError(null);

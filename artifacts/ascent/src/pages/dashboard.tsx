@@ -518,7 +518,27 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="px-5 py-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
+              {/* Blocked Turns */}
+              <ClickableSignal
+                onClick={() => openDrill("blocked_turns")}
+                className="flex flex-col gap-1 rounded-xl border border-border/60 bg-background/60 p-4"
+                disabled={(intel?.workOrderStats?.blockedTurnCount ?? 0) === 0}
+                title="View blocked turns"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <ShieldAlert className="h-4 w-4 text-red-400" />
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Blocked Turns</span>
+                  {(intel?.workOrderStats?.blockedTurnCount ?? 0) > 0 && <span className="ml-auto text-[10px] text-primary/50">↗</span>}
+                </div>
+                <span className={cn("text-3xl font-black tabular-nums", (intel?.workOrderStats?.blockedTurnCount ?? 0) > 0 ? "text-red-400" : "text-muted-foreground")}>
+                  {intel?.workOrderStats?.blockedTurnCount ?? 0}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {intel?.workOrderStats?.topBottleneckStage ? `Top: ${intel.workOrderStats.topBottleneckStage}` : "no blocked turns"}
+                </span>
+              </ClickableSignal>
+
               {/* SLA Violations */}
               <ClickableSignal
                 onClick={() => openDrill("sla_violations")}
@@ -565,7 +585,7 @@ export default function Dashboard() {
                   {intel?.workOrderStats?.slaComplianceRate ?? 100}%
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {intel?.workOrderStats?.topCategory ? `Top issue: ${intel.workOrderStats.topCategory}` : "of work orders met SLA"}
+                  {intel?.workOrderStats?.topCategory ? `Top: ${intel.workOrderStats.topCategory}` : "of work orders met SLA"}
                 </span>
               </div>
             </div>

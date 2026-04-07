@@ -1,0 +1,476 @@
+# Ascent 1.0 — Phase 1 Build 2.5 Reset + Ingest Prompt
+
+Reference Blueprint: Continuous Improvement App Core Builds
+Reference Prior Builds:
+
+* Phase 1 — Build 1 (Foundation)
+* Phase 1 — Build 1.5 (Guided System Activation + Unit Intake Layer)
+* Phase 1 — Build 1.6 (Unit Profile + Immediate History View)
+* Phase 1 — Build 1.7 (Assignment Engine Logic)
+* Phase 1 — Build 1.8 (System Integration + Reaction Layer)
+* Phase 1 — Build 1.10 (Turn Matrix + Turn Metrics Engine)
+* System Sweep / Demo Reset Prompt
+
+---
+
+## BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of **Ascent 1.0**.
+
+This is **PHASE 1 — BUILD 2.5**.
+
+The system already has:
+
+* authentication
+* organization structure
+* role-based access
+* app shell
+* unit/property structure
+* unit profile visibility
+* assignment engine foundation
+* dashboard intelligence
+* alert engine
+* reaction layer / clickable signal behavior
+* turn matrix direction
+
+Do **NOT** rebuild the foundation.
+
+Do **NOT** redesign the application.
+
+Do **NOT** create a second ingestion architecture.
+
+Do **NOT** leave fake work-order or fake turn data in the system.
+
+Do **NOT** treat this as a UI-only import.
+
+This build is the **WORK ORDER / TURN RESET + INGEST LAYER**.
+
+---
+
+## CORE GOAL
+
+Perform one controlled operation that does all of the following:
+
+1. Clears existing fake/demo work-order and turn-related data
+2. Preserves the existing application structure and engines
+3. Uploads and ingests the new stress-test CSV
+4. Assigns imported rows to the correct **unit → property → region** hierarchy
+5. Converts imported rows into usable **turn-aware operational records**
+6. Preserves bottleneck signals so the system can stress-test stage aging, blocked turns, and aggregation logic
+7. Feeds dashboard, control tower, unit pages, alerts, and drill-downs with **real imported records only**
+
+This is not just data replacement.
+
+This is a **truth reset**.
+
+---
+
+## CRITICAL SYSTEM RULE
+
+All records created or updated in this build MUST:
+
+* use the existing shared database structure
+* respect organization / property / unit relationships
+* reuse the existing assignment engine where appropriate
+* feed the turn metrics direction of Build 1.10
+* support clickable drill-down behavior from Build 1.8
+* appear in unit, property, and regional views
+* NOT live as temporary import-only rows
+* NOT exist as disconnected staging data after import completes
+
+There must be **ONE shared truth**.
+
+---
+
+## STEP 1 — TARGETED DATA RESET
+
+Perform a controlled cleanup of **work-order / turn-related demo data only**.
+
+Preserve:
+
+* users
+* authentication
+* organizations
+* roles
+* properties
+* units
+* app shell
+* routing
+* scoring engine structure
+* alert engine structure
+* document engine structure
+* assignment engine structure
+* dashboard / reaction layer structure
+
+Clear ONLY records tied to prior fake testing in the following areas:
+
+* work-order records
+* imported work-order CSV records
+* turn records created from fake work-order data
+* turn stage records created from fake work-order data
+* work-order history tied to fake rows
+* assignment results tied to fake work-order rows
+* review queue items tied to fake work-order rows
+* dashboard derived metrics or cached summaries tied to fake work-order rows
+* alerts caused only by fake work-order / fake turn rows
+* unit history entries caused only by fake work-order / fake turn rows
+
+Requirements:
+
+* no orphan records remain
+* no broken references remain
+* no cross-organization damage
+* the app must load normally after reset
+
+If metadata/tagging exists, prioritize records tagged as:
+
+* demo
+* test
+* sample
+* placeholder
+
+If tagging does not exist, clear all work-order / turn data while preserving properties, units, and shared engines.
+
+---
+
+## STEP 2 — CSV INGESTION
+
+Enable ingestion for the uploaded stress-test CSV.
+
+Expected columns include:
+
+* work_order_id
+* region_name
+* property_name
+* unit_number
+* turn_id
+* category
+* priority
+* description
+* status
+* assigned_to
+* created_date
+* scheduled_date
+* completed_date
+* estimated_hours
+* actual_hours
+* notes
+* stage
+* stage_status
+* days_in_stage
+* is_blocked
+* delay_reason
+* vendor
+* bottleneck_flag
+* bottleneck_type
+* aggregation_scope
+
+Requirements:
+
+* validate required fields before import
+* normalize spacing, case, and formatting
+* correctly parse booleans, dates, and numeric values
+* reject malformed rows with clear import feedback
+* allow preview before final import if that already exists cleanly
+* do NOT silently drop bottleneck columns
+
+If the current ingestion layer only supports a smaller field set, extend it so these bottleneck and stage fields persist cleanly.
+
+---
+
+## STEP 3 — HIERARCHICAL ASSIGNMENT
+
+For each imported row, assign in this exact hierarchy:
+
+1. organization
+2. region
+3. property
+4. unit
+5. turn record / turn context
+
+Matching rules:
+
+### HIGH CONFIDENCE
+
+* exact property_name match
+* exact unit_number match
+* same organization scope
+
+Action:
+
+* auto-assign
+* persist immediately
+* write to shared records
+
+### MEDIUM CONFIDENCE
+
+* close property match or formatting variance
+* probable unit match
+
+Action:
+
+* route to confirmation flow or review queue if supported
+
+### LOW CONFIDENCE
+
+* no reliable property/unit match
+
+Action:
+
+* place into review queue
+* do not invent assignments
+
+Explain assignment outcomes.
+
+Do not create detached temporary match results.
+
+---
+
+## STEP 4 — TURN-AWARE RECORD CREATION
+
+This build must respect the Build 1.10 domain shift from workflow language to turn language.
+
+Imported data must not remain just as flat work orders.
+
+The system must use imported records to support **turn-aware operational tracking**, including:
+
+* turn context via `turn_id`
+* stage context via `stage`
+* stage progression via `stage_status`
+* aging via `days_in_stage`
+* blockage via `is_blocked`
+* root cause via `delay_reason`
+* bottleneck grouping via `bottleneck_flag` and `bottleneck_type`
+
+At minimum:
+
+* preserve work-order row as source evidence
+* attach it to the correct unit
+* attach it to the correct property
+* attach it to the correct region
+* associate it with the correct turn context
+* make stage and blockage values queryable by dashboard and drill-down systems
+
+Do NOT flatten away the fields that make bottleneck detection possible.
+
+---
+
+## STEP 5 — BOTTLENECK PRESERVATION AND DETECTION
+
+This is a stress-test import.
+
+The imported CSV is intentionally designed to create bottlenecks.
+
+The system must preserve and surface that pressure.
+
+Required outputs after import:
+
+### UNIT LEVEL
+
+Show for each affected unit:
+
+* current stage
+* days in stage
+* blocked status
+* delay reason
+* turn/work-order linkage
+* bottleneck flag if present
+
+### PROPERTY LEVEL
+
+Aggregate and expose:
+
+* top bottleneck stage
+* highest blocked-stage concentration
+* longest aging unit(s)
+* vendor-related delay clusters
+* blocked turn count
+
+### REGIONAL LEVEL
+
+Aggregate and expose:
+
+* property comparison by bottleneck severity
+* most delayed property
+* stage congestion by property
+* blocked turn totals across region
+
+This data must roll up naturally from **unit → property → region**.
+
+---
+
+## STEP 6 — BUILD 1.10 ALIGNMENT
+
+Align imported records to the Turn Matrix intent.
+
+The system must treat this imported dataset as part of revenue recovery / make-ready truth, not generic task storage.
+
+Use imported values to support where possible:
+
+* blocked turn detection
+* bottleneck stage detection
+* delayed stage identification
+* unit rent-readiness context (if supported by existing turn logic)
+* turn drill-down displays
+
+Do not force full turn completion math if that layer is not already fully implemented.
+
+But do ensure this build does NOT block future Build 1.10 logic.
+
+In other words:
+
+* preserve the fields
+* preserve the relationships
+* preserve the stage reality
+
+---
+
+## STEP 7 — UNIT PROFILE INTEGRATION
+
+After import, each assigned record must appear inside the correct unit profile.
+
+Required visibility:
+
+* work-order / turn history entry
+* current stage
+* stage status
+* days in stage
+* blocked state
+* delay reason
+* latest activity timestamp
+
+If multiple imported rows belong to the same unit, the unit profile should clearly reflect that real operating history.
+
+Do NOT create fake summaries.
+
+Read from shared imported records only.
+
+---
+
+## STEP 8 — DASHBOARD / CONTROL TOWER INTEGRATION
+
+After import, dashboard and control tower views must be recalculated from the imported records.
+
+Required behavior:
+
+* all metrics reflect imported CSV data only
+* no leftover fake balance or placeholder numbers
+* bottleneck cards show actual stage problems
+* blocked turn indicators use real imported fields
+* unit/property/regional rollups use shared imported truth
+
+If the imported data produces ugly or uneven numbers, keep them.
+
+That is the point of the stress test.
+
+---
+
+## STEP 9 — CLICKABLE SIGNAL COMPATIBILITY (BUILD 1.8)
+
+All surfaced work-order / turn signals created from this import must be drill-down compatible.
+
+Examples:
+
+* blocked turns → click to show actual affected units
+* flooring bottleneck → click to show rows stuck in Flooring
+* maintenance backlog → click to show affected Cedars units
+* inspection/rework loop → click to show actual Maple Ridge units
+* vendor delay → click to show units and vendors involved
+
+If a signal cannot return real supporting rows, do not make it clickable.
+
+Follow:
+
+**SIGNAL → CLICK → DATA → DECISION**
+
+---
+
+## STEP 10 — ALERT AND SCORING RE-TRIGGER
+
+After import, re-run existing system calculations using real imported data.
+
+Recalculate or refresh where already supported:
+
+* flow score
+* risk score
+* improvement score
+* execution score
+* open critical counts
+* bottleneck summaries
+* blocked conditions
+
+Generate alerts only from real imported conditions such as:
+
+* blocked records
+* severe aging
+* high-priority open items
+* documentation gaps if those rules already apply
+
+Do NOT duplicate alert or scoring logic.
+
+Use existing engines.
+
+---
+
+## STEP 11 — EMPTY / ERROR STATE RULES
+
+If import fails, return clear reasons.
+
+If rows cannot match a property or unit, send them to review.
+
+If a region exists in CSV but not yet as a stored entity, do one of the following cleanly:
+
+* store region as metadata while preserving property and unit linkage
+* OR extend structure safely if regional entity support already exists
+
+Do NOT break ingestion because regional comparison is needed later.
+
+Do NOT silently discard region_name.
+
+---
+
+## STEP 12 — SUCCESS STATE
+
+This build is complete when I can:
+
+1. Clear fake work-order / fake turn data without damaging the system
+2. Upload the new stress-test CSV
+3. Preserve all bottleneck-driving columns
+4. Assign imported records to the correct unit, property, and region
+5. See imported records inside the correct unit profiles
+6. See property-level bottlenecks emerge from the imported rows
+7. See regional comparison emerge from the imported rows
+8. Click a surfaced signal and view the real records causing it
+9. Trust that all visible work-order / turn insight is now based on real imported data only
+
+---
+
+## IMPORTANT LIMITS
+
+This build is NOT for:
+
+* predictive AI
+* capital planning
+* preventive maintenance intelligence expansion
+* full native mobile changes
+* advanced reporting redesign
+
+This is a **reset + ingest + truth wiring** build.
+
+---
+
+## INTERNAL LABEL
+
+**Phase 1 — Build 2.5: Work Order / Turn Reset + Ingest Layer**
+
+---
+
+## FINAL INTENT
+
+Preserve the machine.
+
+Clear the illusion.
+
+Import the pressure.
+
+Then let the system prove whether it can tell the truth.

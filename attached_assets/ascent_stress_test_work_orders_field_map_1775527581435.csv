@@ -1,0 +1,26 @@
+column,purpose
+work_order_id,Unique work order identifier
+region_name,Regional roll-up for cross-property comparison
+property_name,Property-level aggregation key
+unit_number,Unit-level linkage key
+turn_id,Turn linkage for turn engine testing
+category,Work order category
+priority,Priority for alerts and risk scoring
+description,Human-readable issue description
+status,Open / In Progress / Completed state
+assigned_to,Assigned tech or team
+created_date,Original record creation date
+scheduled_date,Scheduled action date
+completed_date,Completion date when finished
+estimated_hours,Estimated labor hours
+actual_hours,Actual labor hours
+notes,Operator note / scenario note
+stage,Current turn stage being tested
+stage_status,Turn stage progress state
+days_in_stage,Primary aging value for bottleneck logic
+is_blocked,Direct blocked flag
+delay_reason,Why the delay exists
+vendor,Vendor/internal team tied to delay
+bottleneck_flag,Marks scenario as intended bottleneck
+bottleneck_type,Type of bottleneck being simulated
+aggregation_scope,Confirms record should roll unit → property → regional

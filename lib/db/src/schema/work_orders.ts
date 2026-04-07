@@ -42,20 +42,50 @@ export const workOrdersTable = pgTable("work_orders", {
   workflowItemId: integer("workflow_item_id"),
 
   // Core fields
-  category: text("category"),         // appliance, plumbing, electrical, hvac, etc.
+  category: text("category"),
   description: text("description"),
   priority: text("priority").notNull().default("medium"),
   status: text("status").notNull().default("submitted"),
+  assignedTo: text("assigned_to"),
+  notes: text("notes"),
+
+  // Hierarchical context from import
+  regionName: text("region_name"),
+  propertyNameRaw: text("property_name_raw"),  // original CSV value before matching
+  unitNumberRaw: text("unit_number_raw"),       // original CSV value
+
+  // Turn context
+  turnId: text("turn_id"),
 
   // Timeline
   createdDate: timestamp("created_date"),
+  scheduledDate: timestamp("scheduled_date"),
   firstResponseDate: timestamp("first_response_date"),
   completedDate: timestamp("completed_date"),
+
+  // Labor hours
+  estimatedHours: real("estimated_hours"),
+  actualHours: real("actual_hours"),
 
   // SLA
   slaDeadlineHours: integer("sla_deadline_hours").notNull().default(24),
   slaStatus: text("sla_status").notNull().default("pending"),
   slaResponseDelayHours: real("sla_response_delay_hours"),
+
+  // Turn stage tracking
+  stage: text("stage"),             // e.g. "Flooring", "Maintenance", "Inspection"
+  stageStatus: text("stage_status"), // in_progress | completed | not_started
+  daysInStage: integer("days_in_stage"),
+
+  // Blockage
+  isBlocked: boolean("is_blocked").notNull().default(false),
+  delayReason: text("delay_reason"),
+  vendor: text("vendor"),
+
+  // Bottleneck intelligence
+  bottleneckFlag: boolean("bottleneck_flag").notNull().default(false),
+  bottleneckType: text("bottleneck_type"), // stage_congestion | blocked_gate_stage | rework_loop | inspection_queue | vendor_delay | none
+  aggregationScope: text("aggregation_scope"),
 
   // Flags
   isSystemGenerated: boolean("is_system_generated").notNull().default(false),

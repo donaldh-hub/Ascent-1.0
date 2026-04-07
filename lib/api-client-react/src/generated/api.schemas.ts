@@ -153,6 +153,13 @@ export interface WorkOrderCategoryStats {
   topUnit?: string | null;
 }
 
+export interface StageCongestion {
+  stage: string;
+  blockedCount: number;
+  avgDaysInStage: number;
+  properties: string[];
+}
+
 export interface WorkOrderStats {
   total: number;
   open: number;
@@ -162,8 +169,13 @@ export interface WorkOrderStats {
   slaPendingCount: number;
   slaComplianceRate: number;
   agingCount: number;
+  blockedCount: number;
+  blockedTurnCount: number;
   topCategory?: string | null;
+  topBottleneckStage?: string | null;
+  topBottleneckType?: string | null;
   categories: WorkOrderCategoryStats[];
+  stageCongestion: StageCongestion[];
 }
 
 export interface DashboardIntelligence {
