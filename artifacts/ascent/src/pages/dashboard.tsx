@@ -38,6 +38,8 @@ import {
   ChevronDown,
   X,
   BarChart2,
+  Wrench,
+  AlertCircle,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
@@ -496,7 +498,82 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── Row 5: Portfolio Control Tower ─── */}
+      {/* ─── Row 5: Work Order Intelligence ─── */}
+      {(intel?.workOrderStats?.total ?? 0) > 0 && (
+        <Card className="border-border/60">
+          <CardHeader className="px-5 py-4 border-b border-border/40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">Work Order Intelligence</span>
+                <Badge className="bg-muted/50 text-muted-foreground border-border text-[10px]">
+                  {intel?.workOrderStats?.total} total
+                </Badge>
+              </div>
+              <Link href="/work-orders">
+                <span className="text-[10px] text-primary/60 hover:text-primary flex items-center gap-1 cursor-pointer">
+                  Manage work orders <ArrowRight className="h-3 w-3" />
+                </span>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="px-5 py-4">
+            <div className="grid grid-cols-3 gap-4">
+              {/* SLA Violations */}
+              <ClickableSignal
+                onClick={() => openDrill("sla_violations")}
+                className="flex flex-col gap-1 rounded-xl border border-border/60 bg-background/60 p-4"
+                disabled={(intel?.workOrderStats?.slaMissedCount ?? 0) === 0}
+                title="View SLA violations"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">SLA Violations</span>
+                  {(intel?.workOrderStats?.slaMissedCount ?? 0) > 0 && <span className="ml-auto text-[10px] text-primary/50">↗</span>}
+                </div>
+                <span className={cn("text-3xl font-black tabular-nums", (intel?.workOrderStats?.slaMissedCount ?? 0) > 0 ? "text-red-400" : "text-muted-foreground")}>
+                  {intel?.workOrderStats?.slaMissedCount ?? 0}
+                </span>
+                <span className="text-xs text-muted-foreground">missed 24h response SLA</span>
+              </ClickableSignal>
+
+              {/* Aging Work Orders */}
+              <ClickableSignal
+                onClick={() => openDrill("aging_work_orders")}
+                className="flex flex-col gap-1 rounded-xl border border-border/60 bg-background/60 p-4"
+                disabled={(intel?.workOrderStats?.agingCount ?? 0) === 0}
+                title="View aging work orders"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-4 w-4 text-amber-400" />
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Aging WOs</span>
+                  {(intel?.workOrderStats?.agingCount ?? 0) > 0 && <span className="ml-auto text-[10px] text-primary/50">↗</span>}
+                </div>
+                <span className={cn("text-3xl font-black tabular-nums", (intel?.workOrderStats?.agingCount ?? 0) > 0 ? "text-amber-400" : "text-muted-foreground")}>
+                  {intel?.workOrderStats?.agingCount ?? 0}
+                </span>
+                <span className="text-xs text-muted-foreground">in-progress 7+ days</span>
+              </ClickableSignal>
+
+              {/* SLA Compliance Rate */}
+              <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-background/60 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <BarChart2 className="h-4 w-4 text-blue-400" />
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">SLA Compliance</span>
+                </div>
+                <span className={cn("text-3xl font-black tabular-nums", (intel?.workOrderStats?.slaComplianceRate ?? 100) < 75 ? "text-red-400" : "text-green-400")}>
+                  {intel?.workOrderStats?.slaComplianceRate ?? 100}%
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {intel?.workOrderStats?.topCategory ? `Top issue: ${intel.workOrderStats.topCategory}` : "of work orders met SLA"}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ─── Row 6: Portfolio Control Tower ─── */}
       <PortfolioControlTowerSection />
 
       {/* ─── Drill-Down Sheet ─── */}

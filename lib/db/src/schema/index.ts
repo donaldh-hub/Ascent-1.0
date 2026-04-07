@@ -4,3 +4,4 @@ export * from "./alerts";
 export * from "./documents";
 export * from "./properties";
 export * from "./assignments";
+export * from "./work_orders";

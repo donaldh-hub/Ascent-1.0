@@ -18,6 +18,7 @@ import {
   type WorkflowHealthResult,
 } from "./scoring";
 import type { WorkflowInput, ItemInput } from "./scoring";
+import { getWorkOrderStats, type WorkOrderStats } from "../services/work-order-service";
 
 // ─────────────────────────────────────────────
 // Helper utilities
@@ -647,11 +648,12 @@ export interface DashboardIntelligence {
   stageDistribution: StageDistributionRow[];
   workflowSpotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
+  workOrderStats: WorkOrderStats | null;
   generatedAt: string;
 }
 
 export async function buildDashboardIntelligence(): Promise<DashboardIntelligence> {
-  const [executiveSnapshot, actions, primaryBottleneck, stageDistribution, workflowSpotlight, trends] =
+  const [executiveSnapshot, actions, primaryBottleneck, stageDistribution, workflowSpotlight, trends, workOrderStats] =
     await Promise.all([
       buildExecutiveSnapshot(),
       buildActionPanel(6),
@@ -659,6 +661,7 @@ export async function buildDashboardIntelligence(): Promise<DashboardIntelligenc
       buildStageDistribution(),
       buildWorkflowSpotlight(6),
       buildTrendSignals(),
+      getWorkOrderStats().catch(() => null),
     ]);
 
   return {
@@ -668,6 +671,7 @@ export async function buildDashboardIntelligence(): Promise<DashboardIntelligenc
     stageDistribution,
     workflowSpotlight,
     trends,
+    workOrderStats,
     generatedAt: new Date().toISOString(),
   };
 }

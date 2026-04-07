@@ -14,7 +14,10 @@ export type SignalType =
   | "overdue_items"
   | "bottleneck_items"
   | "stale_items"
-  | "at_risk_workflows";
+  | "at_risk_workflows"
+  | "sla_violations"
+  | "aging_work_orders"
+  | "category_spike";
 
 export type BadgeColor = "red" | "yellow" | "green" | "blue";
 

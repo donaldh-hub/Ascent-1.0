@@ -1,0 +1,328 @@
+Ascent 1.0 — Phase 1 Build 2.5 (Work Order Flow + Integration Layer Prompt)
+
+Reference Builds:
+
+* Phase 1 — Build 1.8 (System Integration + Reaction Layer)
+* Phase 1 — Build 2 (Workflow Engine)
+* Phase 1 — Build 1.7 (Assignment Engine)
+* Phase 1 — Build 3 (Scoring Engine)
+
+==================================================
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+=============================================
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 2.5.
+
+The system already has:
+
+* full workflow engine
+* unit + property structure
+* assignment engine (data linking)
+* scoring + stoplight engine
+* alert engine
+* dashboard intelligence layer
+* document + evidence system
+* signal → click → data → reaction system (Build 1.8)
+
+Do NOT rebuild workflows.
+Do NOT duplicate assignment logic.
+Do NOT create a second workflow system.
+Do NOT break 1.8 signal-to-query structure.
+
+This build is the WORK ORDER FLOW + INTEGRATION LAYER.
+
+==================================================
+CORE GOAL
+=========
+
+Convert REAL external work order data into structured, trackable, and clickable system intelligence.
+
+This build must allow:
+
+RAW WORK ORDER DATA → SYSTEM FLOW → SCORING → ALERTS → CLICKABLE SIGNALS (1.8)
+
+This layer connects REAL OPERATIONS to the Ascent system.
+
+==================================================
+CORE PRINCIPLE (NON-NEGOTIABLE)
+===============================
+
+ALL work order data must:
+
+* attach to real units/properties
+* integrate into existing workflows OR generate valid workflow items
+* be traceable through 1.8 signal-to-query engine
+* produce real, clickable insights
+
+If a work order cannot be traced → it must NOT generate a signal.
+
+==================================================
+
+1. WORK ORDER DATA INGESTION SYSTEM
+   ==================================================
+
+Create a Work Order Ingestion Service.
+
+Must support:
+
+* CSV upload (primary)
+* structured manual entry (secondary)
+
+Required fields (minimum):
+
+* work_order_id
+* property_name
+* unit_number
+* category (appliance, plumbing, etc.)
+* description
+* priority (if available)
+* created_date
+* first_response_date (if available)
+* completed_date (if available)
+* status
+
+System must:
+
+* normalize fields
+* clean formatting
+* pass through Assignment Engine (Build 1.7)
+* attach to correct unit/property
+
+==================================================
+2. WORK ORDER → WORKFLOW TRANSLATION
+====================================
+
+Create a translation layer that converts work orders into system-recognized flow.
+
+Two supported modes:
+
+A. Attach to Existing Workflow
+
+* if matching workflow exists (e.g., "Turns", "Work Orders")
+
+B. Auto-Generate Workflow Items
+
+* create workflow item under system-defined "Work Orders" workflow
+
+Required default stages:
+
+* Submitted
+* Assigned
+* In Progress
+* Completed
+
+Rules:
+
+* created_date → Submitted
+* first_response_date → Assigned
+* active work → In Progress
+* completed_date → Completed
+
+All stage movement must:
+
+* generate history
+* feed timing engine
+
+==================================================
+3. RESPONSE TIME + SLA ENGINE
+=============================
+
+Build SLA tracking layer.
+
+Track:
+
+* time to first response
+* total completion time
+
+Default rule:
+
+* 24-hour response expectation
+
+Outputs:
+
+* SLA met / SLA missed
+* response delay duration
+
+These MUST feed:
+
+* scoring engine (risk + execution)
+* alert engine (late response alerts)
+* 1.8 signals (clickable SLA violations)
+
+==================================================
+4. CATEGORY INTELLIGENCE (FOUNDATION)
+=====================================
+
+Group work orders by category.
+
+Examples:
+
+* refrigerator
+* plumbing
+* electrical
+* HVAC
+
+System must:
+
+* count frequency by category
+* track repeat issues per unit
+
+Outputs feed:
+
+* risk scoring
+* dashboard insights
+* 1.8 signals
+
+Example signal:
+
+"40% of recent work orders are refrigerator-related"
+
+MUST be clickable → show those work orders
+
+==================================================
+5. SIGNAL INTEGRATION (CRITICAL — TIES TO 1.8)
+==============================================
+
+ALL work order insights must be converted into SIGNALS compatible with Build 1.8.
+
+Each signal must define:
+
+* signal_type: "work_order"
+* source: flow / risk / execution
+* query_rules
+* display_config
+
+Examples:
+
+A. SLA VIOLATION SIGNAL
+
+* "12 work orders exceeded 24-hour response"
+* CLICK → show those work orders
+
+B. CATEGORY SPIKE SIGNAL
+
+* "Refrigerator issues trending high"
+* CLICK → filtered list
+
+C. AGING WORK SIGNAL
+
+* "8 work orders stuck in progress"
+* CLICK → show items
+
+RULE:
+
+If it cannot produce a result set → it cannot exist as a signal.
+
+==================================================
+6. UNIT + ASSET CROSS-LINKING
+=============================
+
+Every work order must:
+
+* attach to a unit
+* optionally link to asset (if match exists)
+
+This enables:
+
+* asset failure tracking
+* warranty insights (future builds)
+
+DO NOT guess asset matches.
+Use assignment logic only.
+
+==================================================
+7. DASHBOARD INTEGRATION
+========================
+
+Extend dashboard intelligence layer to include:
+
+* total work orders
+* SLA compliance rate
+* top issue category
+* aging work orders
+
+All must:
+
+* use real data
+* include explanation
+* be clickable via 1.8
+
+==================================================
+8. ALERT INTEGRATION
+====================
+
+Generate alerts for:
+
+* SLA violations
+* aging work orders
+* repeat issue units
+
+Must:
+
+* use existing alert engine
+* avoid duplicates
+* resolve when condition clears
+
+==================================================
+9. ROLE BEHAVIOR
+================
+
+Admin / Supervisor / Manager:
+
+* full visibility
+
+Technician:
+
+* assigned work orders only
+
+Viewer:
+
+* read-only
+
+Respect all existing permissions.
+
+==================================================
+10. PERFORMANCE RULES
+=====================
+
+* ingestion must not break system
+* no blocking UI
+* reuse existing data structures
+* no duplicate workflow systems
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+1. I can upload a work order CSV
+2. Work orders attach to units correctly
+3. Work orders appear as workflow items or flow data
+4. SLA timing is calculated
+5. Dashboard reflects real work order insights
+6. Alerts trigger correctly
+7. ALL signals are clickable (via 1.8)
+8. Clicking any signal shows real work order data
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Build 2.5: Work Order Flow + Integration Layer"
+
+==================================================
+BUILD INTENT
+============
+
+Build 2 created flow.
+Build 1.7 created data linking.
+Build 1.8 made signals actionable.
+
+Build 2.5 connects REAL OPERATIONS into the system.
+
+This is where Ascent stops being a system you build in…
+
+…and becomes a system that reads the real world.

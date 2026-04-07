@@ -9,8 +9,8 @@
  */
 
 import { db } from "@workspace/db";
-import { alertsTable, documentsTable, assetsTable } from "@workspace/db/schema";
-import { eq, and, isNull, inArray } from "drizzle-orm";
+import { alertsTable, documentsTable, assetsTable, workOrdersTable } from "@workspace/db/schema";
+import { eq, and, isNull, inArray, lt, ne } from "drizzle-orm";
 import { loadAllWorkflowInputs } from "./loader";
 import { calcWorkflowHealth } from "./scoring";
 import type { WorkflowInput, ItemInput, StageInput } from "./scoring";
@@ -422,6 +422,114 @@ export interface AlertEvaluationResult {
   total: number;
 }
 
+// ─────────────────────────────────────────────
+// Work Order Alert Evaluators (Build 2.5)
+// ─────────────────────────────────────────────
+
+async function evaluateWorkOrderAlerts(): Promise<AlertCandidate[]> {
+  const candidates: AlertCandidate[] = [];
+
+  const wos = await db.select().from(workOrdersTable);
+
+  const AGING_THRESHOLD = new Date(Date.now() - ALERT_THRESHOLDS.ITEM_AGING_WARNING_DAYS * 86_400_000);
+
+  // Category frequency analysis for repeat-issue detection
+  const unitCategoryMap = new Map<string, number>();
+  for (const wo of wos) {
+    if (!wo.unitId || !wo.category) continue;
+    const key = `${wo.unitId}::${wo.category}`;
+    unitCategoryMap.set(key, (unitCategoryMap.get(key) ?? 0) + 1);
+  }
+
+  for (const wo of wos) {
+    // Rule WO-1: SLA violation → critical alert
+    if (wo.slaStatus === "missed") {
+      const delayHours = Math.round(wo.slaResponseDelayHours ?? 0);
+      candidates.push({
+        ruleKey: `sla_violation_wo_${wo.id}`,
+        type: "sla_violation",
+        category: "timing_alert",
+        level: "critical",
+        severity: "critical",
+        title: "SLA Violation: Work Order Response Overdue",
+        message: `Work order${wo.externalId ? ` #${wo.externalId}` : ""} (${wo.category ?? "general"}) missed the ${wo.slaDeadlineHours}h response SLA by ${delayHours}h.`,
+        actionPath: "/work-orders",
+        workflowId: null,
+        linkedItemId: wo.workflowItemId ?? null,
+        linkedStageId: null,
+        metadata: {
+          workOrderId: wo.id,
+          externalId: wo.externalId,
+          category: wo.category,
+          slaDelayHours: wo.slaResponseDelayHours,
+          unitId: wo.unitId,
+          propertyId: wo.propertyId,
+        },
+      });
+    }
+
+    // Rule WO-2: Aging in-progress work order → warning alert
+    if (
+      wo.status === "in_progress" &&
+      wo.createdDate &&
+      wo.createdDate < AGING_THRESHOLD
+    ) {
+      const daysOpen = Math.round((Date.now() - wo.createdDate.getTime()) / 86_400_000);
+      candidates.push({
+        ruleKey: `aging_wo_${wo.id}`,
+        type: "aging_work_order",
+        category: "timing_alert",
+        level: daysOpen > 14 ? "critical" : "warning",
+        severity: daysOpen > 14 ? "critical" : "warning",
+        title: "Aging Work Order: No Resolution",
+        message: `Work order${wo.externalId ? ` #${wo.externalId}` : ""} (${wo.category ?? "general"}) has been in progress for ${daysOpen} days with no completion.`,
+        actionPath: "/work-orders",
+        workflowId: null,
+        linkedItemId: wo.workflowItemId ?? null,
+        linkedStageId: null,
+        metadata: {
+          workOrderId: wo.id,
+          externalId: wo.externalId,
+          category: wo.category,
+          daysOpen,
+          unitId: wo.unitId,
+          propertyId: wo.propertyId,
+        },
+      });
+    }
+
+    // Rule WO-3: Repeat issue — same unit + category with 3+ work orders
+    if (wo.unitId && wo.category) {
+      const key = `${wo.unitId}::${wo.category}`;
+      const count = unitCategoryMap.get(key) ?? 0;
+      if (count >= 3) {
+        const ruleKey = `repeat_issue_unit_${wo.unitId}_${wo.category.replace(/\s+/g, "_").toLowerCase()}`;
+        candidates.push({
+          ruleKey,
+          type: "repeat_issue",
+          category: "risk_alert",
+          level: "warning",
+          severity: "warning",
+          title: `Repeat Issue: ${wo.category} — Unit ${wo.unitId}`,
+          message: `Unit ${wo.unitId} has ${count} work orders in the "${wo.category}" category, indicating a recurring maintenance problem.`,
+          actionPath: "/work-orders",
+          workflowId: null,
+          linkedItemId: null,
+          linkedStageId: null,
+          metadata: {
+            unitId: wo.unitId,
+            category: wo.category,
+            count,
+            propertyId: wo.propertyId,
+          },
+        });
+      }
+    }
+  }
+
+  return candidates;
+}
+
 export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
   const [workflowInputs, allAssets] = await Promise.all([
     loadAllWorkflowInputs(),
@@ -456,6 +564,10 @@ export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
     ...evaluateWarrantyExpired(allAssets),
     ...evaluateWarrantyExpiringSoon(allAssets)
   );
+
+  // Work order rules (Build 2.5)
+  const workOrderCandidates = await evaluateWorkOrderAlerts();
+  allCandidates.push(...workOrderCandidates);
 
   // Deduplicate candidates by ruleKey (keep highest level if same key from different evaluators)
   const candidateMap = new Map<string, AlertCandidate>();

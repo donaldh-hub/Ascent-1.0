@@ -145,6 +145,27 @@ export interface TrendSignal {
   available: boolean;
 }
 
+export interface WorkOrderCategoryStats {
+  category: string;
+  count: number;
+  slaViolations: number;
+  avgResponseHours: number;
+  topUnit?: string | null;
+}
+
+export interface WorkOrderStats {
+  total: number;
+  open: number;
+  completed: number;
+  slaMetCount: number;
+  slaMissedCount: number;
+  slaPendingCount: number;
+  slaComplianceRate: number;
+  agingCount: number;
+  topCategory?: string | null;
+  categories: WorkOrderCategoryStats[];
+}
+
 export interface DashboardIntelligence {
   executiveSnapshot: ExecutiveSnapshot;
   actions: IntelligenceAction[];
@@ -153,6 +174,7 @@ export interface DashboardIntelligence {
   workflowSpotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
   generatedAt: string;
+  workOrderStats?: WorkOrderStats | null;
 }
 
 export interface DashboardSummary {

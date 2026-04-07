@@ -22,6 +22,7 @@ import PropertyDetail from "@/pages/property-detail";
 import Documents from "@/pages/documents";
 import Assignments from "@/pages/assignments";
 import AssignmentsReview from "@/pages/assignments-review";
+import WorkOrders from "@/pages/work-orders";
 import Setup from "@/pages/setup";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ function Router() {
         <Route path="/documents" component={Documents} />
         <Route path="/assignments" component={Assignments} />
         <Route path="/assignments/review" component={AssignmentsReview} />
+        <Route path="/work-orders" component={WorkOrders} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

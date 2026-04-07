@@ -24,8 +24,9 @@ import {
   workflowItemsTable,
   stagesTable,
   workflowsTable,
+  workOrdersTable,
 } from "@workspace/db/schema";
-import { eq, and, lt, ne, inArray, or } from "drizzle-orm";
+import { eq, and, lt, ne, inArray, or, desc } from "drizzle-orm";
 import { getReplacementCost } from "../lib/cost-lookup";
 
 const router = Router();
@@ -95,6 +96,21 @@ const SIGNAL_META: Record<string, { title: string; triggerExplanation: string }>
     title: "At-Risk Workflows",
     triggerExplanation:
       "These workflows have a red stoplight status or are marked at_risk, indicating critical health degradation requiring intervention.",
+  },
+  sla_violations: {
+    title: "SLA Violations",
+    triggerExplanation:
+      "These work orders exceeded the 24-hour first-response SLA. Each missed SLA represents a service commitment failure and increases tenant dissatisfaction risk.",
+  },
+  aging_work_orders: {
+    title: "Aging Work Orders",
+    triggerExplanation:
+      "These work orders have been in progress for 7 or more days without resolution. Prolonged open tickets indicate bottlenecks in your maintenance operation.",
+  },
+  category_spike: {
+    title: "High-Volume Work Order Category",
+    triggerExplanation:
+      "The category listed here has the highest volume of open work orders, indicating a systemic issue requiring targeted attention.",
   },
 };
 
@@ -394,6 +410,191 @@ async function atRiskWorkflowsDrill(): Promise<DrillRow[]> {
   }));
 }
 
+// ─── Work Order Drill Functions ───────────────────────────────────────────────
+
+async function slaViolationsDrill(propertyId?: number): Promise<DrillRow[]> {
+  const wos = await db
+    .select()
+    .from(workOrdersTable)
+    .where(
+      propertyId
+        ? and(eq(workOrdersTable.slaStatus, "missed"), eq(workOrdersTable.propertyId, propertyId))
+        : eq(workOrdersTable.slaStatus, "missed")
+    )
+    .orderBy(desc(workOrdersTable.slaResponseDelayHours))
+    .limit(100);
+
+  // Enrich with unit numbers
+  const unitIds = [...new Set(wos.map(w => w.unitId).filter(Boolean))] as number[];
+  const units = unitIds.length
+    ? await db.select({ id: unitsTable.id, unitNumber: unitsTable.unitNumber })
+        .from(unitsTable).where(inArray(unitsTable.id, unitIds))
+    : [];
+  const unitMap = new Map(units.map(u => [u.id, u.unitNumber]));
+
+  const propIds = [...new Set(wos.map(w => w.propertyId).filter(Boolean))] as number[];
+  const props = propIds.length
+    ? await db.select({ id: propertiesTable.id, name: propertiesTable.name })
+        .from(propertiesTable).where(inArray(propertiesTable.id, propIds))
+    : [];
+  const propMap = new Map(props.map(p => [p.id, p.name]));
+
+  return wos.map(wo => {
+    const unitNumber = wo.unitId ? unitMap.get(wo.unitId) : undefined;
+    const propertyName = wo.propertyId ? propMap.get(wo.propertyId) : undefined;
+    const delayHours = wo.slaResponseDelayHours ?? 0;
+    const subtitle = [
+      propertyName,
+      unitNumber ? `Unit ${unitNumber}` : null,
+      wo.category,
+    ].filter(Boolean).join(" · ");
+
+    return {
+      id: wo.id,
+      title: wo.description?.slice(0, 60) ?? wo.category ?? "Work Order",
+      subtitle,
+      type: "item" as DrillRowType,
+      badge: `${Math.round(delayHours)}h late`,
+      badgeColor: delayHours > 48 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
+      meta: {
+        externalId: wo.externalId,
+        category: wo.category,
+        priority: wo.priority,
+        slaDelayHours: wo.slaResponseDelayHours,
+        status: wo.status,
+        createdDate: wo.createdDate?.toISOString(),
+      },
+    };
+  });
+}
+
+async function agingWorkOrdersDrill(propertyId?: number): Promise<DrillRow[]> {
+  const agingThreshold = new Date(Date.now() - 7 * 86_400_000);
+
+  const wos = await db
+    .select()
+    .from(workOrdersTable)
+    .where(
+      propertyId
+        ? and(
+            eq(workOrdersTable.status, "in_progress"),
+            lt(workOrdersTable.createdDate, agingThreshold),
+            eq(workOrdersTable.propertyId, propertyId)
+          )
+        : and(
+            eq(workOrdersTable.status, "in_progress"),
+            lt(workOrdersTable.createdDate, agingThreshold)
+          )
+    )
+    .orderBy(workOrdersTable.createdDate)
+    .limit(100);
+
+  const unitIds = [...new Set(wos.map(w => w.unitId).filter(Boolean))] as number[];
+  const units = unitIds.length
+    ? await db.select({ id: unitsTable.id, unitNumber: unitsTable.unitNumber })
+        .from(unitsTable).where(inArray(unitsTable.id, unitIds))
+    : [];
+  const unitMap = new Map(units.map(u => [u.id, u.unitNumber]));
+
+  const propIds = [...new Set(wos.map(w => w.propertyId).filter(Boolean))] as number[];
+  const props = propIds.length
+    ? await db.select({ id: propertiesTable.id, name: propertiesTable.name })
+        .from(propertiesTable).where(inArray(propertiesTable.id, propIds))
+    : [];
+  const propMap = new Map(props.map(p => [p.id, p.name]));
+
+  return wos.map(wo => {
+    const unitNumber = wo.unitId ? unitMap.get(wo.unitId) : undefined;
+    const propertyName = wo.propertyId ? propMap.get(wo.propertyId) : undefined;
+    const daysOpen = wo.createdDate
+      ? Math.round((Date.now() - wo.createdDate.getTime()) / 86_400_000)
+      : 0;
+    const subtitle = [
+      propertyName,
+      unitNumber ? `Unit ${unitNumber}` : null,
+      wo.category,
+    ].filter(Boolean).join(" · ");
+
+    return {
+      id: wo.id,
+      title: wo.description?.slice(0, 60) ?? wo.category ?? "Work Order",
+      subtitle,
+      type: "item" as DrillRowType,
+      badge: `${daysOpen}d open`,
+      badgeColor: daysOpen > 14 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
+      meta: {
+        externalId: wo.externalId,
+        category: wo.category,
+        priority: wo.priority,
+        daysOpen,
+        status: wo.status,
+        createdDate: wo.createdDate?.toISOString(),
+      },
+    };
+  });
+}
+
+async function categorySpikesDrill(propertyId?: number): Promise<DrillRow[]> {
+  const wos = await db
+    .select()
+    .from(workOrdersTable)
+    .where(
+      propertyId
+        ? and(
+            ne(workOrdersTable.status, "completed"),
+            ne(workOrdersTable.status, "cancelled"),
+            eq(workOrdersTable.propertyId, propertyId)
+          )
+        : and(
+            ne(workOrdersTable.status, "completed"),
+            ne(workOrdersTable.status, "cancelled"),
+          )
+    )
+    .limit(500);
+
+  // Group by category
+  const catMap = new Map<string, typeof wos>();
+  for (const wo of wos) {
+    const cat = wo.category ?? "General";
+    if (!catMap.has(cat)) catMap.set(cat, []);
+    catMap.get(cat)!.push(wo);
+  }
+
+  // Sort by count descending
+  const sorted = Array.from(catMap.entries()).sort((a, b) => b[1].length - a[1].length);
+
+  // Return rows for the top category's work orders
+  if (sorted.length === 0) return [];
+
+  const [topCat, topWos] = sorted[0];
+
+  const unitIds = [...new Set(topWos.map(w => w.unitId).filter(Boolean))] as number[];
+  const units = unitIds.length
+    ? await db.select({ id: unitsTable.id, unitNumber: unitsTable.unitNumber })
+        .from(unitsTable).where(inArray(unitsTable.id, unitIds))
+    : [];
+  const unitMap = new Map(units.map(u => [u.id, u.unitNumber]));
+
+  return topWos.slice(0, 50).map(wo => {
+    const unitNumber = wo.unitId ? unitMap.get(wo.unitId) : undefined;
+    return {
+      id: wo.id,
+      title: wo.description?.slice(0, 60) ?? topCat,
+      subtitle: unitNumber ? `Unit ${unitNumber}` : (wo.status ?? "open"),
+      type: "item" as DrillRowType,
+      badge: topCat,
+      badgeColor: "blue" as BadgeColor,
+      meta: {
+        externalId: wo.externalId,
+        category: wo.category,
+        priority: wo.priority,
+        status: wo.status,
+        createdDate: wo.createdDate?.toISOString(),
+      },
+    };
+  });
+}
+
 // ─── Route ────────────────────────────────────────────────────────────────────
 
 router.get("/drill", async (req, res) => {
@@ -423,6 +624,12 @@ router.get("/drill", async (req, res) => {
       rows = await staleItemsDrill(workflowId ? parseInt(workflowId) : undefined);
     } else if (signal === "at_risk_workflows") {
       rows = await atRiskWorkflowsDrill();
+    } else if (signal === "sla_violations") {
+      rows = await slaViolationsDrill(propertyId ? parseInt(propertyId) : undefined);
+    } else if (signal === "aging_work_orders") {
+      rows = await agingWorkOrdersDrill(propertyId ? parseInt(propertyId) : undefined);
+    } else if (signal === "category_spike") {
+      rows = await categorySpikesDrill(propertyId ? parseInt(propertyId) : undefined);
     }
 
     // Compute cost totals for asset signals
