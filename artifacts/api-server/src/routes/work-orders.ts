@@ -40,6 +40,7 @@ import {
   resolveUnit,
   WO_WORKFLOW_TITLE,
 } from "../services/work-order-service";
+import { buildImpactAnalysis } from "../services/work-order-impact-service";
 
 const router = Router();
 
@@ -441,6 +442,18 @@ router.get("/work-orders", async (req, res) => {
     res.json(enriched);
   } catch (err) {
     req.log.error({ err }, "Failed to list work orders");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /api/work-orders/impact ─────────────────────────────────────────────
+
+router.get("/work-orders/impact", async (req, res) => {
+  try {
+    const analysis = await buildImpactAnalysis();
+    res.json(analysis);
+  } catch (err) {
+    req.log.error({ err }, "Failed to build work order impact analysis");
     res.status(500).json({ error: "Internal server error" });
   }
 });

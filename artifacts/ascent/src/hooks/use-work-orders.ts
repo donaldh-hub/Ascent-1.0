@@ -226,3 +226,99 @@ export async function resetWorkOrders(): Promise<{ success: boolean; deleted: Re
   }
   return response.json();
 }
+
+// ─── Impact types ─────────────────────────────────────────────────────────────
+
+export type ImpactTier = "low" | "medium" | "high" | "critical";
+
+export interface TopPriority {
+  rank: number;
+  label: string;
+  category: string;
+  propertyName: string;
+  impactScore: number;
+  tier: ImpactTier;
+  count: number;
+  blockedCount: number;
+  reason: string;
+  contributingIds: number[];
+}
+
+export interface PropertyImpact {
+  propertyId: number | null;
+  propertyName: string;
+  totalImpact: number;
+  avgImpact: number;
+  count: number;
+  blockedCount: number;
+  rank: number;
+  primaryCategory: string;
+  tier: ImpactTier;
+  explanation: string;
+}
+
+export interface CategoryImpact {
+  category: string;
+  totalImpact: number;
+  avgImpact: number;
+  count: number;
+  blockedCount: number;
+  blockedRatio: number;
+  tier: ImpactTier;
+  explanation: string;
+  topContributors: { id: number; description: string | null; impactScore: number; propertyName: string | null }[];
+}
+
+export interface WorkOrderImpactAnalysis {
+  generatedAt: string;
+  totalImpact: number;
+  avgImpact: number;
+  topPriorities: TopPriority[];
+  categoryImpact: CategoryImpact[];
+  propertyImpact: PropertyImpact[];
+  rows: WorkOrderImpactRow[];
+  hasData: boolean;
+}
+
+export interface WorkOrderImpactRow {
+  id: number;
+  externalId: string | null;
+  category: string;
+  description: string | null;
+  priority: string;
+  status: string;
+  isBlocked: boolean;
+  bottleneckType: string | null;
+  stage: string | null;
+  daysInStage: number | null;
+  propertyName: string | null;
+  unitId: number | null;
+  turnId: string | null;
+  delayReason: string | null;
+  slaStatus: string;
+  impactScore: number;
+  impactTier: ImpactTier;
+  explanation: string;
+}
+
+// ─── useWorkOrderImpact ───────────────────────────────────────────────────────
+
+export function useWorkOrderImpact() {
+  const [data, setData] = useState<WorkOrderImpactAnalysis | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchImpact = () => {
+    setIsLoading(true);
+    setError(null);
+
+    fetch("/api/work-orders/impact")
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+      .then((d: WorkOrderImpactAnalysis) => { setData(d); setIsLoading(false); })
+      .catch((e: Error) => { setError(e.message); setIsLoading(false); });
+  };
+
+  useEffect(() => { fetchImpact(); }, []);
+
+  return { data, isLoading, error, refetch: fetchImpact };
+}

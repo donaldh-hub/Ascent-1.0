@@ -1,0 +1,346 @@
+Ascent 1.0 — Phase 1 Build 2.6 (Work Order Impact + Priority Engine Prompt)
+
+BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of Ascent 1.0.
+
+This is PHASE 1 — BUILD 2.6.
+
+The system already has:
+
+authentication
+organization + property + unit structure
+workflow engine
+assignment engine
+scoring + stoplight engine
+alert + warning engine
+dashboard intelligence layer
+document + evidence engine
+evidence visibility + language layer
+system integration + reaction layer (clickable signals)
+work-order ingestion + bottleneck detection
+
+Do NOT rebuild any existing systems.
+Do NOT duplicate scoring logic.
+Do NOT create fake intelligence.
+
+This build is the WORK ORDER IMPACT + PRIORITY ENGINE.
+
+==================================================
+CORE GOAL
+=========
+
+Transform the system from:
+
+VISIBILITY → into → DECISION
+
+The system must:
+
+Identify which work order issues matter MOST
+Quantify operational impact
+Rank issues across unit, property, and regional levels
+Direct user attention to the highest-value action
+
+==================================================
+CORE PRINCIPLE
+==============
+
+NOT ALL WORK ORDERS ARE EQUAL.
+
+This build must:
+
+Weight issues
+Score impact
+Rank priorities
+
+==================================================
+
+1. WORK ORDER IMPACT ENGINE (CORE LAYER)
+   ==================================================
+
+Create a centralized Work Order Impact Engine service.
+
+This engine must:
+
+accept work order data
+calculate impact scores per work order
+aggregate impact at category level
+aggregate impact at property level
+aggregate impact at regional level
+
+OUTPUT:
+
+Work Order Impact Score (per record)
+Category Impact Score
+Property Impact Score
+Regional Impact Ranking
+
+==================================================
+2. IMPACT INPUTS (REQUIRED)
+===========================
+
+Each record must contribute to impact using:
+
+A. TIME WEIGHT
+
+* days in stage (or days open)
+* aging severity
+
+B. CATEGORY WEIGHT
+
+Define base weights:
+
+Maintenance = 1.0
+HVAC = 1.2
+Plumbing = 1.1
+Electrical = 1.1
+Appliance = 1.2
+Turn/Make-Ready = 1.3
+General = 0.8
+
+(Allow future configuration)
+
+C. BLOCK STATUS
+
+Blocked = multiplier (1.5x – 2.0x)
+Stalled = multiplier (1.3x)
+Normal = baseline
+
+D. PRIORITY SIGNAL
+
+Critical = 2.0x
+High = 1.5x
+Medium = 1.0x
+Low = 0.7x
+
+E. REPEAT ISSUE SIGNAL (if detectable)
+
+If same unit/category repeats:
+
+* additional multiplier
+
+==================================================
+3. WORK ORDER IMPACT SCORE (FORMULA)
+====================================
+
+Impact Score =
+(Time Open or Days in Stage)
+× (Category Weight)
+× (Block Multiplier)
+× (Priority Multiplier)
+× (Repeat Multiplier if applicable)
+
+Must output:
+
+numeric score
+severity tier (low / medium / high / critical)
+explainability string
+
+Example:
+
+"High impact due to 10 days open in HVAC with critical priority"
+
+==================================================
+4. CATEGORY IMPACT AGGREGATION
+==============================
+
+Aggregate impact across categories:
+
+For each category:
+
+sum all Work Order Impact Scores
+calculate average impact
+calculate blocked ratio
+
+Output:
+
+Category Impact Score
+Top contributing work orders
+Explanation:
+
+"Maintenance is highest impact due to backlog and aging work orders"
+
+==================================================
+5. PROPERTY IMPACT ENGINE
+=========================
+
+Aggregate impact by property:
+
+Sum all Work Order Impact Scores per property
+Rank properties by total impact
+
+Output:
+
+Property Impact Score
+Property Rank
+Primary issue category
+
+Example:
+
+"Cedars of Chili is highest impact due to maintenance backlog"
+
+==================================================
+6. REGIONAL PRIORITY ENGINE
+===========================
+
+Aggregate across ALL properties:
+
+Rank top issues across portfolio
+
+Output TOP 3:
+
+#1 Priority Issue
+#2 Priority Issue
+#3 Priority Issue
+
+Each must include:
+
+Category
+Property
+Impact Score
+Reason
+
+==================================================
+7. PRIORITY RANKING SYSTEM
+==========================
+
+Replace generic counts with ranked priorities.
+
+Instead of:
+
+"39 blocked work orders"
+
+Show:
+
+TOP PRIORITIES:
+
+#1 Maintenance backlog — Cedars of Chili
+#2 Flooring delays — Stonewood Village
+#3 Rework issues — Maple Ridge
+
+==================================================
+8. DASHBOARD INTEGRATION
+========================
+
+Update dashboard to include:
+
+A. PRIORITY PANEL
+
+Display:
+
+Top 3 operational priorities
+Impact score
+Reason
+Click-through support
+
+B. BOTTLENECK UPGRADE
+
+Enhance existing bottleneck cards:
+
+Add impact score
+Add ranking position
+Add explanation
+
+C. EXECUTIVE SNAPSHOT ADDITION
+
+Add line:
+
+"Highest impact issue: Maintenance backlog causing delays across multiple units"
+
+==================================================
+9. DRILL-DOWN INTEGRATION
+=========================
+
+When user clicks a priority:
+
+Show ONLY contributing work orders
+
+Panel must include:
+
+Unit
+Category
+Days open
+Block reason
+Impact score
+
+Sort by:
+
+Highest impact first
+
+==================================================
+10. EXPLAINABILITY (CRITICAL)
+=============================
+
+Every priority must answer:
+
+WHY is this #1?
+
+Examples:
+
+"Highest impact due to aging and high-priority work orders"
+
+"Multiple units affected by the same category backlog"
+
+==================================================
+11. ROLE-AWARE PRIORITIES
+=========================
+
+Supervisor:
+
+Sees property-level priorities
+
+Regional Manager:
+
+Sees cross-property ranking
+
+Executive:
+
+Sees top portfolio impact only
+
+==================================================
+12. EMPTY STATE HANDLING
+========================
+
+If low data:
+
+"Not enough work order data to calculate impact"
+
+NO fake rankings
+
+==================================================
+13. CODE QUALITY RULES
+======================
+
+DO:
+
+centralize impact logic
+reuse existing scoring + bottleneck signals
+keep calculations deterministic
+
+DO NOT:
+
+hardcode rankings
+create fake priority labels
+duplicate scoring engine
+
+==================================================
+SUCCESS STATE
+=============
+
+This build is complete when:
+
+Dashboard shows ranked priorities instead of raw counts
+Each bottleneck has an impact score
+System identifies top operational issue automatically
+Clicking priority reveals exact contributing work orders
+Users can clearly see WHAT to fix first
+
+==================================================
+INTERNAL LABEL
+==============
+
+"Phase 1 — Build 2.6: Work Order Impact + Priority Engine"
+
+==================================================
+END OF PROMPT
+=============

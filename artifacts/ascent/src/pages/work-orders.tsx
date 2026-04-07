@@ -25,8 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
 import type { SignalType } from "@/hooks/use-signal-drill";
 import {
-  useWorkOrders, useWorkOrderStats, importWorkOrders,
-  type WorkOrder, type WorkOrderImportResult,
+  useWorkOrders, useWorkOrderStats, importWorkOrders, useWorkOrderImpact,
+  type WorkOrder, type WorkOrderImportResult, type ImpactTier,
 } from "@/hooks/use-work-orders";
 import { cn } from "@/lib/utils";
 
@@ -556,6 +556,7 @@ export default function WorkOrders() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useWorkOrderStats();
+  const { data: impact, isLoading: impactLoading, refetch: refetchImpact } = useWorkOrderImpact();
 
   const filters = {
     ...(statusFilter !== "all" ? { status: statusFilter } : {}),
@@ -567,6 +568,7 @@ export default function WorkOrders() {
   const refresh = () => {
     refetchStats();
     refetchList();
+    refetchImpact();
     setRefreshKey(k => k + 1);
   };
 
@@ -705,6 +707,94 @@ export default function WorkOrders() {
           </motion.div>
         )}
       </div>
+
+      {/* ── Priority Rankings ── */}
+      {(impact?.hasData) && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Operational Priorities</p>
+            {!impactLoading && impact?.totalImpact != null && (
+              <span className="text-[10px] text-muted-foreground">Portfolio impact score: <span className="text-foreground font-semibold">{Math.round(impact.totalImpact)}</span></span>
+            )}
+          </div>
+
+          {/* Top 3 Priority cards */}
+          <div className="space-y-2 mb-4">
+            {impactLoading
+              ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+              : impact?.topPriorities?.map(p => {
+                  const tierColors: Record<ImpactTier, { border: string; badge: string; rank: string; scoreText: string }> = {
+                    critical: { border: "border-l-red-500",    badge: "bg-red-500/15 text-red-400 border-red-500/30",       rank: "bg-red-500/15 text-red-400",    scoreText: "text-red-400" },
+                    high:     { border: "border-l-orange-500", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", rank: "bg-orange-500/15 text-orange-400", scoreText: "text-orange-400" },
+                    medium:   { border: "border-l-amber-500",  badge: "bg-amber-500/15 text-amber-400 border-amber-500/30",  rank: "bg-amber-500/15 text-amber-400",  scoreText: "text-amber-400" },
+                    low:      { border: "border-l-blue-500",   badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",     rank: "bg-blue-500/10 text-blue-400",    scoreText: "text-blue-400" },
+                  };
+                  const tc = tierColors[p.tier];
+                  return (
+                    <div key={p.rank} className={cn(
+                      "flex items-start gap-3 px-4 py-3 rounded-xl border border-border/60 bg-card/60 border-l-4",
+                      tc.border
+                    )}>
+                      <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 mt-0.5", tc.rank)}>
+                        #{p.rank}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground leading-tight">{p.label}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">{p.reason}</p>
+                          </div>
+                          <div className="flex flex-col items-end shrink-0">
+                            <span className={cn("text-xl font-black tabular-nums", tc.scoreText)}>{Math.round(p.impactScore)}</span>
+                            <span className="text-[9px] text-muted-foreground uppercase">impact</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Badge className={cn("text-[10px] py-0", tc.badge)}>{p.tier}</Badge>
+                          <span className="text-[10px] text-muted-foreground">{p.count} open · {p.blockedCount} blocked</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+            }
+          </div>
+
+          {/* Property impact ranking */}
+          {(impact?.propertyImpact?.length ?? 0) > 0 && (
+            <div className="rounded-xl border border-border/60 bg-card/40 overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-border/40 bg-muted/20">
+                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Property Impact Ranking</span>
+              </div>
+              <div className="divide-y divide-border/20">
+                {impact.propertyImpact.map(prop => (
+                  <div key={prop.propertyName} className="flex items-center gap-3 px-4 py-2.5">
+                    <span className="text-xs font-bold text-muted-foreground w-4">#{prop.rank}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium text-foreground truncate block">{prop.propertyName}</span>
+                      <span className="text-[10px] text-muted-foreground">{prop.count} open · {prop.blockedCount} blocked · {prop.primaryCategory}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 rounded-full bg-muted/30 w-24 overflow-hidden">
+                        <div
+                          className={cn("h-full rounded-full", {
+                            "bg-red-500": prop.tier === "critical",
+                            "bg-orange-500": prop.tier === "high",
+                            "bg-amber-500": prop.tier === "medium",
+                            "bg-blue-500": prop.tier === "low",
+                          })}
+                          style={{ width: `${Math.min(100, Math.round((prop.totalImpact / (impact.totalImpact || 1)) * 100))}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold tabular-nums text-foreground/70 w-10 text-right">{Math.round(prop.totalImpact)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── SLA & Category Signals ── */}
       <div>

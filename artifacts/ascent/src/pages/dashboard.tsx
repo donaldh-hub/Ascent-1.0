@@ -498,6 +498,70 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ─── Row 5a: Priority Panel ─── */}
+      {(intel?.woTopPriorities?.length ?? 0) > 0 && (
+        <Card className="border-border/60">
+          <CardHeader className="px-5 py-4 border-b border-border/40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">Operational Priorities</span>
+                <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[10px]">
+                  Top {intel?.woTopPriorities?.length}
+                </Badge>
+              </div>
+              <Link href="/work-orders">
+                <span className="text-[10px] text-primary/60 hover:text-primary flex items-center gap-1 cursor-pointer">
+                  All work orders <ArrowRight className="h-3 w-3" />
+                </span>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {intel?.woTopPriorities?.map((p, idx) => {
+              const tierColors: Record<string, { border: string; badge: string; rank: string; scoreText: string }> = {
+                critical: { border: "border-l-red-500", badge: "bg-red-500/15 text-red-400 border-red-500/30", rank: "bg-red-500/15 text-red-400", scoreText: "text-red-400" },
+                high:     { border: "border-l-orange-500", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", rank: "bg-orange-500/15 text-orange-400", scoreText: "text-orange-400" },
+                medium:   { border: "border-l-amber-500", badge: "bg-amber-500/15 text-amber-400 border-amber-500/30", rank: "bg-amber-500/15 text-amber-400", scoreText: "text-amber-400" },
+                low:      { border: "border-l-blue-500", badge: "bg-blue-500/10 text-blue-400 border-blue-500/20", rank: "bg-blue-500/10 text-blue-400", scoreText: "text-blue-400" },
+              };
+              const tc = tierColors[p.tier] ?? tierColors.medium;
+              return (
+                <div key={p.rank} className={cn(
+                  "flex items-start gap-4 px-5 py-4 border-l-4",
+                  tc.border,
+                  idx < (intel?.woTopPriorities?.length ?? 0) - 1 && "border-b border-border/30"
+                )}>
+                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 mt-0.5", tc.rank)}>
+                    #{p.rank}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{p.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{p.reason}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <div className={cn("text-2xl font-black tabular-nums", tc.scoreText)}>
+                          {Math.round(p.impactScore)}
+                        </div>
+                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider">impact</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className={cn("text-[10px] py-0", tc.badge)}>
+                        {p.tier}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">{p.count} open · {p.blockedCount} blocked</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       {/* ─── Row 5: Work Order Intelligence ─── */}
       {(intel?.workOrderStats?.total ?? 0) > 0 && (
         <Card className="border-border/60">

@@ -178,6 +178,49 @@ export interface WorkOrderStats {
   stageCongestion: StageCongestion[];
 }
 
+export interface TopPriority {
+  rank: number;
+  label: string;
+  category: string;
+  propertyName: string;
+  impactScore: number;
+  tier: "low" | "medium" | "high" | "critical";
+  count: number;
+  blockedCount: number;
+  reason: string;
+  contributingIds: number[];
+}
+
+export interface PropertyImpact {
+  propertyId: number | null;
+  propertyName: string;
+  totalImpact: number;
+  avgImpact: number;
+  count: number;
+  blockedCount: number;
+  rank: number;
+  primaryCategory: string;
+  tier: "low" | "medium" | "high" | "critical";
+  explanation: string;
+}
+
+export interface CategoryImpact {
+  category: string;
+  totalImpact: number;
+  avgImpact: number;
+  count: number;
+  blockedCount: number;
+  blockedRatio: number;
+  tier: "low" | "medium" | "high" | "critical";
+  explanation: string;
+  topContributors: {
+    id: number;
+    description: string | null;
+    impactScore: number;
+    propertyName: string | null;
+  }[];
+}
+
 export interface DashboardIntelligence {
   executiveSnapshot: ExecutiveSnapshot;
   actions: IntelligenceAction[];
@@ -187,6 +230,9 @@ export interface DashboardIntelligence {
   trends: TrendSignal[];
   generatedAt: string;
   workOrderStats?: WorkOrderStats | null;
+  woTopPriorities: TopPriority[];
+  woPropertyImpact: PropertyImpact[];
+  woCategoryImpact: CategoryImpact[];
 }
 
 export interface DashboardSummary {

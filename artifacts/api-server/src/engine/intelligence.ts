@@ -19,6 +19,7 @@ import {
 } from "./scoring";
 import type { WorkflowInput, ItemInput } from "./scoring";
 import { getWorkOrderStats, type WorkOrderStats } from "../services/work-order-service";
+import { buildImpactAnalysis, type TopPriority, type PropertyImpact, type CategoryImpact } from "../services/work-order-impact-service";
 
 // ─────────────────────────────────────────────
 // Helper utilities
@@ -649,11 +650,14 @@ export interface DashboardIntelligence {
   workflowSpotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
   workOrderStats: WorkOrderStats | null;
+  woTopPriorities: TopPriority[];
+  woPropertyImpact: PropertyImpact[];
+  woCategoryImpact: CategoryImpact[];
   generatedAt: string;
 }
 
 export async function buildDashboardIntelligence(): Promise<DashboardIntelligence> {
-  const [executiveSnapshot, actions, primaryBottleneck, stageDistribution, workflowSpotlight, trends, workOrderStats] =
+  const [executiveSnapshot, actions, primaryBottleneck, stageDistribution, workflowSpotlight, trends, workOrderStats, impactAnalysis] =
     await Promise.all([
       buildExecutiveSnapshot(),
       buildActionPanel(6),
@@ -662,6 +666,7 @@ export async function buildDashboardIntelligence(): Promise<DashboardIntelligenc
       buildWorkflowSpotlight(6),
       buildTrendSignals(),
       getWorkOrderStats().catch(() => null),
+      buildImpactAnalysis().catch(() => null),
     ]);
 
   return {
@@ -672,6 +677,9 @@ export async function buildDashboardIntelligence(): Promise<DashboardIntelligenc
     workflowSpotlight,
     trends,
     workOrderStats,
+    woTopPriorities: impactAnalysis?.topPriorities ?? [],
+    woPropertyImpact: impactAnalysis?.propertyImpact ?? [],
+    woCategoryImpact: impactAnalysis?.categoryImpact ?? [],
     generatedAt: new Date().toISOString(),
   };
 }
