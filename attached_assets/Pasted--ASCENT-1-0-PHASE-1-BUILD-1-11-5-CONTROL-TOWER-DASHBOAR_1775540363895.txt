@@ -1,0 +1,378 @@
+## 🔧 ASCENT 1.0 — PHASE 1 BUILD 1.11.5 (CONTROL TOWER DASHBOARD RESTRUCTURE)
+
+### BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+---
+
+# 🧠 BUILD CONTEXT
+
+We are continuing development of Ascent 1.0.
+
+This is:
+
+👉 PHASE 1 — BUILD 1.11.5
+
+---
+
+### CURRENT SYSTEM ALREADY HAS:
+
+* Authentication + roles
+* Workflow engine
+* Scoring + stoplight engine
+* Alert + warning engine
+* Dashboard intelligence layer
+* Document + evidence engine
+* Evidence visibility + language layer
+* Unit + assignment system
+* System integration + reaction layer (clickable signals)
+
+---
+
+### ❗ DO NOT:
+
+* Rebuild any prior systems
+* Duplicate scoring, alert, or document logic
+* Create fake UI cards or placeholder data
+* Break existing drill-down behavior
+
+---
+
+# 🎯 CORE GOAL
+
+Simplify the dashboard into a TRUE CONTROL TOWER
+
+Shift from:
+
+Too many signals → confusion
+
+To:
+
+Health → Priority → Bottleneck → Context
+
+---
+
+# 🔥 CRITICAL PRINCIPLE
+
+Every dashboard element must answer ONE of these:
+
+1. Are we on track?
+2. What is the problem?
+3. What do we do next?
+4. What else matters after that?
+
+If a component does not serve one of these… REMOVE IT.
+
+---
+
+# 🧱 DASHBOARD LAYOUT RESTRUCTURE
+
+## ROW 1 — EXECUTIVE CONTROL BAR (PRIMARY)
+
+### LEFT → RIGHT STRUCTURE (MANDATORY)
+
+1. OPERATIONAL HEALTH (existing)
+
+Must include:
+
+* Operational Health Score
+* Stoplight color
+* Short explanation
+
+---
+
+2. CORE HEALTH CARDS (COMPRESSED)
+
+Include:
+
+* Flow
+* Risk
+* Improvement
+* Execution
+
+Requirements:
+
+* Reduce width of each card
+* Keep score + stoplight + insight
+* Remove any redundant visuals
+
+---
+
+3. 🔥 PRIORITY ACTIONS (NEW PRIMARY PANEL)
+
+THIS IS THE MOST IMPORTANT PANEL ON THE SCREEN.
+
+This replaces:
+
+* Top 3 Today
+* Conflicting action cards
+
+---
+
+### PRIORITY ACTIONS — STRUCTURE
+
+Must display EXACTLY THREE ITEMS:
+
+1. Work Orders
+2. Turns
+3. Preventative Maintenance
+
+---
+
+### EACH ITEM MUST INCLUDE:
+
+* Category label (WORK ORDER / TURN / PM)
+* Bold issue summary
+* One-line “why it matters”
+* Click interaction → drill-down panel
+
+---
+
+### EXAMPLE OUTPUT:
+
+[WORK ORDER]
+3 critical work orders > 48 hrs
+Response SLA breach risk
+
+[TURN]
+Flooring delay across 5 units
+Blocking readiness
+
+[PM]
+12 overdue water heater services
+Failure risk increasing
+
+---
+
+### PRIORITY ENGINE LOGIC
+
+Must pull from REAL DATA:
+
+Sources:
+
+* Alert engine
+* Risk calculator
+* Bottleneck signals
+* Aging data
+* Assignment-linked records
+
+---
+
+SCORING MODEL:
+
+PRIORITY SCORE =
+(Severity)
+
+* (Aging Time)
+* (Volume Impact)
+* (Bottleneck Contribution)
+* (Operational / Financial Risk)
+
+---
+
+Rules:
+
+* Select TOP Work Order issue
+* Select TOP Turn issue
+* Select TOP PM issue
+* No duplicates
+* Must be actionable
+
+---
+
+CLICK BEHAVIOR (REQUIRED):
+
+Must follow:
+
+SIGNAL → CLICK → DATA → DECISION
+
+Open side panel with:
+
+* real records
+* units
+* properties
+* timestamps
+* statuses
+
+---
+
+# 🧱 ROW 2 — OPERATIONAL FOCUS LAYER
+
+## 1. STAGE AGING + BLOCKING (MOVE TO LEFT)
+
+Replace prior position of bottleneck.
+
+Must show:
+
+* stages with highest aging
+* blocked workflows/items
+* count + severity
+
+Clickable → drill-down
+
+---
+
+## 2. PRIMARY TURN BOTTLENECK (MOVE RIGHT)
+
+Focus ONLY on turn workflows.
+
+Must show:
+
+* bottleneck stage
+* number of affected units
+* aging time
+* vendor/stage impact
+
+Include explanation.
+
+Clickable.
+
+---
+
+## 3. ❌ REMOVE STAGE DISTRIBUTION CARD
+
+Completely delete:
+
+* UI component
+* logic
+* any references
+
+Reason:
+Does not drive decisions.
+
+---
+
+## 4. 🔥 ADD OPERATIONAL PRIORITIES PANEL (RIGHT SIDE)
+
+This is a SECONDARY PRIORITY LAYER.
+
+Purpose:
+Show extended actionable issues beyond top 3.
+
+---
+
+### STRUCTURE:
+
+Display TOP 5–10 items:
+
+Grouped by:
+
+* Work Orders
+* Turns
+* Preventative Maintenance
+
+---
+
+Each item must include:
+
+* short title
+* category
+* reason
+* click interaction
+
+---
+
+Rules:
+
+* Must be real system data
+* Must not duplicate Top 3 exactly
+* Must be ranked by priority score
+
+---
+
+# 🧹 CLEANUP RULES (MANDATORY)
+
+REMOVE OR MERGE:
+
+* Top 3 Today card (delete entirely)
+* Any duplicate action panels
+* Any redundant alert summaries
+* Any card not tied to action
+
+---
+
+Ensure:
+
+* ONE source of truth for actions → Priority Actions panel
+
+---
+
+# 🧭 NAVIGATION MENU RESTRUCTURE
+
+Update left navigation to EXACTLY:
+
+1. Overview
+2. Property
+3. Work Orders
+4. Turns
+5. Assignments
+6. Documents
+7. Assets
+8. Analytics
+
+---
+
+Order is intentional:
+
+* Overview → system health
+* Property → location drill-down
+* Work types → WO + Turns
+* Support → Assignments / Docs / Assets
+* Insight → Analytics
+
+---
+
+# ⚙️ PERFORMANCE + UX RULES
+
+* No additional heavy queries
+* Reuse scoring + alert engine outputs
+* No UI lag
+* No duplicate calculations
+* Maintain real-time responsiveness
+
+---
+
+# 🔐 ROLE-AWARE BEHAVIOR
+
+* Admin / Supervisor / Manager → full dashboard
+* Technician → scoped view
+* Viewer → read-only
+
+---
+
+# ✅ SUCCESS STATE
+
+This build is complete when:
+
+1. Dashboard feels simplified and focused
+2. User can identify TOP 3 actions in under 5 seconds
+3. No conflicting action panels exist
+4. Bottlenecks are clear and actionable
+5. Every major signal is clickable and provable
+6. Stage distribution no longer exists
+7. Navigation reflects real operational flow
+
+---
+
+# 🧠 FINAL INTENT
+
+This is not a UI update.
+
+This is a CONTROL SYSTEM UPGRADE.
+
+The dashboard must:
+
+* Tell the truth
+* Direct attention
+* Drive action
+
+Not just display information.
+
+---
+
+# 🏷️ INTERNAL LABEL
+
+Phase 1 — Build 1.11.5: Control Tower Dashboard Restructure
+
+---
+
+END OF PROMPT

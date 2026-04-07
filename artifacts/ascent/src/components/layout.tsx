@@ -1,29 +1,20 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, LayoutDashboard, GitBranch, Server, TrendingUp, Bell, Building2, FileText, ClipboardCheck, MapPin, Wrench, Layers } from "lucide-react";
+import { Activity, LayoutDashboard, Server, TrendingUp, FileText, ClipboardCheck, MapPin, Wrench, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useListAlerts } from "@workspace/api-client-react";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const { data: unreadAlerts } = useListAlerts({ unreadOnly: true });
   
   const navItems = [
     { href: "/", label: "Overview", icon: LayoutDashboard },
-    { href: "/workflows", label: "Workflows", icon: GitBranch },
-    { href: "/properties", label: "Properties", icon: MapPin },
-    { href: "/documents", label: "Documents", icon: FileText },
-    { href: "/assignments", label: "Assignments", icon: ClipboardCheck },
+    { href: "/properties", label: "Property", icon: MapPin },
     { href: "/work-orders", label: "Work Orders", icon: Wrench },
     { href: "/turns", label: "Turns", icon: Layers },
+    { href: "/assignments", label: "Assignments", icon: ClipboardCheck },
+    { href: "/documents", label: "Documents", icon: FileText },
     { href: "/assets", label: "Assets", icon: Server },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
-    { 
-      href: "/alerts", 
-      label: "Alerts", 
-      icon: Bell,
-      badge: unreadAlerts && unreadAlerts.length > 0 ? unreadAlerts.length : undefined
-    },
   ];
 
   return (

@@ -55,15 +55,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
 
 // ─────────────────────────────────────────────
 // Utility
@@ -214,10 +205,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── Row 1: Health Gauge + 4 Score Cards ─── */}
+      {/* ─── Row 1: Health Gauge + 4 Score Cards + Priority Actions ─── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         {/* Health Gauge */}
-        <Card className="col-span-1 md:col-span-4 bg-card border-border/50 shadow-lg relative overflow-hidden">
+        <Card className="col-span-1 md:col-span-3 bg-card border-border/50 shadow-lg relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
           <CardContent className="p-8 flex flex-col items-center justify-center h-full min-h-[280px]">
             {isLoading ? (
@@ -422,7 +413,7 @@ export default function Dashboard() {
         </Card>
 
         {/* 4 Dimension Score Cards — clickable */}
-        <div className="col-span-1 md:col-span-8 grid grid-cols-2 gap-4">
+        <div className="col-span-1 md:col-span-5 grid grid-cols-2 gap-4">
           <ScoreCard
             title="Flow"
             metricKey="flow"
@@ -472,6 +463,11 @@ export default function Dashboard() {
             onClick={() => toggleMetric("improvement")}
           />
         </div>
+
+        {/* Priority Actions Panel */}
+        <div className="col-span-1 md:col-span-4">
+          <PriorityActionsPanel intel={intel} isLoading={isLoading} onDrill={openDrill} />
+        </div>
       </div>
 
       {/* ─── Metric Reveal Section (inline, below score cards) ─── */}
@@ -491,91 +487,12 @@ export default function Dashboard() {
       {/* ─── Row 2: Turn Signal Strip ─── */}
       <TurnInsightStrip turnStats={intel?.turnStats} isLoading={isLoading} />
 
-      {/* ─── Row 3: Actions + Turn Bottleneck ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <ActionPanel actions={intel?.actions ?? []} isLoading={isLoading} />
+      {/* ─── Row 3: Operational Focus Layer ─── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <TurnAgingPanel turnStats={intel?.turnStats} isLoading={isLoading} onDrill={openDrill} />
         <TurnBottleneckPanel turnStats={intel?.turnStats} isLoading={isLoading} onDrill={openDrill} />
+        <OperationalPrioritiesPanel actions={intel?.actions ?? []} isLoading={isLoading} onDrill={openDrill} />
       </div>
-
-      {/* ─── Row 4: Stage Distribution + Turn Aging ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-        <div className="col-span-1 md:col-span-5">
-          <StageDistributionChart
-            rows={intel?.stageDistribution ?? []}
-            isLoading={isLoading}
-          />
-        </div>
-        <div className="col-span-1 md:col-span-7">
-          <TurnAgingPanel
-            turnStats={intel?.turnStats}
-            isLoading={isLoading}
-          />
-        </div>
-      </div>
-
-      {/* ─── Row 5a: Priority Panel ─── */}
-      {(intel?.woTopPriorities?.length ?? 0) > 0 && (
-        <Card className="border-border/60">
-          <CardHeader className="px-5 py-4 border-b border-border/40">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Operational Priorities</span>
-                <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[10px]">
-                  Top {intel?.woTopPriorities?.length}
-                </Badge>
-              </div>
-              <Link href="/work-orders">
-                <span className="text-[10px] text-primary/60 hover:text-primary flex items-center gap-1 cursor-pointer">
-                  All work orders <ArrowRight className="h-3 w-3" />
-                </span>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {intel?.woTopPriorities?.map((p, idx) => {
-              const tierColors: Record<string, { border: string; badge: string; rank: string; scoreText: string }> = {
-                critical: { border: "border-l-red-500", badge: "bg-red-500/15 text-red-400 border-red-500/30", rank: "bg-red-500/15 text-red-400", scoreText: "text-red-400" },
-                high:     { border: "border-l-orange-500", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", rank: "bg-orange-500/15 text-orange-400", scoreText: "text-orange-400" },
-                medium:   { border: "border-l-amber-500", badge: "bg-amber-500/15 text-amber-400 border-amber-500/30", rank: "bg-amber-500/15 text-amber-400", scoreText: "text-amber-400" },
-                low:      { border: "border-l-blue-500", badge: "bg-blue-500/10 text-blue-400 border-blue-500/20", rank: "bg-blue-500/10 text-blue-400", scoreText: "text-blue-400" },
-              };
-              const tc = tierColors[p.tier] ?? tierColors.medium;
-              return (
-                <div key={p.rank} className={cn(
-                  "flex items-start gap-4 px-5 py-4 border-l-4",
-                  tc.border,
-                  idx < (intel?.woTopPriorities?.length ?? 0) - 1 && "border-b border-border/30"
-                )}>
-                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 mt-0.5", tc.rank)}>
-                    #{p.rank}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{p.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{p.reason}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <div className={cn("text-2xl font-black tabular-nums", tc.scoreText)}>
-                          {Math.round(p.impactScore)}
-                        </div>
-                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider">impact</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge className={cn("text-[10px] py-0", tc.badge)}>
-                        {p.tier}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">{p.count} open · {p.blockedCount} blocked</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
 
       {/* ─── Row 5: Work Order Intelligence ─── */}
       {(intel?.workOrderStats?.total ?? 0) > 0 && (
@@ -1797,120 +1714,279 @@ function TurnInsightStrip({
   );
 }
 
-function ActionPanel({
-  actions,
+function PriorityActionsPanel({
+  intel,
   isLoading,
+  onDrill,
 }: {
-  actions: IntelligenceAction[];
+  intel: DashboardIntelligence | undefined;
   isLoading: boolean;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number }) => void;
 }) {
-  const actionItemIds = actions
-    .map((a) => Number((a.metadata as any)?.itemId))
-    .filter((id) => id > 0);
+  const ts = intel?.turnStats;
+  const ws = intel?.workOrderStats;
+  const actions = intel?.actions ?? [];
 
-  const { data: docCountsData = {} } = useDocCounts("workflow_item", actionItemIds);
+  const topCriticalAction = actions.find((a) => a.category === "critical_item") ?? actions.find((a) => a.category === "overdue");
+  const slaMissed = ws?.slaMissedCount ?? 0;
 
-  const criticalMissingDocCount = actions.filter((a) => {
-    const itemId = Number((a.metadata as any)?.itemId);
-    return a.urgency === "critical" && itemId > 0 && (docCountsData[itemId]?.count ?? 0) === 0;
-  }).length;
+  const woItem = slaMissed > 0
+    ? {
+        label: "WORK ORDER",
+        title: `${slaMissed} work order${slaMissed !== 1 ? "s" : ""} past response SLA`,
+        reason: "Response SLA breach risk — escalation required",
+        urgency: "critical" as const,
+        onClick: () => onDrill("sla_violations"),
+      }
+    : topCriticalAction
+    ? {
+        label: "WORK ORDER",
+        title: topCriticalAction.title,
+        reason: topCriticalAction.reason,
+        urgency: topCriticalAction.urgency,
+        onClick: () => onDrill("critical_items"),
+      }
+    : null;
+
+  const turnItem = ts?.hasData && ts.blockedTurns > 0
+    ? {
+        label: "TURN",
+        title: `${ts.blockedTurns} turn${ts.blockedTurns !== 1 ? "s" : ""} blocked at ${ts.primaryBottleneckStage ?? "primary stage"}`,
+        reason: `Blocking ${ts.notRentReadyCount} unit${ts.notRentReadyCount !== 1 ? "s" : ""} from rent readiness`,
+        urgency: "critical" as const,
+        onClick: () => onDrill("blocked_turns"),
+      }
+    : null;
+
+  const agingCount = ws?.agingCount ?? 0;
+  const topAgingAction = actions.find((a) => a.category === "aging") ?? actions.find((a) => a.category === "bottleneck");
+
+  const pmItem = agingCount > 0
+    ? {
+        label: "PM",
+        title: `${agingCount} work order${agingCount !== 1 ? "s" : ""} aging beyond 7 days`,
+        reason: "Maintenance backlog building — failure risk increasing",
+        urgency: "high" as const,
+        onClick: () => onDrill("aging_work_orders"),
+      }
+    : topAgingAction
+    ? {
+        label: "PM",
+        title: topAgingAction.title,
+        reason: topAgingAction.reason,
+        urgency: topAgingAction.urgency as "critical" | "high" | "medium",
+        onClick: () =>
+          topAgingAction.workflowId
+            ? onDrill("at_risk_workflows", { workflowId: topAgingAction.workflowId })
+            : onDrill("overdue_items"),
+      }
+    : null;
+
+  const criticalCount = [woItem, turnItem, pmItem].filter((x) => x?.urgency === "critical").length;
+
+  const slots = [
+    {
+      key: "wo",
+      data: woItem,
+      icon: Wrench,
+      placeholder: { label: "WORK ORDER", title: "No critical work orders", reason: "All work orders within SLA thresholds" },
+    },
+    {
+      key: "turn",
+      data: turnItem,
+      icon: RefreshCw,
+      placeholder: { label: "TURN", title: "No blocked turns", reason: "Turn workflow moving without obstruction" },
+    },
+    {
+      key: "pm",
+      data: pmItem,
+      icon: ShieldAlert,
+      placeholder: { label: "PM", title: "No aging maintenance", reason: "Preventative maintenance on schedule" },
+    },
+  ];
 
   return (
-    <Card className="bg-card border-border/50 shadow-md flex flex-col h-full">
+    <Card className="bg-card border-border/50 shadow-lg flex flex-col h-full">
       <CardHeader className="pb-3 border-b border-border/50 flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-lg flex items-center gap-2">
+          <CardTitle className="text-base flex items-center gap-2">
             <Zap className="h-4 w-4 text-amber-400" />
             Priority Actions
           </CardTitle>
-          <CardDescription>Requires immediate attention</CardDescription>
-          {criticalMissingDocCount > 0 && (
-            <p className="text-[11px] text-amber-400 mt-1 font-medium">
-              {EVIDENCE.MISSING_ITEMS_COUNT(criticalMissingDocCount)}
-            </p>
-          )}
+          <CardDescription className="text-xs">Top 3 issues by category</CardDescription>
         </div>
-        {actions.filter((a) => a.urgency === "critical").length > 0 && (
+        {criticalCount > 0 && (
           <Badge variant="destructive" className="text-[10px]">
-            {actions.filter((a) => a.urgency === "critical").length} CRITICAL
+            {criticalCount} CRITICAL
           </Badge>
         )}
       </CardHeader>
-      <CardContent className="p-0 flex-1 overflow-auto max-h-[360px]">
+      <CardContent className="p-0 flex-1">
         {isLoading ? (
           <div className="p-4 space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-20 w-full" />
             ))}
           </div>
-        ) : actions.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
-            <Activity className="h-8 w-8 mb-2 opacity-20" />
-            <p className="text-sm">No priority actions pending.</p>
-            <p className="text-xs mt-1 opacity-60">System operating smoothly.</p>
-          </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {actions.map((action, i) => {
-              const itemId = Number((action.metadata as any)?.itemId);
-              const docCount = itemId > 0 ? (docCountsData[itemId]?.count ?? 0) : null;
-              return (
+            {slots.map(({ key, data, icon: Icon, placeholder }, idx) => {
+              const item = data ?? placeholder;
+              const isAllClear = !data;
+              const borderColor = isAllClear
+                ? "border-l-green-500/40"
+                : (item as any).urgency === "critical"
+                ? "border-l-red-500"
+                : (item as any).urgency === "high"
+                ? "border-l-amber-500"
+                : "border-l-border";
+
+              const inner = (
                 <motion.div
-                  key={action.id}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.07 }}
-                  className={`p-4 hover:bg-secondary/50 transition-colors flex items-start gap-3 border-l-2 ${
-                    action.urgency === "critical"
-                      ? "border-l-red-500"
-                      : action.urgency === "high"
-                      ? "border-l-amber-500"
-                      : "border-l-border"
-                  }`}
+                  transition={{ delay: idx * 0.08 }}
+                  className={`p-4 flex items-start gap-3 border-l-2 ${borderColor} ${data ? "hover:bg-secondary/40 transition-colors cursor-pointer" : ""}`}
+                  onClick={data?.onClick}
                 >
                   <div
-                    className={`mt-0.5 p-1.5 rounded-md ${
-                      action.urgency === "critical"
+                    className={`mt-0.5 p-1.5 rounded-md shrink-0 ${
+                      isAllClear
+                        ? "bg-green-500/10 text-green-400"
+                        : (item as any).urgency === "critical"
                         ? "bg-red-500/15 text-red-400"
-                        : action.urgency === "high"
-                        ? "bg-amber-500/15 text-amber-400"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-amber-500/15 text-amber-400"
                     }`}
                   >
-                    {categoryIcon(action.category)}
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider ${urgencyLabel(action.urgency)}`}
-                      >
-                        {action.urgency}
+                      <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {item.label}
                       </span>
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase">
-                        {action.category.replace("_", " ")}
-                      </span>
-                      {docCount !== null && (
-                        <AttachmentBadge
-                          count={docCount}
-                          showWarning={action.urgency === "critical" && docCount === 0}
-                        />
+                      {!isAllClear && (
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider ${
+                            (item as any).urgency === "critical"
+                              ? "text-red-400"
+                              : (item as any).urgency === "high"
+                              ? "text-amber-400"
+                              : "text-blue-400"
+                          }`}
+                        >
+                          {(item as any).urgency}
+                        </span>
                       )}
                     </div>
-                    <h4 className="font-semibold text-sm text-foreground leading-snug">
-                      {action.title}
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                      {action.reason}
-                    </p>
+                    <p className="text-sm font-semibold text-foreground leading-snug">{item.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{item.reason}</p>
                   </div>
-                  <Link href={action.actionPath}>
-                    <div className="h-7 w-7 rounded-full border border-border flex items-center justify-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all cursor-pointer shrink-0">
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </div>
-                  </Link>
+                  {data && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 mt-1" />}
                 </motion.div>
               );
+
+              return <div key={key}>{inner}</div>;
             })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OperationalPrioritiesPanel({
+  actions,
+  isLoading,
+  onDrill,
+}: {
+  actions: IntelligenceAction[];
+  isLoading: boolean;
+  onDrill: (signal: SignalType, opts?: { workflowId?: number }) => void;
+}) {
+  const urgencyOrder: Record<string, number> = { critical: 0, high: 1, medium: 2 };
+  const sorted = [...actions]
+    .sort((a, b) => (urgencyOrder[a.urgency] ?? 2) - (urgencyOrder[b.urgency] ?? 2))
+    .slice(0, 8);
+
+  function categoryLabel(cat: string) {
+    if (cat === "critical_item") return "WO";
+    if (cat === "overdue") return "WO";
+    if (cat === "bottleneck") return "TURN";
+    if (cat === "aging") return "PM";
+    if (cat === "unassigned") return "ASSIGN";
+    return "SYS";
+  }
+
+  function drillForAction(action: IntelligenceAction): () => void {
+    if (action.category === "critical_item") return () => onDrill("critical_items");
+    if (action.category === "overdue") return () => onDrill("overdue_items");
+    if (action.category === "bottleneck" && action.workflowId)
+      return () => onDrill("at_risk_workflows", { workflowId: action.workflowId! });
+    if (action.category === "aging") return () => onDrill("aging_work_orders");
+    if (action.category === "unassigned") return () => onDrill("unassigned_items");
+    return () => {};
+  }
+
+  return (
+    <Card className="bg-card border-border/50 shadow-md flex flex-col h-full">
+      <CardHeader className="pb-3 border-b border-border/50">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Target className="h-4 w-4 text-primary" />
+          Operational Queue
+        </CardTitle>
+        <CardDescription className="text-xs">All active signals · ranked by urgency</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0 flex-1 overflow-auto max-h-[360px]">
+        {isLoading ? (
+          <div className="p-4 space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="p-6 text-center flex flex-col items-center justify-center h-full">
+            <Activity className="h-7 w-7 mb-2 opacity-20" />
+            <p className="text-sm text-muted-foreground">No active signals.</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">System operating normally.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/40">
+            {sorted.map((action, i) => (
+              <motion.button
+                key={action.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.04 }}
+                onClick={drillForAction(action)}
+                className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-secondary/40 transition-colors border-l-2 ${
+                  action.urgency === "critical"
+                    ? "border-l-red-500"
+                    : action.urgency === "high"
+                    ? "border-l-amber-500"
+                    : "border-l-blue-400"
+                }`}
+              >
+                <span className="text-[9px] font-black uppercase tracking-wider bg-muted text-muted-foreground px-1.5 py-0.5 rounded mt-0.5 shrink-0">
+                  {categoryLabel(action.category)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground leading-snug truncate">{action.title}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-1">{action.reason}</p>
+                </div>
+                <span
+                  className={`text-[9px] font-bold uppercase shrink-0 mt-0.5 ${
+                    action.urgency === "critical"
+                      ? "text-red-400"
+                      : action.urgency === "high"
+                      ? "text-amber-400"
+                      : "text-blue-400"
+                  }`}
+                >
+                  {action.urgency}
+                </span>
+              </motion.button>
+            ))}
           </div>
         )}
       </CardContent>
@@ -2029,108 +2105,14 @@ function TurnBottleneckPanel({
   );
 }
 
-function StageDistributionChart({
-  rows,
-  isLoading,
-}: {
-  rows: DashboardIntelligence["stageDistribution"];
-  isLoading: boolean;
-}) {
-  // Aggregate by workflow+stage, top 12 by openItems
-  const chartData = [...rows]
-    .sort((a, b) => b.openItems - a.openItems)
-    .slice(0, 12)
-    .map((r) => ({
-      name: r.stageName.length > 12 ? r.stageName.slice(0, 12) + "…" : r.stageName,
-      fullName: r.stageName,
-      workflow: r.workflowTitle,
-      open: r.openItems,
-      completed: r.completedItems,
-      isBottleneck: r.isBottleneck,
-    }));
-
-  return (
-    <Card className="bg-card border-border/50 shadow-sm h-full">
-      <CardHeader className="pb-3 border-b border-border/50">
-        <CardTitle className="text-base">Stage Distribution</CardTitle>
-        <CardDescription>Open turns per stage · top stages shown</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-4 pb-2">
-        {isLoading ? (
-          <Skeleton className="h-56 w-full" />
-        ) : chartData.length === 0 ? (
-          <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">
-            No active stage data yet
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 0, right: 0, bottom: 40, left: -10 }}
-              barSize={22}
-            >
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                angle={-40}
-                textAnchor="end"
-                interval={0}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                allowDecimals={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  borderColor: "hsl(var(--border))",
-                  fontSize: "11px",
-                  borderRadius: "8px",
-                }}
-                formatter={(value: any, name: string) => [
-                  value,
-                  name === "open" ? "Open Items" : "Completed",
-                ]}
-                labelFormatter={(_, payload) => {
-                  const d = payload?.[0]?.payload;
-                  return d ? `${d.fullName} · ${d.workflow}` : "";
-                }}
-              />
-              <Bar dataKey="open" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, i) => (
-                  <Cell
-                    key={i}
-                    fill={
-                      entry.isBottleneck
-                        ? "#ef4444"
-                        : entry.open >= 3
-                        ? "#eab308"
-                        : "#3b82f6"
-                    }
-                    opacity={0.85}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        {!isLoading && chartData.some((d) => d.isBottleneck) && (
-          <div className="flex items-center gap-2 mt-2">
-            <span className="h-2.5 w-2.5 rounded-sm bg-red-500 opacity-80 shrink-0" />
-            <span className="text-[10px] text-muted-foreground">Red = current bottleneck stage</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 function TurnAgingPanel({
   turnStats,
   isLoading,
+  onDrill,
 }: {
   turnStats: TurnStats | null | undefined;
   isLoading: boolean;
+  onDrill: (signal: SignalType) => void;
 }) {
   const blocked = turnStats?.blockedTurns ?? 0;
   const total = turnStats?.totalTurns ?? 0;
@@ -2152,6 +2134,7 @@ function TurnAgingPanel({
       ofLabel: `of ${active} active`,
       severity: blocked > 10 ? "red" : blocked > 0 ? "yellow" : "green",
       Icon: AlertTriangle,
+      drillKey: "blocked_turns" as SignalType,
     },
     {
       label: "In Rework Loop",
@@ -2160,6 +2143,7 @@ function TurnAgingPanel({
       ofLabel: `of ${total} total`,
       severity: rework > 10 ? "red" : rework > 0 ? "yellow" : "green",
       Icon: RefreshCw,
+      drillKey: "rework_loop" as SignalType,
     },
     {
       label: "Not Rent-Ready",
@@ -2168,13 +2152,17 @@ function TurnAgingPanel({
       ofLabel: `of ${total} units`,
       severity: nrrPct > 50 ? "red" : nrrPct > 20 ? "yellow" : "green",
       Icon: Home,
+      drillKey: "not_rent_ready" as SignalType,
     },
-  ] as const;
+  ];
 
   return (
     <Card className="bg-card border-border/50 shadow-sm h-full">
       <CardHeader className="pb-3 border-b border-border/50">
-        <CardTitle className="text-base">Turn Aging &amp; Backlog</CardTitle>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Clock className="h-4 w-4 text-amber-400" />
+          Stage Aging &amp; Blocking
+        </CardTitle>
         <CardDescription>Stalled turns · rework loop · not rent-ready</CardDescription>
       </CardHeader>
       <CardContent className="p-0 overflow-auto max-h-[330px]">
@@ -2194,27 +2182,34 @@ function TurnAgingPanel({
               const sColor = row.severity === "red" ? "text-red-400" : row.severity === "yellow" ? "text-amber-400" : "text-green-400";
               const sBg = row.severity === "red" ? "bg-red-500/10" : row.severity === "yellow" ? "bg-amber-500/10" : "bg-green-500/10";
               return (
-                <motion.div
+                <ClickableSignal
                   key={row.label}
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.06 }}
-                  className="flex items-center gap-4 px-4 py-4 hover:bg-secondary/50 transition-colors"
+                  onClick={() => row.count > 0 && onDrill(row.drillKey)}
+                  disabled={row.count === 0}
+                  title={`View ${row.label.toLowerCase()}`}
+                  className="w-full"
                 >
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${sBg}`}>
-                    <row.Icon className={`h-4 w-4 ${sColor}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground/80">{row.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {row.ofLabel} · top stage: {stageName}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className={`text-xl font-bold tabular-nums ${sColor}`}>{row.count}</p>
-                    <p className="text-[10px] text-muted-foreground">{row.pct}%</p>
-                  </div>
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, x: 8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="flex items-center gap-4 px-4 py-4 hover:bg-secondary/50 transition-colors"
+                  >
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${sBg}`}>
+                      <row.Icon className={`h-4 w-4 ${sColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-foreground/80">{row.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {row.ofLabel} · top stage: {stageName}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-xl font-bold tabular-nums ${sColor}`}>{row.count}</p>
+                      <p className="text-[10px] text-muted-foreground">{row.pct}%</p>
+                    </div>
+                  </motion.div>
+                </ClickableSignal>
               );
             })}
 
