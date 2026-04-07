@@ -221,6 +221,22 @@ export interface CategoryImpact {
   }[];
 }
 
+export interface TurnStats {
+  totalTurns: number;
+  activeTurns: number;
+  completedTurns: number;
+  blockedTurns: number;
+  reworkTurns: number;
+  notRentReadyCount: number;
+  avgCompletionPct: number;
+  primaryBottleneckStage: string | null;
+  bottleneckSeverity: number;
+  bottleneckExplanation: string | null;
+  propertyCount: number;
+  hasData: boolean;
+  dataQuality: string;
+}
+
 export interface DashboardIntelligence {
   executiveSnapshot: ExecutiveSnapshot;
   actions: IntelligenceAction[];
@@ -233,6 +249,7 @@ export interface DashboardIntelligence {
   woTopPriorities: TopPriority[];
   woPropertyImpact: PropertyImpact[];
   woCategoryImpact: CategoryImpact[];
+  turnStats?: TurnStats | null;
 }
 
 export interface DashboardSummary {

@@ -25,6 +25,7 @@ import {
   stagesTable,
   workflowsTable,
   workOrdersTable,
+  turnsTable,
 } from "@workspace/db/schema";
 import { eq, and, lt, ne, inArray, or, desc } from "drizzle-orm";
 import { getReplacementCost } from "../lib/cost-lookup";
@@ -126,6 +127,11 @@ const SIGNAL_META: Record<string, { title: string; triggerExplanation: string }>
     title: "Rework Loop — Inspection Failures",
     triggerExplanation:
       "These units failed inspection and entered a rework cycle. Each re-entry extends the turn timeline and increases labor cost without advancing unit readiness.",
+  },
+  not_rent_ready: {
+    title: "Not Rent-Ready — Turn Records",
+    triggerExplanation:
+      "These turn records are active but have not achieved rent-ready status. Units in this state cannot be leased, directly reducing portfolio revenue and increasing vacancy exposure.",
   },
 };
 
@@ -613,179 +619,236 @@ async function categorySpikesDrill(propertyId?: number): Promise<DrillRow[]> {
 // ─── Blocked Turns Drill ──────────────────────────────────────────────────────
 
 async function blockedTurnsDrill(propertyId?: number): Promise<DrillRow[]> {
-  const conditions = [eq(workOrdersTable.isBlocked, true)];
-  if (propertyId) conditions.push(eq(workOrdersTable.propertyId, propertyId));
+  const conditions = [eq(turnsTable.isBlocked, true)];
+  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
 
-  const wos = await db
+  const turns = await db
     .select()
-    .from(workOrdersTable)
+    .from(turnsTable)
     .where(and(...conditions))
-    .orderBy(desc(workOrdersTable.daysInStage))
+    .orderBy(desc(turnsTable.daysInStage))
     .limit(100);
 
-  const unitIds = [...new Set(wos.map(w => w.unitId).filter(Boolean))] as number[];
-  const units = unitIds.length
-    ? await db.select({ id: unitsTable.id, unitNumber: unitsTable.unitNumber })
-        .from(unitsTable).where(inArray(unitsTable.id, unitIds))
-    : [];
-  const unitMap = new Map(units.map(u => [u.id, u.unitNumber]));
-
-  const propIds = [...new Set(wos.map(w => w.propertyId).filter(Boolean))] as number[];
+  const propIds = [...new Set(turns.map(t => t.propertyId).filter(Boolean))] as number[];
   const props = propIds.length
     ? await db.select({ id: propertiesTable.id, name: propertiesTable.name })
         .from(propertiesTable).where(inArray(propertiesTable.id, propIds))
     : [];
   const propMap = new Map(props.map(p => [p.id, p.name]));
 
-  return wos.map(wo => {
-    const unitLabel = wo.unitId ? (unitMap.get(wo.unitId) ? `Unit ${unitMap.get(wo.unitId)}` : null) : (wo.unitNumberRaw ? `Unit ${wo.unitNumberRaw}` : null);
-    const propertyLabel = wo.propertyId ? propMap.get(wo.propertyId) : wo.propertyNameRaw;
-    const days = wo.daysInStage ?? (wo.createdDate ? Math.round((Date.now() - wo.createdDate.getTime()) / 86_400_000) : 0);
-    const subtitle = [propertyLabel, unitLabel, wo.stage].filter(Boolean).join(" · ");
+  return turns.map(turn => {
+    const propertyLabel = turn.propertyId ? propMap.get(turn.propertyId) : turn.propertyNameRaw;
+    const unitLabel = turn.unitNumber ? `Unit ${turn.unitNumber}` : null;
+    const days = turn.daysInStage ?? 0;
 
     return {
-      id: wo.id,
+      id: turn.id,
       rowType: "item" as DrillRowType,
-      title: wo.description?.slice(0, 60) ?? wo.category ?? "Blocked Turn",
-      subtitle,
+      title: `Turn ${turn.turnId ?? String(turn.id)} — ${turn.currentStage ?? "Unknown Stage"}`,
+      subtitle: [propertyLabel, unitLabel].filter(Boolean).join(" · "),
       detail: [
-        `${days}d in ${wo.stage ?? "stage"}`,
-        wo.delayReason ?? null,
-        wo.vendor ? `Vendor: ${wo.vendor}` : null,
+        `${days}d in ${turn.currentStage ?? "stage"}`,
+        turn.blockReason ?? null,
+        turn.blockedStage && turn.blockedStage !== turn.currentStage ? `Blocked at: ${turn.blockedStage}` : null,
       ].filter(Boolean).join(" · "),
-      badge: wo.priority === "critical" ? "CRITICAL BLOCK" : `${days}d BLOCKED`,
-      badgeColor: (wo.priority === "critical" || days > 7) ? "red" as BadgeColor : "yellow" as BadgeColor,
-      navigateTo: wo.unitId ? `/units/${wo.unitId}` : "/work-orders",
+      badge: days > 7 ? `${days}d BLOCKED` : "BLOCKED",
+      badgeColor: days > 7 ? "red" as BadgeColor : "yellow" as BadgeColor,
+      navigateTo: "/turns",
       meta: {
-        externalId: wo.externalId,
-        turnId: wo.turnId,
-        stage: wo.stage,
-        stageStatus: wo.stageStatus,
-        daysInStage: wo.daysInStage,
-        delayReason: wo.delayReason,
-        vendor: wo.vendor,
-        bottleneckType: wo.bottleneckType,
-        priority: wo.priority,
+        turnId: turn.turnId,
+        currentStage: turn.currentStage,
+        daysInStage: turn.daysInStage,
+        blockReason: turn.blockReason,
+        blockedStage: turn.blockedStage,
+        completionPercentage: turn.completionPercentage,
         propertyName: propertyLabel,
         unitNumber: unitLabel,
-        regionName: wo.regionName,
       },
     };
   });
 }
 
-// ─── Stage Congestion Drill ───────────────────────────────────────────────────
+// ─── Stage Congestion Drill (queries turns table) ────────────────────────────
 
 async function stageCongestionDrill(stage?: string, propertyId?: number): Promise<DrillRow[]> {
-  // Get all blocked work orders grouped by stage
-  const conditions = [eq(workOrdersTable.isBlocked, true)];
-  if (stage) conditions.push(eq(workOrdersTable.stage, stage));
-  if (propertyId) conditions.push(eq(workOrdersTable.propertyId, propertyId));
+  let targetStage = stage;
 
-  let wos = await db
-    .select()
-    .from(workOrdersTable)
-    .where(and(...conditions))
-    .orderBy(desc(workOrdersTable.daysInStage))
-    .limit(100);
+  if (!targetStage) {
+    const allActive = await db
+      .select({ currentStage: turnsTable.currentStage })
+      .from(turnsTable)
+      .where(ne(turnsTable.turnStatus, "completed"));
 
-  // If no stage filter, find the most congested stage first
-  if (!stage && wos.length > 0) {
     const stageCount = new Map<string, number>();
-    for (const wo of wos) {
-      if (wo.stage) stageCount.set(wo.stage, (stageCount.get(wo.stage) ?? 0) + 1);
+    for (const t of allActive) {
+      if (t.currentStage) stageCount.set(t.currentStage, (stageCount.get(t.currentStage) ?? 0) + 1);
     }
-    const topStage = Array.from(stageCount.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
-    if (topStage) {
-      wos = wos.filter(wo => wo.stage === topStage);
-    }
+    targetStage = Array.from(stageCount.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
   }
 
-  const propIds = [...new Set(wos.map(w => w.propertyId).filter(Boolean))] as number[];
+  if (!targetStage) return [];
+
+  const conditions = [eq(turnsTable.currentStage, targetStage)];
+  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
+
+  const turns = await db
+    .select()
+    .from(turnsTable)
+    .where(and(...conditions))
+    .orderBy(desc(turnsTable.daysInStage))
+    .limit(100);
+
+  const propIds = [...new Set(turns.map(t => t.propertyId).filter(Boolean))] as number[];
   const props = propIds.length
     ? await db.select({ id: propertiesTable.id, name: propertiesTable.name })
         .from(propertiesTable).where(inArray(propertiesTable.id, propIds))
     : [];
   const propMap = new Map(props.map(p => [p.id, p.name]));
 
-  return wos.map(wo => {
-    const propertyLabel = wo.propertyId ? propMap.get(wo.propertyId) : wo.propertyNameRaw;
-    const unitLabel = wo.unitNumberRaw ? `Unit ${wo.unitNumberRaw}` : null;
-    const days = wo.daysInStage ?? 0;
+  return turns.map(turn => {
+    const propertyLabel = turn.propertyId ? propMap.get(turn.propertyId) : turn.propertyNameRaw;
+    const unitLabel = turn.unitNumber ? `Unit ${turn.unitNumber}` : null;
+    const days = turn.daysInStage ?? 0;
 
     return {
-      id: wo.id,
+      id: turn.id,
       rowType: "item" as DrillRowType,
-      title: wo.description?.slice(0, 60) ?? `Stalled at ${wo.stage ?? "stage"}`,
+      title: `Turn ${turn.turnId ?? String(turn.id)} — stalled at ${targetStage}`,
       subtitle: [propertyLabel, unitLabel].filter(Boolean).join(" · "),
       detail: [
-        `${days}d in ${wo.stage ?? "stage"}`,
-        wo.delayReason,
-        wo.assignedTo ? `Assigned: ${wo.assignedTo}` : null,
+        `${days}d in stage`,
+        turn.blockReason ?? null,
+        `${Math.round(turn.completionPercentage)}% complete`,
       ].filter(Boolean).join(" · "),
       badge: `${days}d STALLED`,
       badgeColor: days > 7 ? "red" as BadgeColor : "yellow" as BadgeColor,
-      navigateTo: wo.unitId ? `/units/${wo.unitId}` : "/work-orders",
+      navigateTo: "/turns",
       meta: {
-        externalId: wo.externalId,
-        turnId: wo.turnId,
-        stage: wo.stage,
-        daysInStage: wo.daysInStage,
-        delayReason: wo.delayReason,
-        vendor: wo.vendor,
-        bottleneckType: wo.bottleneckType,
-        regionName: wo.regionName,
+        turnId: turn.turnId,
+        currentStage: turn.currentStage,
+        daysInStage: turn.daysInStage,
+        completionPercentage: turn.completionPercentage,
         propertyName: propertyLabel,
+        unitNumber: unitLabel,
+        isBlocked: turn.isBlocked,
       },
     };
   });
 }
 
-// ─── Rework Loop Drill ────────────────────────────────────────────────────────
+// ─── Rework Loop Drill (queries turns table) ──────────────────────────────────
 
 async function reworkLoopDrill(propertyId?: number): Promise<DrillRow[]> {
-  const conditions = [eq(workOrdersTable.bottleneckType, "rework_loop")];
-  if (propertyId) conditions.push(eq(workOrdersTable.propertyId, propertyId));
+  const conditions = [
+    or(
+      eq(turnsTable.reworkRequired, true),
+      eq(turnsTable.turnStatus, "in_rework")
+    )!,
+  ];
+  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
 
-  const wos = await db
+  const turns = await db
     .select()
-    .from(workOrdersTable)
+    .from(turnsTable)
     .where(and(...conditions))
-    .orderBy(desc(workOrdersTable.daysInStage))
+    .orderBy(desc(turnsTable.daysInStage))
     .limit(100);
 
-  const propIds = [...new Set(wos.map(w => w.propertyId).filter(Boolean))] as number[];
+  const propIds = [...new Set(turns.map(t => t.propertyId).filter(Boolean))] as number[];
   const props = propIds.length
     ? await db.select({ id: propertiesTable.id, name: propertiesTable.name })
         .from(propertiesTable).where(inArray(propertiesTable.id, propIds))
     : [];
   const propMap = new Map(props.map(p => [p.id, p.name]));
 
-  return wos.map(wo => {
-    const propertyLabel = wo.propertyId ? propMap.get(wo.propertyId) : wo.propertyNameRaw;
-    const unitLabel = wo.unitNumberRaw ? `Unit ${wo.unitNumberRaw}` : null;
-    const days = wo.daysInStage ?? 0;
+  return turns.map(turn => {
+    const propertyLabel = turn.propertyId ? propMap.get(turn.propertyId) : turn.propertyNameRaw;
+    const unitLabel = turn.unitNumber ? `Unit ${turn.unitNumber}` : null;
+    const days = turn.daysInStage ?? 0;
 
     return {
-      id: wo.id,
+      id: turn.id,
       rowType: "item" as DrillRowType,
-      title: wo.description?.slice(0, 60) ?? `Rework — ${wo.stage ?? "inspection"}`,
-      subtitle: [propertyLabel, unitLabel, wo.stage].filter(Boolean).join(" · "),
+      title: `Turn ${turn.turnId ?? String(turn.id)} — ${turn.reworkCompleted ? "Rework Done" : "In Rework"}`,
+      subtitle: [propertyLabel, unitLabel, turn.currentStage].filter(Boolean).join(" · "),
       detail: [
-        `${days}d in rework`,
-        wo.delayReason,
+        `${days}d in stage`,
+        turn.reworkCompleted ? "rework completed" : "rework pending",
+        `${Math.round(turn.completionPercentage)}% complete`,
       ].filter(Boolean).join(" · "),
-      badge: wo.stage === "Rework" ? "REWORK" : "FAILED INSPECTION",
-      badgeColor: "red" as BadgeColor,
-      navigateTo: wo.unitId ? `/units/${wo.unitId}` : "/work-orders",
+      badge: turn.reworkCompleted ? "REWORK DONE" : "FAILED INSPECTION",
+      badgeColor: turn.reworkCompleted ? "yellow" as BadgeColor : "red" as BadgeColor,
+      navigateTo: "/turns",
       meta: {
-        externalId: wo.externalId,
-        turnId: wo.turnId,
-        stage: wo.stage,
-        daysInStage: wo.daysInStage,
-        delayReason: wo.delayReason,
-        regionName: wo.regionName,
+        turnId: turn.turnId,
+        currentStage: turn.currentStage,
+        daysInStage: turn.daysInStage,
+        reworkRequired: turn.reworkRequired,
+        reworkCompleted: turn.reworkCompleted,
+        turnStatus: turn.turnStatus,
+        completionPercentage: turn.completionPercentage,
         propertyName: propertyLabel,
+      },
+    };
+  });
+}
+
+// ─── Not Rent-Ready Drill (queries turns table) ───────────────────────────────
+
+async function notRentReadyDrill(propertyId?: number): Promise<DrillRow[]> {
+  const conditions = [
+    eq(turnsTable.rentReady, false),
+    ne(turnsTable.turnStatus, "completed"),
+  ];
+  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
+
+  const turns = await db
+    .select()
+    .from(turnsTable)
+    .where(and(...conditions))
+    .orderBy(desc(turnsTable.totalDaysOpen))
+    .limit(100);
+
+  const propIds = [...new Set(turns.map(t => t.propertyId).filter(Boolean))] as number[];
+  const props = propIds.length
+    ? await db.select({ id: propertiesTable.id, name: propertiesTable.name })
+        .from(propertiesTable).where(inArray(propertiesTable.id, propIds))
+    : [];
+  const propMap = new Map(props.map(p => [p.id, p.name]));
+
+  return turns.map(turn => {
+    const propertyLabel = turn.propertyId ? propMap.get(turn.propertyId) : turn.propertyNameRaw;
+    const unitLabel = turn.unitNumber ? `Unit ${turn.unitNumber}` : null;
+    const days = turn.totalDaysOpen ?? 0;
+
+    const reasons: string[] = [];
+    if (turn.isBlocked) reasons.push("blocked");
+    if (turn.reworkRequired && !turn.reworkCompleted) reasons.push("rework required");
+    if (!turn.inspectionPassed) reasons.push("inspection pending");
+
+    return {
+      id: turn.id,
+      rowType: "item" as DrillRowType,
+      title: `Turn ${turn.turnId ?? String(turn.id)} — ${turn.currentStage ?? "In Progress"}`,
+      subtitle: [propertyLabel, unitLabel].filter(Boolean).join(" · "),
+      detail: [
+        `${Math.round(turn.completionPercentage)}% complete`,
+        `${days}d open`,
+        reasons.length > 0 ? reasons.join(", ") : null,
+      ].filter(Boolean).join(" · "),
+      badge: turn.isBlocked ? "BLOCKED" : reasons.length > 0 ? reasons[0].toUpperCase() : "NOT READY",
+      badgeColor: turn.isBlocked ? "red" as BadgeColor : "yellow" as BadgeColor,
+      navigateTo: "/turns",
+      meta: {
+        turnId: turn.turnId,
+        currentStage: turn.currentStage,
+        completionPercentage: turn.completionPercentage,
+        totalDaysOpen: turn.totalDaysOpen,
+        isBlocked: turn.isBlocked,
+        reworkRequired: turn.reworkRequired,
+        inspectionPassed: turn.inspectionPassed,
+        propertyName: propertyLabel,
+        unitNumber: unitLabel,
       },
     };
   });
@@ -835,6 +898,8 @@ router.get("/drill", async (req, res) => {
       );
     } else if (signal === "rework_loop") {
       rows = await reworkLoopDrill(propertyId ? parseInt(propertyId) : undefined);
+    } else if (signal === "not_rent_ready") {
+      rows = await notRentReadyDrill(propertyId ? parseInt(propertyId) : undefined);
     }
 
     // Compute cost totals for asset signals

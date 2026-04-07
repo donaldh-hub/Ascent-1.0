@@ -8,6 +8,7 @@ import {
   type IntelligenceAction,
   type WorkflowSpotlightEntry,
   type TrendSignal,
+  type TurnStats,
 } from "@workspace/api-client-react";
 import { DrillDownSheet, ClickableSignal } from "@/components/drill-down-sheet";
 import type { SignalType } from "@/hooks/use-signal-drill";
@@ -299,6 +300,30 @@ export default function Dashboard() {
                       <span className="text-foreground/75 leading-snug">
                         <span className="font-semibold text-foreground/90">{intel.primaryBottleneck.workflowTitle}</span> bottleneck
                         <span className="text-muted-foreground"> ({intel.primaryBottleneck.maxAgeDays}d max age)</span>
+                      </span>
+                    </li>
+                  )}
+                  {intel?.turnStats?.hasData && (intel.turnStats.blockedTurns > 0 || intel.turnStats.reworkTurns > 0) && (
+                    <li className="flex items-start gap-2 text-xs">
+                      <span className="text-amber-400 font-bold mt-0.5">•</span>
+                      <span className="text-foreground/80">
+                        <ClickableSignal
+                          onClick={() => openDrill("blocked_turns")}
+                          className="px-1 py-0.5 rounded"
+                          title="View blocked turn records"
+                          disabled={intel.turnStats!.blockedTurns === 0}
+                        >
+                          <span className="font-semibold text-amber-400">{intel.turnStats.blockedTurns} turns blocked</span>
+                        </ClickableSignal>
+                        {intel.turnStats.reworkTurns > 0 && (
+                          <> · <ClickableSignal
+                            onClick={() => openDrill("rework_loop")}
+                            className="px-1 py-0.5 rounded"
+                            title="View rework turns"
+                          >
+                            <span className="font-semibold text-status-red">{intel.turnStats.reworkTurns} in rework</span>
+                          </ClickableSignal></>
+                        )}
                       </span>
                     </li>
                   )}
@@ -829,6 +854,7 @@ function MetricRevealSection({
   const actions = intel?.actions ?? [];
   const snap = intel?.executiveSnapshot;
   const trends = intel?.trends ?? [];
+  const turnStats = intel?.turnStats ?? null;
 
   // ── Per-metric config ──
   const config: Record<MetricKey, {
@@ -875,18 +901,36 @@ function MetricRevealSection({
 
   const cfg = config[metric];
 
-  // ── PRIMARY CAUSE (derived from real data) ──
+  // ── PRIMARY CAUSE (derived from real data, turn-first when available) ──
   let primaryCause = cfg.why;
-  if (metric === "flow" && bottleneck) {
-    primaryCause = `${bottleneck.itemCount} items stuck in "${bottleneck.stageName}" stage (${bottleneck.workflowTitle}) — ${bottleneck.maxAgeDays}d max age`;
-  } else if (metric === "risk" && snap) {
-    const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
-    primaryCause = `${snap.criticalItemsCount} critical-priority items open with ${snap.overdueItemsCount} past due date — active exposure across ${redCount} at-risk workflow${redCount !== 1 ? "s" : ""}`;
-  } else if (metric === "execution" && snap) {
-    if (snap.longestAgingItem) {
-      primaryCause = `${snap.throughputPercent}% workflow completion rate — longest item stuck ${snap.longestAgingItem.daysInStage}d in "${snap.longestAgingItem.workflowTitle}"`;
-    } else {
-      primaryCause = `${snap.throughputPercent}% workflow completion rate — ${snap.overdueItemsCount} overdue items contributing to execution drag`;
+  if (metric === "flow") {
+    if (turnStats?.hasData && bottleneck) {
+      primaryCause = `${turnStats.blockedTurns} turns blocked at "${turnStats.primaryBottleneckStage ?? bottleneck.stageName}" stage · ${Math.round(100 - turnStats.avgCompletionPct)}% of active turns incomplete · ${bottleneck.itemCount} items stuck in "${bottleneck.stageName}" (${bottleneck.maxAgeDays}d max age)`;
+    } else if (turnStats?.hasData) {
+      primaryCause = `${turnStats.blockedTurns} turns blocked · ${turnStats.avgCompletionPct}% avg turn completion · Primary bottleneck: ${turnStats.primaryBottleneckStage ?? "undetected"}`;
+    } else if (bottleneck) {
+      primaryCause = `${bottleneck.itemCount} items stuck in "${bottleneck.stageName}" stage (${bottleneck.workflowTitle}) — ${bottleneck.maxAgeDays}d max age`;
+    }
+  } else if (metric === "risk") {
+    if (turnStats?.hasData && snap) {
+      const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
+      primaryCause = `${snap.criticalItemsCount} critical workflow items · ${turnStats.blockedTurns} blocked turns · ${turnStats.reworkTurns} in rework · ${turnStats.notRentReadyCount} units not rent-ready across ${redCount} at-risk workflow${redCount !== 1 ? "s" : ""}`;
+    } else if (snap) {
+      const redCount = spotlight.filter((w) => w.concernLevel === "critical").length;
+      primaryCause = `${snap.criticalItemsCount} critical-priority items open with ${snap.overdueItemsCount} past due date — active exposure across ${redCount} at-risk workflow${redCount !== 1 ? "s" : ""}`;
+    }
+  } else if (metric === "execution") {
+    if (turnStats?.hasData && snap) {
+      const rentReadyRate = turnStats.totalTurns > 0
+        ? Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)
+        : 0;
+      primaryCause = `${rentReadyRate}% rent-ready rate from ${turnStats.totalTurns} turns · ${snap.throughputPercent}% workflow completion · ${turnStats.notRentReadyCount} units not yet leasable`;
+    } else if (snap) {
+      if (snap.longestAgingItem) {
+        primaryCause = `${snap.throughputPercent}% workflow completion rate — longest item stuck ${snap.longestAgingItem.daysInStage}d in "${snap.longestAgingItem.workflowTitle}"`;
+      } else {
+        primaryCause = `${snap.throughputPercent}% workflow completion rate — ${snap.overdueItemsCount} overdue items contributing to execution drag`;
+      }
     }
   } else if (metric === "improvement") {
     const completionTrend = trends.find((t) => t.label === "Completion Activity");
@@ -895,23 +939,29 @@ function MetricRevealSection({
     }
   }
 
-  // ── RECOMMENDED ACTION (derived from real data) ──
+  // ── RECOMMENDED ACTION (derived from real data, turn-aware) ──
   let recommendedAction = "";
   if (metric === "flow") {
-    if (bottleneck) {
+    if (turnStats?.hasData && turnStats.blockedTurns > 0) {
+      recommendedAction = `Unblock ${turnStats.blockedTurns} turns stalled at ${turnStats.primaryBottleneckStage ?? "primary stage"} — review delay reasons and escalate vendor/maintenance dependencies`;
+    } else if (bottleneck) {
       recommendedAction = `Escalate the top ${Math.min(3, bottleneck.itemCount)} aging items in "${bottleneck.stageName}" immediately to restore flow`;
     } else {
       recommendedAction = "Review stage assignments and reassign items stuck beyond 7 days";
     }
   } else if (metric === "risk") {
     const missingCount = actions.filter((a) => a.missingDocs).length;
-    if (missingCount > 0) {
+    if (turnStats?.hasData && turnStats.blockedTurns + turnStats.reworkTurns > 0) {
+      recommendedAction = `Resolve ${turnStats.blockedTurns} blocked and ${turnStats.reworkTurns} rework turns — ${turnStats.notRentReadyCount} units remain unleasable until cleared`;
+    } else if (missingCount > 0) {
       recommendedAction = `Address ${snap?.criticalItemsCount ?? 0} critical items immediately — prioritize the ${missingCount} missing documentation case${missingCount !== 1 ? "s" : ""} first`;
     } else {
       recommendedAction = `Address ${snap?.criticalItemsCount ?? 0} critical items immediately, starting with the highest-priority overdue cases`;
     }
   } else if (metric === "execution") {
-    if (snap?.longestAgingItem) {
+    if (turnStats?.hasData && turnStats.notRentReadyCount > 0) {
+      recommendedAction = `Clear ${turnStats.notRentReadyCount} not-rent-ready units — focus on resolving blocked turns first, then push inspection-failed units through rework`;
+    } else if (snap?.longestAgingItem) {
       recommendedAction = `Assign ownership to all open items and resolve "${snap.longestAgingItem.title}" first (stuck ${snap.longestAgingItem.daysInStage}d in stage)`;
     } else {
       recommendedAction = "Assign ownership to all unassigned items and review completion blockers across active workflows";
@@ -980,16 +1030,16 @@ function MetricRevealSection({
 
         {/* Per-metric detail rows */}
         {metric === "flow" && (
-          <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} onDrill={onDrill} />
+          <FlowReveal bottleneck={bottleneck} spotlight={spotlight} trends={trends} turnStats={turnStats} onDrill={onDrill} />
         )}
         {metric === "risk" && (
-          <RiskReveal actions={actions} spotlight={spotlight} summary={summary} onDrill={onDrill} />
+          <RiskReveal actions={actions} spotlight={spotlight} summary={summary} turnStats={turnStats} onDrill={onDrill} />
         )}
         {metric === "execution" && (
-          <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} onDrill={onDrill} />
+          <ExecutionReveal snap={snap} trends={trends} spotlight={spotlight} summary={summary} turnStats={turnStats} onDrill={onDrill} />
         )}
         {metric === "improvement" && (
-          <ImprovementReveal snap={snap} trends={trends} summary={summary} onDrill={onDrill} />
+          <ImprovementReveal snap={snap} trends={trends} summary={summary} turnStats={turnStats} onDrill={onDrill} />
         )}
 
         {/* RECOMMENDED ACTION */}
@@ -1015,84 +1065,140 @@ function FlowReveal({
   bottleneck,
   spotlight,
   trends,
+  turnStats,
   onDrill,
 }: {
   bottleneck: DashboardIntelligence["primaryBottleneck"];
   spotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
+  turnStats: TurnStats | null | undefined;
   onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const congestionTrend = trends.find((t) => t.label === "Stage Congestion");
   const agingTrend = trends.find((t) => t.label === "Aging Items");
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      {/* Top bottleneck */}
-      <RevealCard label="Top Bottleneck Stage" icon={Activity}>
-        {bottleneck ? (
-          <>
-            <p className="font-semibold text-sm">{bottleneck.stageName}</p>
-            <p className="text-xs text-muted-foreground mt-1">{bottleneck.workflowTitle}</p>
-            <div className="mt-2 space-y-1">
-              <div className="text-xs">
+    <div className="space-y-3">
+      {/* Turn-derived inputs (first-class) */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-blue-400/70 mb-2 flex items-center gap-1.5">
+          <Wrench className="h-3 w-3" /> Turn-Derived Inputs
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RevealCard label="Turn Pipeline Status" icon={Activity}>
+            {turnStats?.hasData ? (
+              <>
                 <ClickableSignal
-                  onClick={() => onDrill("bottleneck_items", {
-                    workflowId: bottleneck.workflowId,
-                    stageId: bottleneck.stageId ?? undefined,
-                  })}
-                  className="px-1 py-0.5 rounded"
-                  title="View stuck items in this stage"
-                  disabled={bottleneck.itemCount === 0}
+                  onClick={() => onDrill("blocked_turns")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  disabled={turnStats.blockedTurns === 0}
+                  title="View blocked turn records"
                 >
-                  <span className="text-status-red font-semibold">{bottleneck.itemCount} items stuck</span>
-                  {bottleneck.itemCount > 0 && <span className="ml-1 text-[10px] text-primary/50">↗</span>}
+                  <p className="text-2xl font-bold text-status-red tabular-nums">{turnStats.blockedTurns}</p>
+                  <p className="text-[10px] font-bold uppercase text-status-red/80 tracking-wide">turns blocked</p>
                 </ClickableSignal>
-              </div>
-              <div className="text-xs">
-                <span className="font-medium text-foreground/80">{bottleneck.maxAgeDays}d max age</span>
-                <span className="ml-1.5 text-[10px] text-status-red/80 font-semibold uppercase">
-                  ({severityLabel(bottleneck.maxAgeDays, "age")})
-                </span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">No active bottleneck detected.</p>
-        )}
-      </RevealCard>
+                <p className="text-xs text-muted-foreground mt-1">{turnStats.avgCompletionPct}% avg completion · {turnStats.activeTurns} active</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No turn data — import a Turn Matrix to enable turn-based flow signals.</p>
+            )}
+          </RevealCard>
 
-      {/* Congestion trend */}
-      <RevealCard label="Stage Congestion Signal" icon={TrendingDown}>
-        {congestionTrend ? (
-          <>
-            <p className="font-semibold text-sm">{congestionTrend.value}</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-snug">{congestionTrend.explanation}</p>
-          </>
-        ) : agingTrend ? (
-          <>
-            <p className="font-semibold text-sm">{agingTrend.value}</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-snug">{agingTrend.explanation}</p>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">No congestion signal.</p>
-        )}
-      </RevealCard>
+          <RevealCard label="Primary Turn Bottleneck" icon={TrendingDown}>
+            {turnStats?.hasData && turnStats.primaryBottleneckStage ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("stage_congestion")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  title="View congested stage"
+                >
+                  <p className="font-semibold text-sm">{turnStats.primaryBottleneckStage}</p>
+                  {turnStats.blockedTurns > 0 && (
+                    <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">↗</p>
+                  )}
+                </ClickableSignal>
+                {turnStats.bottleneckExplanation && (
+                  <p className="text-xs text-muted-foreground mt-1 leading-snug">{turnStats.bottleneckExplanation}</p>
+                )}
+              </>
+            ) : turnStats?.hasData ? (
+              <p className="text-xs text-muted-foreground">No turn bottleneck detected.</p>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">Not connected.</p>
+            )}
+          </RevealCard>
 
-      {/* Affected workflows */}
-      <RevealCard label="Affected Workflows" icon={Workflow}>
-        {spotlight.filter((w) => w.hasBottleneck).length > 0 ? (
-          <ul className="space-y-1.5">
-            {spotlight.filter((w) => w.hasBottleneck).slice(0, 3).map((w) => (
-              <li key={w.workflowId} className="flex items-center justify-between text-xs">
-                <span className="text-foreground/80 truncate max-w-[120px]">{w.title}</span>
-                <span className="text-muted-foreground shrink-0 ml-1">{w.openItems} open</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-xs text-muted-foreground">No workflows with active bottlenecks.</p>
-        )}
-      </RevealCard>
+          <RevealCard label="Affected Workflows" icon={Workflow}>
+            {spotlight.filter((w) => w.hasBottleneck).length > 0 ? (
+              <ul className="space-y-1.5">
+                {spotlight.filter((w) => w.hasBottleneck).slice(0, 3).map((w) => (
+                  <li key={w.workflowId} className="flex items-center justify-between text-xs">
+                    <span className="text-foreground/80 truncate max-w-[120px]">{w.title}</span>
+                    <span className="text-muted-foreground shrink-0 ml-1">{w.openItems} open</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground">No workflows with active bottlenecks.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
+
+      {/* Workflow congestion signals */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60 mb-2">Workflow Congestion Signals</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <RevealCard label="Top Workflow Bottleneck" icon={Activity}>
+            {bottleneck ? (
+              <>
+                <p className="font-semibold text-sm">{bottleneck.stageName}</p>
+                <p className="text-xs text-muted-foreground mt-1">{bottleneck.workflowTitle}</p>
+                <div className="mt-2 space-y-1">
+                  <div className="text-xs">
+                    <ClickableSignal
+                      onClick={() => onDrill("bottleneck_items", {
+                        workflowId: bottleneck.workflowId,
+                        stageId: bottleneck.stageId ?? undefined,
+                      })}
+                      className="px-1 py-0.5 rounded"
+                      title="View stuck items in this stage"
+                      disabled={bottleneck.itemCount === 0}
+                    >
+                      <span className="text-status-red font-semibold">{bottleneck.itemCount} items stuck</span>
+                      {bottleneck.itemCount > 0 && <span className="ml-1 text-[10px] text-primary/50">↗</span>}
+                    </ClickableSignal>
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-medium text-foreground/80">{bottleneck.maxAgeDays}d max age</span>
+                    <span className="ml-1.5 text-[10px] text-status-red/80 font-semibold uppercase">
+                      ({severityLabel(bottleneck.maxAgeDays, "age")})
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">No active bottleneck detected.</p>
+            )}
+          </RevealCard>
+
+          <RevealCard label="Stage Congestion Signal" icon={TrendingDown}>
+            {congestionTrend ? (
+              <>
+                <p className="font-semibold text-sm">{congestionTrend.value}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{congestionTrend.explanation}</p>
+              </>
+            ) : agingTrend ? (
+              <>
+                <p className="font-semibold text-sm">{agingTrend.value}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{agingTrend.explanation}</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">No congestion signal.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1103,80 +1209,167 @@ function RiskReveal({
   actions,
   spotlight,
   summary,
+  turnStats,
   onDrill,
 }: {
   actions: IntelligenceAction[];
   spotlight: WorkflowSpotlightEntry[];
   summary: any;
+  turnStats: TurnStats | null | undefined;
   onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const criticalActions = actions.filter((a) => a.urgency === "critical");
-  const overdueActions = actions.filter((a) => a.category === "overdue");
   const missingDocActions = actions.filter((a) => a.missingDocs);
   const redWorkflows = spotlight.filter((w) => w.concernLevel === "critical");
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <RevealCard label="Critical Items" icon={ShieldAlert}>
-        <ClickableSignal
-          onClick={() => onDrill("critical_items")}
-          className="block px-1 py-0.5 rounded -mx-1"
-          disabled={(summary?.criticalItemsCount ?? 0) === 0}
-          title="View critical items"
-        >
-          <p className="text-2xl font-bold text-status-red tabular-nums flex items-baseline gap-1">
-            {summary?.criticalItemsCount ?? 0}
-            {(summary?.criticalItemsCount ?? 0) > 0 && <span className="text-[11px] text-primary/50">↗</span>}
-          </p>
-          <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
-            {severityLabel(summary?.criticalItemsCount ?? 0, "critical")}
-          </p>
-        </ClickableSignal>
-        <p className="text-xs text-muted-foreground mt-1">open critical-priority items</p>
-        {criticalActions.length > 0 && (
-          <p className="text-xs text-status-red/80 mt-2 leading-snug">
-            {criticalActions.length} action{criticalActions.length !== 1 ? "s" : ""} flagged critical
-          </p>
-        )}
-      </RevealCard>
+    <div className="space-y-3">
+      {/* Turn-derived risk inputs (first-class) */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-red-400/70 mb-2 flex items-center gap-1.5">
+          <Wrench className="h-3 w-3" /> Turn-Derived Risk Inputs
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RevealCard label="Blocked Turns" icon={AlertCircle}>
+            {turnStats?.hasData ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("blocked_turns")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  disabled={turnStats.blockedTurns === 0}
+                  title="View blocked turn records"
+                >
+                  <p className="text-2xl font-bold text-status-red tabular-nums flex items-baseline gap-1">
+                    {turnStats.blockedTurns}
+                    {turnStats.blockedTurns > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+                    {turnStats.blockedTurns > 0 ? "ACTIVE BLOCKAGES" : "NO BLOCKS"}
+                  </p>
+                </ClickableSignal>
+                <p className="text-xs text-muted-foreground mt-1">turns with confirmed gate or dependency</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">This card is not yet connected to turn-derived inputs.</p>
+            )}
+          </RevealCard>
 
-      <RevealCard label="Overdue Items" icon={Clock}>
-        <ClickableSignal
-          onClick={() => onDrill("overdue_items")}
-          className="block px-1 py-0.5 rounded -mx-1"
-          disabled={(summary?.overdueItemsCount ?? 0) === 0}
-          title="View overdue items"
-        >
-          <p className="text-2xl font-bold text-status-yellow tabular-nums flex items-baseline gap-1">
-            {summary?.overdueItemsCount ?? 0}
-            {(summary?.overdueItemsCount ?? 0) > 0 && <span className="text-[11px] text-primary/50">↗</span>}
-          </p>
-          <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
-            {severityLabel(summary?.overdueItemsCount ?? 0, "overdue")} backlog
-          </p>
-        </ClickableSignal>
-        <p className="text-xs text-muted-foreground mt-1">items past their due date</p>
-        {missingDocActions.length > 0 && (
-          <p className="text-xs text-status-yellow/80 mt-2 leading-snug">
-            {missingDocActions.length} critical item{missingDocActions.length !== 1 ? "s" : ""} missing documentation
-          </p>
-        )}
-      </RevealCard>
+          <RevealCard label="Rework Loop" icon={AlertTriangle}>
+            {turnStats?.hasData ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("rework_loop")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  disabled={turnStats.reworkTurns === 0}
+                  title="View rework turns"
+                >
+                  <p className="text-2xl font-bold text-amber-400 tabular-nums flex items-baseline gap-1">
+                    {turnStats.reworkTurns}
+                    {turnStats.reworkTurns > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase text-amber-400/80 mt-0.5 tracking-wide">
+                    {turnStats.reworkTurns > 0 ? "INSPECTION FAILS" : "NO REWORK"}
+                  </p>
+                </ClickableSignal>
+                <p className="text-xs text-muted-foreground mt-1">units failed inspection · re-entering pipeline</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">This card is not yet connected to turn-derived inputs.</p>
+            )}
+          </RevealCard>
 
-      <RevealCard label="At-Risk Workflows" icon={AlertTriangle}>
-        {redWorkflows.length > 0 ? (
-          <ul className="space-y-1.5">
-            {redWorkflows.slice(0, 3).map((w) => (
-              <li key={w.workflowId} className="text-xs">
-                <span className="text-foreground/80 font-medium">{w.title}</span>
-                <p className="text-muted-foreground leading-tight mt-0.5">{w.concernReason}</p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-xs text-muted-foreground">No workflows at critical risk level.</p>
-        )}
-      </RevealCard>
+          <RevealCard label="Not Rent-Ready" icon={ShieldAlert}>
+            {turnStats?.hasData ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("not_rent_ready")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  disabled={turnStats.notRentReadyCount === 0}
+                  title="View not-rent-ready units"
+                >
+                  <p className="text-2xl font-bold text-status-red tabular-nums flex items-baseline gap-1">
+                    {turnStats.notRentReadyCount}
+                    {turnStats.notRentReadyCount > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+                    units not leasable
+                  </p>
+                </ClickableSignal>
+                <p className="text-xs text-muted-foreground mt-1">active turns missing rent-ready status</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">This card is not yet connected to turn-derived inputs.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
+
+      {/* Workflow risk signals */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60 mb-2">Workflow Risk Signals</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RevealCard label="Critical Items" icon={ShieldAlert}>
+            <ClickableSignal
+              onClick={() => onDrill("critical_items")}
+              className="block px-1 py-0.5 rounded -mx-1"
+              disabled={(summary?.criticalItemsCount ?? 0) === 0}
+              title="View critical items"
+            >
+              <p className="text-2xl font-bold text-status-red tabular-nums flex items-baseline gap-1">
+                {summary?.criticalItemsCount ?? 0}
+                {(summary?.criticalItemsCount ?? 0) > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+              </p>
+              <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">
+                {severityLabel(summary?.criticalItemsCount ?? 0, "critical")}
+              </p>
+            </ClickableSignal>
+            <p className="text-xs text-muted-foreground mt-1">open critical-priority items</p>
+            {criticalActions.length > 0 && (
+              <p className="text-xs text-status-red/80 mt-2 leading-snug">
+                {criticalActions.length} action{criticalActions.length !== 1 ? "s" : ""} flagged critical
+              </p>
+            )}
+          </RevealCard>
+
+          <RevealCard label="Overdue Items" icon={Clock}>
+            <ClickableSignal
+              onClick={() => onDrill("overdue_items")}
+              className="block px-1 py-0.5 rounded -mx-1"
+              disabled={(summary?.overdueItemsCount ?? 0) === 0}
+              title="View overdue items"
+            >
+              <p className="text-2xl font-bold text-status-yellow tabular-nums flex items-baseline gap-1">
+                {summary?.overdueItemsCount ?? 0}
+                {(summary?.overdueItemsCount ?? 0) > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+              </p>
+              <p className="text-[10px] font-bold uppercase text-status-yellow/80 mt-0.5 tracking-wide">
+                {severityLabel(summary?.overdueItemsCount ?? 0, "overdue")} backlog
+              </p>
+            </ClickableSignal>
+            <p className="text-xs text-muted-foreground mt-1">items past their due date</p>
+            {missingDocActions.length > 0 && (
+              <p className="text-xs text-status-yellow/80 mt-2 leading-snug">
+                {missingDocActions.length} critical item{missingDocActions.length !== 1 ? "s" : ""} missing documentation
+              </p>
+            )}
+          </RevealCard>
+
+          <RevealCard label="At-Risk Workflows" icon={AlertTriangle}>
+            {redWorkflows.length > 0 ? (
+              <ul className="space-y-1.5">
+                {redWorkflows.slice(0, 3).map((w) => (
+                  <li key={w.workflowId} className="text-xs">
+                    <span className="text-foreground/80 font-medium">{w.title}</span>
+                    <p className="text-muted-foreground leading-tight mt-0.5">{w.concernReason}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-muted-foreground">No workflows at critical risk level.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1188,73 +1381,153 @@ function ExecutionReveal({
   trends,
   spotlight,
   summary,
+  turnStats,
   onDrill,
 }: {
   snap: DashboardIntelligence["executiveSnapshot"] | undefined;
   trends: TrendSignal[];
   spotlight: WorkflowSpotlightEntry[];
   summary: any;
+  turnStats: TurnStats | null | undefined;
   onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const completionTrend = trends.find((t) => t.label === "Completion Activity");
   const overdueTrend = trends.find((t) => t.label === "Overdue Items");
   const staleWorkflows = spotlight.filter((w) => w.openItems > 0 && w.criticalItems === 0);
 
+  const rentReadyRate = turnStats?.hasData && turnStats.totalTurns > 0
+    ? Math.round(((turnStats.totalTurns - turnStats.notRentReadyCount) / turnStats.totalTurns) * 100)
+    : null;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <RevealCard label="Completion Rate" icon={Target}>
-        <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
-        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
-          {severityLabel(snap?.throughputPercent ?? 0, "throughput")}
+    <div className="space-y-3">
+      {/* Turn-derived execution inputs (first-class) */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-green-400/70 mb-2 flex items-center gap-1.5">
+          <Wrench className="h-3 w-3" /> Turn-Derived Execution Inputs
         </p>
-        <p className="text-xs text-muted-foreground mt-1">{snap?.throughputLabel ?? "workflows completed"}</p>
-        {completionTrend && (
-          <p className="text-xs text-muted-foreground mt-2 leading-snug">{completionTrend.explanation}</p>
-        )}
-      </RevealCard>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RevealCard label="Rent-Ready Rate" icon={Target}>
+            {turnStats?.hasData ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("not_rent_ready")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  disabled={turnStats.notRentReadyCount === 0}
+                  title="View not-rent-ready units"
+                >
+                  <p className={`text-2xl font-bold tabular-nums flex items-baseline gap-1 ${(rentReadyRate ?? 0) < 50 ? "text-status-red" : (rentReadyRate ?? 0) < 80 ? "text-status-yellow" : "text-status-green"}`}>
+                    {rentReadyRate ?? 0}%
+                    {turnStats.notRentReadyCount > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+                    {severityLabel(rentReadyRate ?? 0, "throughput")}
+                  </p>
+                </ClickableSignal>
+                <p className="text-xs text-muted-foreground mt-1">{turnStats.notRentReadyCount} units not yet leasable</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">This card is not yet connected to turn-derived inputs.</p>
+            )}
+          </RevealCard>
 
-      <RevealCard label="Movement Consistency" icon={Activity}>
-        {snap?.longestAgingItem ? (
-          <>
-            <p className="text-xs text-muted-foreground mb-1">Longest stuck item:</p>
-            <p className="text-sm font-semibold leading-snug text-foreground/80">{snap.longestAgingItem.title}</p>
-            <div className="flex gap-2 mt-1.5 text-xs">
-              <span className="text-status-red font-medium">{snap.longestAgingItem.daysInStage}d</span>
-              <span className="text-muted-foreground">{snap.longestAgingItem.workflowTitle}</span>
-            </div>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">No severely stale items detected.</p>
-        )}
-      </RevealCard>
+          <RevealCard label="Turn Completion" icon={Activity}>
+            {turnStats?.hasData ? (
+              <>
+                <p className="text-2xl font-bold tabular-nums">{turnStats.avgCompletionPct}%</p>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">avg turn progress</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {turnStats.completedTurns} of {turnStats.totalTurns} turns complete
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">This card is not yet connected to turn-derived inputs.</p>
+            )}
+          </RevealCard>
 
-      <RevealCard label="Responsiveness Gaps" icon={Clock}>
-        {overdueTrend ? (
-          <>
-            <p className="font-semibold text-sm">{overdueTrend.value}</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-snug">{overdueTrend.explanation}</p>
-          </>
-        ) : staleWorkflows.length > 0 ? (
-          <>
-            <ClickableSignal
-              onClick={() => onDrill("stale_items")}
-              className="block px-1 py-0.5 rounded -mx-1"
-              title="View stale workflow items"
-            >
-              <p className="text-2xl font-bold tabular-nums text-amber-400 flex items-baseline gap-1">
-                {staleWorkflows.length}
-                <span className="text-[11px] text-primary/50">↗</span>
-              </p>
-              <p className="text-[10px] font-bold uppercase text-amber-400/80 mt-0.5 tracking-wide">stale workflows</p>
-            </ClickableSignal>
-            <p className="text-xs text-muted-foreground mt-1">
-              with open items, no critical escalation
+          <RevealCard label="Execution Blockers" icon={Clock}>
+            {turnStats?.hasData ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("blocked_turns")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  disabled={turnStats.blockedTurns === 0}
+                  title="View blocked turns"
+                >
+                  <p className="text-2xl font-bold text-status-red tabular-nums flex items-baseline gap-1">
+                    {turnStats.blockedTurns}
+                    {turnStats.blockedTurns > 0 && <span className="text-[11px] text-primary/50">↗</span>}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase text-status-red/80 mt-0.5 tracking-wide">blocked turns</p>
+                </ClickableSignal>
+                {turnStats.reworkTurns > 0 && (
+                  <p className="text-xs text-amber-400/80 mt-1">{turnStats.reworkTurns} additional in rework</p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground italic">This card is not yet connected to turn-derived inputs.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
+
+      {/* Workflow execution signals */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60 mb-2">Workflow Execution Signals</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RevealCard label="Completion Rate" icon={Target}>
+            <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
+            <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+              {severityLabel(snap?.throughputPercent ?? 0, "throughput")}
             </p>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">No responsiveness gaps detected.</p>
-        )}
-      </RevealCard>
+            <p className="text-xs text-muted-foreground mt-1">{snap?.throughputLabel ?? "workflows completed"}</p>
+            {completionTrend && (
+              <p className="text-xs text-muted-foreground mt-2 leading-snug">{completionTrend.explanation}</p>
+            )}
+          </RevealCard>
+
+          <RevealCard label="Movement Consistency" icon={Activity}>
+            {snap?.longestAgingItem ? (
+              <>
+                <p className="text-xs text-muted-foreground mb-1">Longest stuck item:</p>
+                <p className="text-sm font-semibold leading-snug text-foreground/80">{snap.longestAgingItem.title}</p>
+                <div className="flex gap-2 mt-1.5 text-xs">
+                  <span className="text-status-red font-medium">{snap.longestAgingItem.daysInStage}d</span>
+                  <span className="text-muted-foreground">{snap.longestAgingItem.workflowTitle}</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">No severely stale items detected.</p>
+            )}
+          </RevealCard>
+
+          <RevealCard label="Responsiveness Gaps" icon={Clock}>
+            {overdueTrend ? (
+              <>
+                <p className="font-semibold text-sm">{overdueTrend.value}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{overdueTrend.explanation}</p>
+              </>
+            ) : staleWorkflows.length > 0 ? (
+              <>
+                <ClickableSignal
+                  onClick={() => onDrill("stale_items")}
+                  className="block px-1 py-0.5 rounded -mx-1"
+                  title="View stale workflow items"
+                >
+                  <p className="text-2xl font-bold tabular-nums text-amber-400 flex items-baseline gap-1">
+                    {staleWorkflows.length}
+                    <span className="text-[11px] text-primary/50">↗</span>
+                  </p>
+                  <p className="text-[10px] font-bold uppercase text-amber-400/80 mt-0.5 tracking-wide">stale workflows</p>
+                </ClickableSignal>
+                <p className="text-xs text-muted-foreground mt-1">with open items, no critical escalation</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">No responsiveness gaps detected.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1265,62 +1538,91 @@ function ImprovementReveal({
   snap,
   trends,
   summary,
+  turnStats,
   onDrill,
 }: {
   snap: DashboardIntelligence["executiveSnapshot"] | undefined;
   trends: TrendSignal[];
   summary: any;
+  turnStats: TurnStats | null | undefined;
   onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const completionTrend = trends.find((t) => t.label === "Completion Activity");
   const agingTrend = trends.find((t) => t.label === "Aging Items");
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      <RevealCard label="Trend Direction" icon={TrendingUp}>
-        {completionTrend ? (
-          <>
-            <div className="flex items-center gap-2 mb-1">
-              {completionTrend.direction === "up" ? (
-                <TrendingUp className="h-5 w-5 text-status-green" />
-              ) : completionTrend.direction === "down" ? (
-                <TrendingDown className="h-5 w-5 text-status-red" />
-              ) : (
-                <Minus className="h-5 w-5 text-muted-foreground" />
-              )}
-              <span className="font-semibold text-sm capitalize">{completionTrend.direction}</span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-snug">{completionTrend.explanation}</p>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">Trend data not yet available.</p>
-        )}
-      </RevealCard>
-
-      <RevealCard label="Completion Momentum" icon={Zap}>
-        <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
-        <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
-          {severityLabel(snap?.throughputPercent ?? 0, "throughput")}
+    <div className="space-y-3">
+      {/* Turn-derived improvement status — explicitly not connected */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-purple-400/70 mb-2 flex items-center gap-1.5">
+          <Wrench className="h-3 w-3" /> Turn-Derived Improvement Inputs
         </p>
-        <p className="text-xs text-muted-foreground mt-1">{snap?.improvementSignal ?? "No signal available"}</p>
-      </RevealCard>
+        <div className="rounded-lg border border-border/40 bg-background/60 px-4 py-3 flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+          <div>
+            <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Not Yet Connected</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              This card is not yet connected to turn-derived inputs. Improvement scoring requires historical turn trend data — velocity over time, stage progression rates, and rework cycle reduction — which accumulates after multiple Turn Matrix imports.
+            </p>
+            {turnStats?.hasData && (
+              <p className="text-xs text-muted-foreground/70 mt-2 leading-relaxed">
+                Current data: {turnStats.totalTurns} turns across {turnStats.propertyCount} propert{turnStats.propertyCount !== 1 ? "ies" : "y"} · {turnStats.avgCompletionPct}% avg completion. Import additional snapshots to enable trend analysis.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
 
-      <RevealCard label="Recovery vs Decline" icon={BarChart2}>
-        {agingTrend ? (
-          <>
-            <p className="font-semibold text-sm">{agingTrend.value}</p>
-            <p className="text-xs text-muted-foreground mt-1 leading-snug">{agingTrend.explanation}</p>
-          </>
-        ) : snap?.longestAgingItem ? (
-          <>
-            <p className="text-xs text-muted-foreground mb-1">Oldest unresolved item:</p>
-            <p className="text-sm font-semibold">{snap.longestAgingItem.title}</p>
-            <p className="text-xs text-status-red mt-1">{snap.longestAgingItem.daysInStage}d in stage</p>
-          </>
-        ) : (
-          <p className="text-xs text-muted-foreground">No recovery signal available.</p>
-        )}
-      </RevealCard>
+      {/* Workflow improvement signals */}
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/60 mb-2">Workflow Improvement Signals</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <RevealCard label="Trend Direction" icon={TrendingUp}>
+            {completionTrend ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  {completionTrend.direction === "up" ? (
+                    <TrendingUp className="h-5 w-5 text-status-green" />
+                  ) : completionTrend.direction === "down" ? (
+                    <TrendingDown className="h-5 w-5 text-status-red" />
+                  ) : (
+                    <Minus className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <span className="font-semibold text-sm capitalize">{completionTrend.direction}</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-snug">{completionTrend.explanation}</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">Trend data not yet available.</p>
+            )}
+          </RevealCard>
+
+          <RevealCard label="Completion Momentum" icon={Zap}>
+            <p className="text-2xl font-bold tabular-nums">{snap?.throughputPercent ?? 0}%</p>
+            <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5 tracking-wide">
+              {severityLabel(snap?.throughputPercent ?? 0, "throughput")}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">{snap?.improvementSignal ?? "No signal available"}</p>
+          </RevealCard>
+
+          <RevealCard label="Recovery vs Decline" icon={BarChart2}>
+            {agingTrend ? (
+              <>
+                <p className="font-semibold text-sm">{agingTrend.value}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-snug">{agingTrend.explanation}</p>
+              </>
+            ) : snap?.longestAgingItem ? (
+              <>
+                <p className="text-xs text-muted-foreground mb-1">Oldest unresolved item:</p>
+                <p className="text-sm font-semibold">{snap.longestAgingItem.title}</p>
+                <p className="text-xs text-status-red mt-1">{snap.longestAgingItem.daysInStage}d in stage</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">No recovery signal available.</p>
+            )}
+          </RevealCard>
+        </div>
+      </div>
     </div>
   );
 }

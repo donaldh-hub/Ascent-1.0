@@ -20,7 +20,8 @@ export type SignalType =
   | "category_spike"
   | "blocked_turns"
   | "stage_congestion"
-  | "rework_loop";
+  | "rework_loop"
+  | "not_rent_ready";
 
 export type BadgeColor = "red" | "yellow" | "green" | "blue";
 
