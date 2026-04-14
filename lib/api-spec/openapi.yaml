@@ -23,6 +23,8 @@ tags:
     description: Alerts and notifications
   - name: analytics
     description: Analytics and trends
+  - name: reports
+    description: Reporting and analytics backbone
 paths:
   /healthz:
     get:
@@ -873,6 +875,105 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/WorkflowPerformance"
+
+  /reports:
+    get:
+      operationId: listReportTypes
+      tags: [reports]
+      summary: List all available report types
+      responses:
+        "200":
+          description: Report type definitions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportDefinition"
+
+  /reports/operational:
+    get:
+      operationId: getOperationalReport
+      tags: [reports]
+      summary: Generate operational health report
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+        - name: propertyId
+          in: query
+          schema:
+            type: integer
+        - name: workflowId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Operational report output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportOutput"
+
+  /reports/workflow-summary:
+    get:
+      operationId: getWorkflowReport
+      tags: [reports]
+      summary: Generate workflow performance summary report
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Workflow report output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportOutput"
+
+  /reports/document-coverage:
+    get:
+      operationId: getDocumentReport
+      tags: [reports]
+      summary: Generate evidence and documentation coverage report
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Document report output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportOutput"
+
+  /reports/assignment-coverage:
+    get:
+      operationId: getAssignmentReport
+      tags: [reports]
+      summary: Generate assignment and data quality report
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Assignment report output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportOutput"
 
   /properties:
     get:
@@ -2086,6 +2187,125 @@ components:
         - avgStageDurationDays
         - bottleneckCount
         - alertCount
+
+    ReportInsight:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        text:
+          type: string
+        supportingCount:
+          type: integer
+          nullable: true
+        drillSignal:
+          type: string
+          nullable: true
+      required:
+        - id
+        - category
+        - severity
+        - text
+
+    ReportSection:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        emptyMessage:
+          type: string
+          nullable: true
+      required:
+        - title
+        - type
+        - data
+
+    ReportOutput:
+      type: object
+      properties:
+        reportId:
+          type: string
+        reportType:
+          type: string
+        scope:
+          type: string
+        dateRange:
+          type: object
+          properties:
+            days:
+              type: integer
+            from:
+              type: string
+            to:
+              type: string
+            label:
+              type: string
+          required: [days, from, to, label]
+        filtersApplied:
+          type: object
+          additionalProperties: true
+        generatedAt:
+          type: string
+        summaryMetrics:
+          type: object
+          additionalProperties: true
+        insights:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportInsight"
+        supportingRecordsCount:
+          type: integer
+        hasHistoricalData:
+          type: boolean
+        dataNote:
+          type: string
+          nullable: true
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportSection"
+      required:
+        - reportId
+        - reportType
+        - scope
+        - dateRange
+        - filtersApplied
+        - generatedAt
+        - summaryMetrics
+        - insights
+        - supportingRecordsCount
+        - hasHistoricalData
+        - sections
+
+    ReportDefinition:
+      type: object
+      properties:
+        reportType:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        scope:
+          type: string
+        category:
+          type: string
+      required:
+        - reportType
+        - title
+        - description
+        - scope
+        - category
 
     WorkflowItemPriority:
       type: string

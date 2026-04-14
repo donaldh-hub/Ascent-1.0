@@ -33,6 +33,10 @@ import type {
   DashboardSummary,
   Document,
   GetAnalyticsTrendsParams,
+  GetAssignmentReportParams,
+  GetDocumentReportParams,
+  GetOperationalReportParams,
+  GetWorkflowReportParams,
   HealthStatus,
   ImportUnitsBody,
   ImportUnitsResult,
@@ -45,6 +49,8 @@ import type {
   MoveWorkflowItemBody,
   PriorityAction,
   Property,
+  ReportDefinition,
+  ReportOutput,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   Stage,
@@ -3680,6 +3686,484 @@ export function useGetWorkflowPerformance<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetWorkflowPerformanceQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all available report types
+ */
+export const getListReportTypesUrl = () => {
+  return `/api/reports`;
+};
+
+export const listReportTypes = async (
+  options?: RequestInit,
+): Promise<ReportDefinition[]> => {
+  return customFetch<ReportDefinition[]>(getListReportTypesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListReportTypesQueryKey = () => {
+  return [`/api/reports`] as const;
+};
+
+export const getListReportTypesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listReportTypes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listReportTypes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListReportTypesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listReportTypes>>> = ({
+    signal,
+  }) => listReportTypes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listReportTypes>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListReportTypesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listReportTypes>>
+>;
+export type ListReportTypesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all available report types
+ */
+
+export function useListReportTypes<
+  TData = Awaited<ReturnType<typeof listReportTypes>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listReportTypes>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListReportTypesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate operational health report
+ */
+export const getGetOperationalReportUrl = (
+  params?: GetOperationalReportParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/operational?${stringifiedParams}`
+    : `/api/reports/operational`;
+};
+
+export const getOperationalReport = async (
+  params?: GetOperationalReportParams,
+  options?: RequestInit,
+): Promise<ReportOutput> => {
+  return customFetch<ReportOutput>(getGetOperationalReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOperationalReportQueryKey = (
+  params?: GetOperationalReportParams,
+) => {
+  return [`/api/reports/operational`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetOperationalReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOperationalReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetOperationalReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOperationalReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetOperationalReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOperationalReport>>
+  > = ({ signal }) =>
+    getOperationalReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOperationalReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOperationalReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOperationalReport>>
+>;
+export type GetOperationalReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Generate operational health report
+ */
+
+export function useGetOperationalReport<
+  TData = Awaited<ReturnType<typeof getOperationalReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetOperationalReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOperationalReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOperationalReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate workflow performance summary report
+ */
+export const getGetWorkflowReportUrl = (params?: GetWorkflowReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/workflow-summary?${stringifiedParams}`
+    : `/api/reports/workflow-summary`;
+};
+
+export const getWorkflowReport = async (
+  params?: GetWorkflowReportParams,
+  options?: RequestInit,
+): Promise<ReportOutput> => {
+  return customFetch<ReportOutput>(getGetWorkflowReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWorkflowReportQueryKey = (
+  params?: GetWorkflowReportParams,
+) => {
+  return [
+    `/api/reports/workflow-summary`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetWorkflowReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkflowReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetWorkflowReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWorkflowReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWorkflowReport>>
+  > = ({ signal }) => getWorkflowReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkflowReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkflowReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkflowReport>>
+>;
+export type GetWorkflowReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Generate workflow performance summary report
+ */
+
+export function useGetWorkflowReport<
+  TData = Awaited<ReturnType<typeof getWorkflowReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetWorkflowReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkflowReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkflowReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate evidence and documentation coverage report
+ */
+export const getGetDocumentReportUrl = (params?: GetDocumentReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/document-coverage?${stringifiedParams}`
+    : `/api/reports/document-coverage`;
+};
+
+export const getDocumentReport = async (
+  params?: GetDocumentReportParams,
+  options?: RequestInit,
+): Promise<ReportOutput> => {
+  return customFetch<ReportOutput>(getGetDocumentReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDocumentReportQueryKey = (
+  params?: GetDocumentReportParams,
+) => {
+  return [
+    `/api/reports/document-coverage`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetDocumentReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDocumentReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDocumentReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDocumentReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDocumentReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDocumentReport>>
+  > = ({ signal }) => getDocumentReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDocumentReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDocumentReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDocumentReport>>
+>;
+export type GetDocumentReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Generate evidence and documentation coverage report
+ */
+
+export function useGetDocumentReport<
+  TData = Awaited<ReturnType<typeof getDocumentReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDocumentReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDocumentReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDocumentReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate assignment and data quality report
+ */
+export const getGetAssignmentReportUrl = (
+  params?: GetAssignmentReportParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/assignment-coverage?${stringifiedParams}`
+    : `/api/reports/assignment-coverage`;
+};
+
+export const getAssignmentReport = async (
+  params?: GetAssignmentReportParams,
+  options?: RequestInit,
+): Promise<ReportOutput> => {
+  return customFetch<ReportOutput>(getGetAssignmentReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAssignmentReportQueryKey = (
+  params?: GetAssignmentReportParams,
+) => {
+  return [
+    `/api/reports/assignment-coverage`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetAssignmentReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAssignmentReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetAssignmentReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAssignmentReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAssignmentReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAssignmentReport>>
+  > = ({ signal }) =>
+    getAssignmentReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAssignmentReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAssignmentReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAssignmentReport>>
+>;
+export type GetAssignmentReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Generate assignment and data quality report
+ */
+
+export function useGetAssignmentReport<
+  TData = Awaited<ReturnType<typeof getAssignmentReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetAssignmentReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAssignmentReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAssignmentReportQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

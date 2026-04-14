@@ -1,0 +1,614 @@
+# Ascent 1.0 — Build 7 Master Spine (Reporting + Analytics Engine Prompt)
+
+## BUILD PROMPT (COPY + PASTE INTO REPLIT AGENT)
+
+We are continuing the phased build of Ascent 1.0.
+
+This is **BUILD 7 — MASTER SPINE**.
+
+The system already has:
+
+* authentication
+* role-based access
+* app shell / navigation shell
+* organization, property, and unit structure
+* guided system activation and unit intake
+* unit profile and immediate history visibility
+* assignment engine logic
+* workflow engine
+* workflow item movement
+* timing and bottleneck foundation
+* scoring + stoplight engine
+* alert and warning engine
+* dashboard intelligence layer
+* document + evidence engine
+* evidence visibility layer
+* signal strength + language layer
+* system integration + reaction layer
+
+Do **NOT** rebuild the foundation.
+
+Do **NOT** redesign the entire application.
+
+Do **NOT** duplicate scoring, alert, dashboard, assignment, or document logic.
+
+Do **NOT** create fake reporting with static summaries, placeholder metrics, or hardcoded trend language.
+
+This build is the **REPORTING + ANALYTICS MASTER SPINE**.
+
+---
+
+## PROJECT NAME
+
+**Ascent 1.0**
+
+---
+
+## CORE GOAL OF THIS BUILD
+
+Create the reporting and analytics backbone of Ascent 1.0 so the system can turn live operational data into structured, reusable, explainable reports.
+
+This build must make Ascent capable of answering:
+
+* What is happening over time?
+* Where are delays coming from?
+* What keeps repeating?
+* What is driving operational drag?
+* What proof supports the story?
+* What should leadership focus on next?
+
+This build must turn the app from a live control tower into a system that can also produce **reviewable operational reporting**.
+
+The dashboard tells the user what is happening **now**.
+
+The reporting spine must tell the user what has been happening, what is changing, and what patterns deserve action.
+
+---
+
+## CRITICAL SYSTEM PRINCIPLE
+
+All reporting in this build must follow:
+
+**REAL DATA -> SHARED LOGIC -> REPORT STRUCTURE -> EXPLAINABLE OUTPUT**
+
+If a report cannot be supported by real system data, it must not be fabricated.
+
+If a trend cannot be validated, the system must say so clearly.
+
+If a metric already exists in another engine, reuse it. Do not recalculate it differently inside reports.
+
+---
+
+## BUILD REQUIREMENTS
+
+### 1. REPORTING SPINE ARCHITECTURE
+
+Create a centralized reporting and analytics service layer.
+
+This layer must:
+
+* read from existing shared system records
+* reuse scoring engine outputs where appropriate
+* reuse alert engine outputs where appropriate
+* reuse dashboard intelligence outputs where appropriate
+* reuse document/evidence signals where appropriate
+* reuse assignment and entity linking already in place
+* support report generation across workflow, unit, property, dashboard, and asset contexts later
+* remain modular and extendable for sub-builds 7.1 through 7.9
+
+Keep all reporting logic separate from UI components.
+
+Preferred structure:
+
+* reporting service layer
+* aggregation utilities
+* metric builders
+* narrative/insight generators
+* report definition models
+* reusable filtering and date-range helpers
+
+This build is the spine, not the final overbuilt analytics suite.
+
+---
+
+### 2. SHARED REPORT DATA CONTRACT
+
+Create a stable report output structure that all future reporting views can use.
+
+Each report output should support at minimum:
+
+* report_id
+* report_type
+* organization_id
+* report_scope
+* date_range
+* filters_applied
+* summary_metrics
+* insights
+* supporting_records_count
+* supporting_record_links or references
+* generated_at
+* generated_by_system
+
+The goal is to create one reporting language the whole app can speak.
+
+---
+
+### 3. REPORT SCOPE SUPPORT
+
+The reporting spine must be able to support reports at these levels:
+
+* organization / portfolio level
+* dashboard / operational level
+* workflow level
+* property level
+* unit level
+* asset level (future-ready)
+
+Do not force all views to exist yet.
+
+But the reporting backbone must be designed so later prompts can produce reports at those levels without rebuilding architecture.
+
+---
+
+### 4. INITIAL REPORT CATEGORIES
+
+Build the spine to support these report families:
+
+#### A. Operational Reports
+
+Examples:
+
+* overall operational health summary
+* top bottlenecks
+* open critical item summary
+* workflow performance snapshot
+* risk concentration summary
+
+#### B. Workflow Reports
+
+Examples:
+
+* stage-by-stage timing
+* delay concentration
+* bottleneck summary
+* completion vs open ratios
+* workflow health movement over time
+
+#### C. Evidence / Documentation Reports
+
+Examples:
+
+* critical items missing documentation
+* workflows with strongest evidence coverage
+* document activity summary
+* document-linked vs non-documented items
+
+#### D. Assignment / Data Quality Reports
+
+Examples:
+
+* matched vs unmatched imported records
+* unresolved assignment queue summary
+* confidence distribution
+* linkage coverage by unit/property
+
+#### E. Asset / PM Future-Ready Reports
+
+Prepare structure for:
+
+* warranty expiration reporting
+* maintenance due / overdue reporting
+* repeat failures by asset type
+* PM compliance reporting
+
+Do not build the full PM engine yet in this master spine.
+
+But architect for it now.
+
+---
+
+### 5. DATE RANGE + FILTERING FOUNDATION
+
+All reporting must support reusable filtering foundations.
+
+At minimum support:
+
+* last 7 days
+* last 30 days
+* last 90 days
+* custom date range if cleanly supported
+
+Reusable filters should support:
+
+* workflow
+* property
+* unit
+* priority
+* stoplight state
+* alert level
+* document state
+* assignment status
+
+This filter logic must be shared and not redefined in every report view.
+
+---
+
+### 6. SUMMARY METRIC ENGINE
+
+Create a summary metric layer that can assemble report-level metrics from real existing system data.
+
+Examples of supported metric types:
+
+* workflow count
+* active workflow count
+* open item count
+* completed item count
+* critical item count
+* alert count by level
+* bottleneck count
+* longest aging item
+* documentation gap count
+* assigned vs unassigned record count
+* workflow health average
+* operational health average or snapshot reference
+
+Rules:
+
+* use real data only
+* no placeholder perfect metrics
+* no hardcoded demo numbers
+* if data is limited, return honest low-data states
+
+---
+
+### 7. TREND FOUNDATION
+
+Create the lightweight trend backbone for reporting.
+
+This build must support trend-capable report logic where history exists.
+
+Examples:
+
+* open items increasing or decreasing
+* workflow health improving or worsening
+* bottleneck concentration rising or falling
+* documentation gaps increasing or decreasing
+* critical item volume trend
+
+If sufficient historical depth does not exist:
+
+* do not fake a trend
+* show truthful fallback language
+
+Example acceptable language:
+
+* "Trend not yet available — more reporting history is needed."
+* "Current report is based on live snapshot and available workflow history."
+
+---
+
+### 8. ANALYSIS BLOCKS
+
+Create reusable analysis blocks that future reports can call.
+
+At minimum support:
+
+#### A. Bottleneck Analysis
+
+Must be able to identify:
+
+* most congested stage
+* longest aging stage
+* top delayed workflow
+* repeated stuck conditions where data supports it
+
+#### B. Timing Analysis
+
+Must be able to summarize:
+
+* total open time
+* time in current stage
+* average stage duration where available
+* longest aging items
+
+#### C. Risk Analysis
+
+Must be able to summarize:
+
+* red workflows
+* critical items
+* warning density
+* aging-based exposure
+
+#### D. Evidence Analysis
+
+Must be able to summarize:
+
+* items with documents
+* critical items missing documentation
+* workflows with strongest/weakest evidence support
+
+#### E. Assignment / Coverage Analysis
+
+Must be able to summarize:
+
+* records successfully matched
+* records needing review
+* data linkage coverage across units/properties
+
+These analysis blocks must be reusable building pieces for all later sub-builds.
+
+---
+
+### 9. NARRATIVE INSIGHT FOUNDATION
+
+Create a centralized insight generation layer for reports.
+
+This layer must translate real metrics into plain-language operational insights.
+
+Examples of acceptable insight patterns:
+
+* "Approval is the primary bottleneck due to aging and item volume."
+* "Risk is concentrated in 3 workflows with prolonged open critical items."
+* "Documentation gaps are most visible in critical workflow items."
+* "Assignment coverage is strong overall, but unresolved imported records remain in review."
+
+Requirements:
+
+* insights must be grounded in real report metrics
+* no AI-like invented storytelling
+* no vague generic summaries
+* every insight should be explainable by supporting counts or conditions
+
+This layer is the start of Build 7.3 later, but the foundation begins here.
+
+---
+
+### 10. REPORT DEFINITIONS REGISTRY
+
+Create a registry or centralized definition model for report types.
+
+Each report definition should be able to specify:
+
+* report_type
+* valid scopes
+* required data sources
+* required filters
+* summary metric builders
+* analysis blocks used
+* narrative builders used
+* output sections
+
+This is critical because future sub-builds must be able to add new reports without rewriting the system.
+
+---
+
+### 11. REPORT OUTPUT SECTIONS
+
+Each structured report should be capable of returning these output areas:
+
+* Header
+* Scope summary
+* Key metrics
+* Top insights
+* Supporting evidence / supporting records count
+* Drill-down-ready references
+* Empty or low-data state messaging
+
+This does not mean every screen needs the final polished UI yet.
+
+But every report object should already have this shape.
+
+---
+
+### 12. DRILL-DOWN COMPATIBILITY
+
+All reporting outputs must be compatible with the clickable reaction system already established in Build 1.8.
+
+That means:
+
+* report insights should be linkable to real supporting data
+* counts should be traceable where cleanly supported
+* users should be able to move from report summary to proof
+* report outputs should not break context behavior
+
+Reporting must align with:
+
+**Summary -> Proof -> Decision**
+
+not:
+
+**Summary -> dead end**
+
+---
+
+### 13. DASHBOARD REPORTING READINESS
+
+Prepare the system so later reporting UI can surface inside the dashboard and reports area.
+
+This build should make it possible for future prompts to create:
+
+* dashboard report widgets
+* dedicated reports page views
+* downloadable report structures later
+* scheduled report generation later
+
+Do not build export/download systems yet unless already trivially supported.
+
+This build is the architecture and shared logic layer.
+
+---
+
+### 14. REPORTS PAGE FOUNDATION
+
+If a Reports route already exists from the foundation shell, upgrade it from placeholder state into a real reporting foundation page.
+
+At minimum it should:
+
+* load available report types
+* show clean empty or low-data states when no report content exists yet
+* be ready to render generated report summaries
+* respect user role visibility
+
+Do not overdesign.
+
+This page should feel like the **home of reporting**, even if sub-builds will make it truly powerful later.
+
+---
+
+### 15. STORAGE / SNAPSHOT SUPPORT
+
+Add only the minimum durable storage needed for reporting continuity.
+
+Possible support includes:
+
+* lightweight report snapshots
+* report generation log
+* historical summary records
+* cached derived metric bundles where justified
+
+Rules:
+
+* do not build bloated warehouse-style infrastructure
+* do not duplicate raw operational data
+* persist only what supports reporting continuity, trend history, or repeatable generation
+
+---
+
+### 16. ROLE-AWARE REPORTING
+
+Respect existing role visibility.
+
+At minimum:
+
+* Admin / Supervisor / Manager -> full report visibility within allowed organizational scope
+* Technician -> only report views relevant to assigned or visible scope
+* Viewer -> read-only report visibility
+
+No reporting loopholes.
+
+No cross-scope leakage.
+
+---
+
+### 17. EMPTY / LOW-DATA STATES
+
+This build must handle low-data conditions honestly.
+
+Required behavior:
+
+* no fake trend lines
+* no misleading positive summaries
+* no false "healthy" assumptions when history is thin
+* no broken report cards or empty shells without explanation
+
+Examples of acceptable language:
+
+* "No reportable workflow history yet."
+* "Reporting will strengthen as more operational activity is recorded."
+* "Current report is based on limited available system data."
+
+Truth first.
+
+---
+
+### 18. PERFORMANCE REQUIREMENTS
+
+Reporting must remain fast and operational.
+
+Requirements:
+
+* report generation should feel responsive
+* avoid blocking UI behavior
+* use shared queries and aggregation where possible
+* avoid duplicate heavy calculations in multiple places
+* do not build giant analytics jobs for this phase
+
+The goal is a practical operational reporting spine, not enterprise data warehousing.
+
+---
+
+### 19. CODE QUALITY RULES
+
+DO:
+
+* centralize reporting logic
+* reuse existing engines and shared truths
+* keep report definitions modular
+* build reusable metric and insight builders
+* keep future sub-builds in mind
+* ensure outputs are explainable and deterministic
+
+DO NOT:
+
+* hardcode report summaries
+* duplicate scoring logic inside reports
+* invent trend language without data support
+* create isolated reporting models disconnected from workflows, units, alerts, and evidence
+* overbuild PDF/export infrastructure yet
+* create fake demo analytics
+
+---
+
+### 20. SUCCESS STATE FOR THIS BUILD
+
+This build is complete when I can:
+
+1. Open the Reports area and see a real reporting foundation instead of a placeholder
+2. Generate or load structured report outputs based on real system data
+3. See report summaries organized by scope and type
+4. See reusable metrics and insight generation working off shared system truth
+5. Trust that trends are honest and not fabricated
+6. Understand how Build 7.1 through 7.9 will extend this spine instead of replacing it
+7. Confirm that reporting now has a true backbone inside Ascent 1.0
+
+---
+
+### 21. IMPORTANT LIMITS
+
+This build is **NOT yet** for:
+
+* full preventative maintenance engine
+* full warranty intelligence suite
+* predictive AI
+* advanced export automation
+* polished executive slide generation
+* OCR intelligence
+* deep root-cause decision tooling
+
+Those can sit on top of this spine later.
+
+This build is the **REPORTING BACKBONE**.
+
+---
+
+### 22. INTERNAL LABEL
+
+**"Build 7 — Master Spine: Reporting + Analytics Backbone"**
+
+---
+
+## BUILD INTENT
+
+Build 1 created the structure.
+
+Build 2 created the movement.
+
+Build 3 created the meaning.
+
+Build 4 created awareness.
+
+Build 5 created direction.
+
+Build 6 created proof.
+
+Build 1.8 created action.
+
+**Build 7 creates memory, pattern, and reviewable operational reporting.**
+
+This is where Ascent begins to explain the story of the operation — not just the moment.
+
+---
+
+## END OF PROMPT

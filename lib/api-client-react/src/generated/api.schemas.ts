@@ -145,98 +145,6 @@ export interface TrendSignal {
   available: boolean;
 }
 
-export interface WorkOrderCategoryStats {
-  category: string;
-  count: number;
-  slaViolations: number;
-  avgResponseHours: number;
-  topUnit?: string | null;
-}
-
-export interface StageCongestion {
-  stage: string;
-  blockedCount: number;
-  avgDaysInStage: number;
-  properties: string[];
-}
-
-export interface WorkOrderStats {
-  total: number;
-  open: number;
-  completed: number;
-  slaMetCount: number;
-  slaMissedCount: number;
-  slaPendingCount: number;
-  slaComplianceRate: number;
-  agingCount: number;
-  blockedCount: number;
-  blockedTurnCount: number;
-  topCategory?: string | null;
-  topBottleneckStage?: string | null;
-  topBottleneckType?: string | null;
-  categories: WorkOrderCategoryStats[];
-  stageCongestion: StageCongestion[];
-}
-
-export interface TopPriority {
-  rank: number;
-  label: string;
-  category: string;
-  propertyName: string;
-  impactScore: number;
-  tier: "low" | "medium" | "high" | "critical";
-  count: number;
-  blockedCount: number;
-  reason: string;
-  contributingIds: number[];
-}
-
-export interface PropertyImpact {
-  propertyId: number | null;
-  propertyName: string;
-  totalImpact: number;
-  avgImpact: number;
-  count: number;
-  blockedCount: number;
-  rank: number;
-  primaryCategory: string;
-  tier: "low" | "medium" | "high" | "critical";
-  explanation: string;
-}
-
-export interface CategoryImpact {
-  category: string;
-  totalImpact: number;
-  avgImpact: number;
-  count: number;
-  blockedCount: number;
-  blockedRatio: number;
-  tier: "low" | "medium" | "high" | "critical";
-  explanation: string;
-  topContributors: {
-    id: number;
-    description: string | null;
-    impactScore: number;
-    propertyName: string | null;
-  }[];
-}
-
-export interface TurnStats {
-  totalTurns: number;
-  activeTurns: number;
-  completedTurns: number;
-  blockedTurns: number;
-  reworkTurns: number;
-  notRentReadyCount: number;
-  avgCompletionPct: number;
-  primaryBottleneckStage: string | null;
-  bottleneckSeverity: number;
-  bottleneckExplanation: string | null;
-  propertyCount: number;
-  hasData: boolean;
-  dataQuality: string;
-}
-
 export interface DashboardIntelligence {
   executiveSnapshot: ExecutiveSnapshot;
   actions: IntelligenceAction[];
@@ -245,11 +153,6 @@ export interface DashboardIntelligence {
   workflowSpotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
   generatedAt: string;
-  workOrderStats?: WorkOrderStats | null;
-  woTopPriorities: TopPriority[];
-  woPropertyImpact: PropertyImpact[];
-  woCategoryImpact: CategoryImpact[];
-  turnStats?: TurnStats | null;
 }
 
 export interface DashboardSummary {
@@ -702,6 +605,67 @@ export interface WorkflowPerformance {
   alertCount: number;
 }
 
+export type ReportInsightSeverity =
+  (typeof ReportInsightSeverity)[keyof typeof ReportInsightSeverity];
+
+export const ReportInsightSeverity = {
+  critical: "critical",
+  warning: "warning",
+  info: "info",
+} as const;
+
+export interface ReportInsight {
+  id: string;
+  category: string;
+  severity: ReportInsightSeverity;
+  text: string;
+  supportingCount?: number | null;
+  drillSignal?: string | null;
+}
+
+export type ReportSectionData = { [key: string]: unknown };
+
+export interface ReportSection {
+  title: string;
+  type: string;
+  data: ReportSectionData;
+  emptyMessage?: string | null;
+}
+
+export type ReportOutputDateRange = {
+  days: number;
+  from: string;
+  to: string;
+  label: string;
+};
+
+export type ReportOutputFiltersApplied = { [key: string]: unknown };
+
+export type ReportOutputSummaryMetrics = { [key: string]: unknown };
+
+export interface ReportOutput {
+  reportId: string;
+  reportType: string;
+  scope: string;
+  dateRange: ReportOutputDateRange;
+  filtersApplied: ReportOutputFiltersApplied;
+  generatedAt: string;
+  summaryMetrics: ReportOutputSummaryMetrics;
+  insights: ReportInsight[];
+  supportingRecordsCount: number;
+  hasHistoricalData: boolean;
+  dataNote?: string | null;
+  sections: ReportSection[];
+}
+
+export interface ReportDefinition {
+  reportType: string;
+  title: string;
+  description: string;
+  scope: string;
+  category: string;
+}
+
 export type WorkflowItemPriority =
   (typeof WorkflowItemPriority)[keyof typeof WorkflowItemPriority];
 
@@ -976,6 +940,24 @@ export const ListAlertsStatus = {
 } as const;
 
 export type GetAnalyticsTrendsParams = {
+  days?: number;
+};
+
+export type GetOperationalReportParams = {
+  days?: number;
+  propertyId?: number;
+  workflowId?: number;
+};
+
+export type GetWorkflowReportParams = {
+  days?: number;
+};
+
+export type GetDocumentReportParams = {
+  days?: number;
+};
+
+export type GetAssignmentReportParams = {
   days?: number;
 };
 

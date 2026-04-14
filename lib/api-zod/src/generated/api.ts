@@ -1161,6 +1161,200 @@ export const GetWorkflowPerformanceResponse = zod.array(
 );
 
 /**
+ * @summary List all available report types
+ */
+export const ListReportTypesResponseItem = zod.object({
+  reportType: zod.string(),
+  title: zod.string(),
+  description: zod.string(),
+  scope: zod.string(),
+  category: zod.string(),
+});
+export const ListReportTypesResponse = zod.array(ListReportTypesResponseItem);
+
+/**
+ * @summary Generate operational health report
+ */
+export const getOperationalReportQueryDaysDefault = 30;
+
+export const GetOperationalReportQueryParams = zod.object({
+  days: zod.coerce.number().default(getOperationalReportQueryDaysDefault),
+  propertyId: zod.coerce.number().optional(),
+  workflowId: zod.coerce.number().optional(),
+});
+
+export const GetOperationalReportResponse = zod.object({
+  reportId: zod.string(),
+  reportType: zod.string(),
+  scope: zod.string(),
+  dateRange: zod.object({
+    days: zod.number(),
+    from: zod.string(),
+    to: zod.string(),
+    label: zod.string(),
+  }),
+  filtersApplied: zod.record(zod.string(), zod.unknown()),
+  generatedAt: zod.string(),
+  summaryMetrics: zod.record(zod.string(), zod.unknown()),
+  insights: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["critical", "warning", "info"]),
+      text: zod.string(),
+      supportingCount: zod.number().nullish(),
+      drillSignal: zod.string().nullish(),
+    }),
+  ),
+  supportingRecordsCount: zod.number(),
+  hasHistoricalData: zod.boolean(),
+  dataNote: zod.string().nullish(),
+  sections: zod.array(
+    zod.object({
+      title: zod.string(),
+      type: zod.string(),
+      data: zod.record(zod.string(), zod.unknown()),
+      emptyMessage: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Generate workflow performance summary report
+ */
+export const getWorkflowReportQueryDaysDefault = 30;
+
+export const GetWorkflowReportQueryParams = zod.object({
+  days: zod.coerce.number().default(getWorkflowReportQueryDaysDefault),
+});
+
+export const GetWorkflowReportResponse = zod.object({
+  reportId: zod.string(),
+  reportType: zod.string(),
+  scope: zod.string(),
+  dateRange: zod.object({
+    days: zod.number(),
+    from: zod.string(),
+    to: zod.string(),
+    label: zod.string(),
+  }),
+  filtersApplied: zod.record(zod.string(), zod.unknown()),
+  generatedAt: zod.string(),
+  summaryMetrics: zod.record(zod.string(), zod.unknown()),
+  insights: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["critical", "warning", "info"]),
+      text: zod.string(),
+      supportingCount: zod.number().nullish(),
+      drillSignal: zod.string().nullish(),
+    }),
+  ),
+  supportingRecordsCount: zod.number(),
+  hasHistoricalData: zod.boolean(),
+  dataNote: zod.string().nullish(),
+  sections: zod.array(
+    zod.object({
+      title: zod.string(),
+      type: zod.string(),
+      data: zod.record(zod.string(), zod.unknown()),
+      emptyMessage: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Generate evidence and documentation coverage report
+ */
+export const getDocumentReportQueryDaysDefault = 30;
+
+export const GetDocumentReportQueryParams = zod.object({
+  days: zod.coerce.number().default(getDocumentReportQueryDaysDefault),
+});
+
+export const GetDocumentReportResponse = zod.object({
+  reportId: zod.string(),
+  reportType: zod.string(),
+  scope: zod.string(),
+  dateRange: zod.object({
+    days: zod.number(),
+    from: zod.string(),
+    to: zod.string(),
+    label: zod.string(),
+  }),
+  filtersApplied: zod.record(zod.string(), zod.unknown()),
+  generatedAt: zod.string(),
+  summaryMetrics: zod.record(zod.string(), zod.unknown()),
+  insights: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["critical", "warning", "info"]),
+      text: zod.string(),
+      supportingCount: zod.number().nullish(),
+      drillSignal: zod.string().nullish(),
+    }),
+  ),
+  supportingRecordsCount: zod.number(),
+  hasHistoricalData: zod.boolean(),
+  dataNote: zod.string().nullish(),
+  sections: zod.array(
+    zod.object({
+      title: zod.string(),
+      type: zod.string(),
+      data: zod.record(zod.string(), zod.unknown()),
+      emptyMessage: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Generate assignment and data quality report
+ */
+export const getAssignmentReportQueryDaysDefault = 30;
+
+export const GetAssignmentReportQueryParams = zod.object({
+  days: zod.coerce.number().default(getAssignmentReportQueryDaysDefault),
+});
+
+export const GetAssignmentReportResponse = zod.object({
+  reportId: zod.string(),
+  reportType: zod.string(),
+  scope: zod.string(),
+  dateRange: zod.object({
+    days: zod.number(),
+    from: zod.string(),
+    to: zod.string(),
+    label: zod.string(),
+  }),
+  filtersApplied: zod.record(zod.string(), zod.unknown()),
+  generatedAt: zod.string(),
+  summaryMetrics: zod.record(zod.string(), zod.unknown()),
+  insights: zod.array(
+    zod.object({
+      id: zod.string(),
+      category: zod.string(),
+      severity: zod.enum(["critical", "warning", "info"]),
+      text: zod.string(),
+      supportingCount: zod.number().nullish(),
+      drillSignal: zod.string().nullish(),
+    }),
+  ),
+  supportingRecordsCount: zod.number(),
+  hasHistoricalData: zod.boolean(),
+  dataNote: zod.string().nullish(),
+  sections: zod.array(
+    zod.object({
+      title: zod.string(),
+      type: zod.string(),
+      data: zod.record(zod.string(), zod.unknown()),
+      emptyMessage: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
  * @summary List all properties
  */
 export const ListPropertiesResponseItem = zod.object({
