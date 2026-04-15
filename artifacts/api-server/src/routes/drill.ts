@@ -319,21 +319,30 @@ async function bottleneckItemsDrill(workflowId?: number, stageId?: number): Prom
     });
   }
 
-  const bottleneckStages = await db
-    .select()
-    .from(stagesTable)
-    .where(eq(stagesTable.isBottleneck, true));
-
-  if (bottleneckStages.length === 0) return [];
-
-  const stageIds = bottleneckStages.map((s) => s.id);
-  const items = await db
+  // Use real operational definition: items stuck in a stage for ≥7 days (not completed)
+  // This matches the intelligence engine's bottleneck detection — no flag dependency.
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const stuckItems = await db
     .select()
     .from(workflowItemsTable)
-    .where(and(inArray(workflowItemsTable.stageId, stageIds), ne(workflowItemsTable.status, "completed")));
+    .where(
+      and(
+        ne(workflowItemsTable.status, "completed"),
+        lt(workflowItemsTable.stageEnteredAt, sevenDaysAgo),
+      ),
+    )
+    .orderBy(workflowItemsTable.stageEnteredAt);
 
-  const stageMap = new Map(bottleneckStages.map((s) => [s.id, s]));
-  const wfIds = [...new Set(items.map((i) => i.workflowId))];
+  if (stuckItems.length === 0) return [];
+
+  const allStageIds = [...new Set(stuckItems.map((i) => i.stageId))];
+  const allStages = await db
+    .select()
+    .from(stagesTable)
+    .where(inArray(stagesTable.id, allStageIds));
+  const stageMap = new Map(allStages.map((s) => [s.id, s]));
+
+  const wfIds = [...new Set(stuckItems.map((i) => i.workflowId))];
   const workflows =
     wfIds.length > 0
       ? await db
@@ -343,7 +352,7 @@ async function bottleneckItemsDrill(workflowId?: number, stageId?: number): Prom
       : [];
   const wfMap = new Map(workflows.map((w) => [w.id, w.title]));
 
-  return items.map((item) => {
+  return stuckItems.map((item) => {
     const stage = stageMap.get(item.stageId);
     const days = daysInStageFromTs(item.stageEnteredAt);
     return {
@@ -352,9 +361,9 @@ async function bottleneckItemsDrill(workflowId?: number, stageId?: number): Prom
       title: item.title,
       subtitle: `${stage?.name ?? "Stage"} · ${wfMap.get(item.workflowId) ?? "Workflow"}`,
       detail: `${days}d in stage · ${item.priority} priority · ${item.status}`,
-      badge: item.priority === "critical" ? "CRITICAL" : days > 14 ? "AGING" : "STUCK",
+      badge: item.priority === "critical" ? "CRITICAL" : days > 30 ? "AGING" : "STUCK",
       badgeColor:
-        item.priority === "critical" ? ("red" as BadgeColor) : days > 14 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
+        item.priority === "critical" ? ("red" as BadgeColor) : days > 30 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
       navigateTo: `/workflows/${item.workflowId}`,
       meta: { priority: item.priority, status: item.status, days, stageId: item.stageId, workflowId: item.workflowId },
     };
