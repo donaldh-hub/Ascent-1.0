@@ -1,0 +1,328 @@
+# ASSET 1.0 — UNIVERSAL WIRING AUDIT PROMPT
+
+## (Reusable for Build 1 → Build 7.9 → Build 8+)
+
+---
+
+## 🔴 CORE QUESTION
+
+**Is the system ACTUALLY connected… or just LOOKING connected?**
+
+Every layer must PROVE:
+
+* It receives real data
+* It processes real data
+* It passes real data forward
+
+If any layer fails… the chain is broken.
+
+---
+
+## ⚙️ PURPOSE OF THIS PROMPT
+
+This is a FULL SYSTEM WIRING AUDIT.
+
+This prompt will:
+
+1. Trace data from INPUT → OUTPUT
+2. Validate ALL layer connections
+3. Identify broken or fake wiring
+4. Confirm signal → proof → action integrity
+5. Produce a PASS / FAIL report per layer
+
+---
+
+## 🧠 CRITICAL RULES
+
+DO NOT:
+
+* rebuild any system components
+* create mock or fake data
+* assume connections exist
+* validate based on UI appearance
+
+DO:
+
+* query real system data
+* trace actual relationships
+* verify end-to-end flow
+* expose failures clearly
+
+---
+
+# 🔗 LAYER VALIDATION SEQUENCE
+
+---
+
+## LAYER 1 — INPUT VALIDATION
+
+VERIFY:
+
+* Data can be ingested (CSV, manual, documents)
+* Records are created in database
+* Required fields are populated
+
+TEST:
+
+* Upload dataset
+* Confirm records exist in raw tables
+
+PASS IF:
+
+* Data exists and is structured correctly
+
+FAIL IF:
+
+* Data missing, partial, or not stored
+
+---
+
+## LAYER 2 — ASSIGNMENT ENGINE
+
+VERIFY:
+
+* Records attach to:
+
+  * organization
+  * property
+  * unit
+  * asset (if applicable)
+
+TEST:
+
+* Select uploaded records
+* Confirm assignment mapping exists
+
+PASS IF:
+
+* Records appear in correct unit/property context
+
+FAIL IF:
+
+* Records are unassigned or misassigned
+
+---
+
+## LAYER 3 — CONTEXT LAYER
+
+VERIFY:
+
+* Data appears in:
+
+  * unit profile
+  * workflow context
+  * document context
+
+TEST:
+
+* Open unit profile
+* Confirm visibility of:
+
+  * work
+  * documents
+  * assets
+
+PASS IF:
+
+* Data is visible in correct context
+
+FAIL IF:
+
+* Data exists but is not visible or linked
+
+---
+
+## LAYER 4 — WORKFLOW ENGINE
+
+VERIFY:
+
+* Records are represented as workflow items
+* Items move between stages
+* Timing is tracked
+
+TEST:
+
+* Move items through stages
+* Confirm history updates
+
+PASS IF:
+
+* Movement updates correctly and logs history
+
+FAIL IF:
+
+* Items do not move or history is broken
+
+---
+
+## LAYER 5 — SCORING ENGINE
+
+VERIFY:
+
+* Flow, Risk, Improvement, Execution scores calculate
+* Scores reflect REAL data
+
+TEST:
+
+* Change workflow conditions
+* Confirm score changes
+
+PASS IF:
+
+* Scores update based on actual system behavior
+
+FAIL IF:
+
+* Scores are static, incorrect, or missing
+
+---
+
+## LAYER 6 — ALERT ENGINE
+
+VERIFY:
+
+* Alerts trigger from:
+
+  * scoring changes
+  * aging
+  * bottlenecks
+
+TEST:
+
+* Create a failing condition
+* Confirm alert appears
+
+PASS IF:
+
+* Alerts trigger correctly and resolve when fixed
+
+FAIL IF:
+
+* Alerts missing, duplicated, or incorrect
+
+---
+
+## LAYER 7 — DASHBOARD INTELLIGENCE
+
+VERIFY:
+
+* Dashboard reflects:
+
+  * operational health
+  * bottlenecks
+  * critical items
+
+TEST:
+
+* Compare dashboard values to real data
+
+PASS IF:
+
+* Dashboard matches system state
+
+FAIL IF:
+
+* Dashboard shows incorrect or static data
+
+---
+
+## LAYER 7.5 — REACTION LAYER (CRITICAL)
+
+VERIFY:
+
+* ALL signals are clickable
+* Click → returns REAL data
+* Context is preserved
+
+TEST:
+
+* Click:
+
+  * bottleneck
+  * critical items
+  * missing documents
+
+PASS IF:
+
+* Drill-down shows exact records causing signal
+
+FAIL IF:
+
+* No data, wrong data, or navigation breaks
+
+---
+
+# 🔁 END-TO-END FLOW TEST
+
+TRACE ONE RECORD THROUGH FULL SYSTEM:
+
+INPUT → ASSIGNMENT → CONTEXT → WORKFLOW → SCORING → ALERT → DASHBOARD → CLICK → DATA
+
+PASS IF:
+
+* Same record is traceable across ALL layers
+
+FAIL IF:
+
+* Record disappears, breaks, or changes incorrectly
+
+---
+
+# 📊 OUTPUT REPORT FORMAT
+
+Return structured report:
+
+Layer 1 — PASS / FAIL
+Layer 2 — PASS / FAIL
+Layer 3 — PASS / FAIL
+Layer 4 — PASS / FAIL
+Layer 5 — PASS / FAIL
+Layer 6 — PASS / FAIL
+Layer 7 — PASS / FAIL
+Layer 7.5 — PASS / FAIL
+
+---
+
+## 🚨 FAILURE REQUIREMENTS
+
+For EVERY failure include:
+
+* What is broken
+* Where it breaks
+* Why it breaks
+* What data is missing or incorrect
+
+NO vague responses.
+
+---
+
+# 🔁 REUSABILITY RULE (CRITICAL)
+
+This prompt must be reusable at ANY stage of the build.
+
+Use this audit:
+
+* After Build 7.1 → 7.9 completion
+* After Build 8 spine
+* After ANY major system update
+
+This is the SYSTEM TRUTH TEST.
+
+---
+
+# 🧠 FINAL DIRECTIVE
+
+If the system is fully wired:
+→ Return VERIFIED
+
+If any layer fails:
+→ Return NOT WIRED
+
+Do NOT soften results.
+Do NOT assume correctness.
+
+Only return what the system PROVES.
+
+---
+
+**This audit defines whether Ascent 1.0 is real… or just a simulation.**
