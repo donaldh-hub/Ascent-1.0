@@ -27,7 +27,7 @@ import {
   workOrdersTable,
   turnsTable,
 } from "@workspace/db/schema";
-import { eq, and, lt, ne, inArray, or, desc } from "drizzle-orm";
+import { eq, and, lt, ne, inArray, or, desc, sql } from "drizzle-orm";
 import { getReplacementCost } from "../lib/cost-lookup";
 
 const router = Router();
@@ -628,13 +628,24 @@ async function categorySpikesDrill(propertyId?: number): Promise<DrillRow[]> {
 // ─── Blocked Turns Drill ──────────────────────────────────────────────────────
 
 async function blockedTurnsDrill(propertyId?: number): Promise<DrillRow[]> {
-  const conditions = [eq(turnsTable.isBlocked, true)];
-  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
+  // Match computeIsBlocked() in turn-matrix-service:
+  //   blocked = is_blocked=true  OR  daysInStage > 7 (and not completed)
+  const BLOCK_DAYS = 7;
+  const baseConditions = [
+    or(
+      eq(turnsTable.isBlocked, true),
+      and(
+        ne(turnsTable.turnStatus, "completed"),
+        sql`${turnsTable.daysInStage} > ${BLOCK_DAYS}`
+      )
+    )!,
+  ];
+  if (propertyId) baseConditions.push(eq(turnsTable.propertyId, propertyId));
 
   const turns = await db
     .select()
     .from(turnsTable)
-    .where(and(...conditions))
+    .where(and(...baseConditions))
     .orderBy(desc(turnsTable.daysInStage))
     .limit(100);
 

@@ -1,0 +1,207 @@
+# Ascent 1.0 — Clickable Signal Verification Prompt
+
+## Reaction Layer Proof Test (Build 1.8 Validation)
+
+---
+
+## PURPOSE
+
+This prompt verifies that **every clickable element in the system is truly wired end-to-end**.
+
+Not visually.
+Not conceptually.
+
+**Operationally.**
+
+The system must prove:
+
+> **SIGNAL → CLICK → SUPPORTING RECORDS → DECISION**
+
+If that chain breaks anywhere, the system is not fully wired.
+
+---
+
+## TEST MODE
+
+This is a **STRICT VERIFICATION MODE**.
+
+Do NOT:
+
+* redesign UI
+* add new features
+* simulate data
+* return placeholder results
+
+Only:
+
+* test
+* trace
+* verify
+* report
+
+---
+
+## GLOBAL RULE
+
+For EVERY clickable element in the system:
+
+1. Identify the signal
+2. Execute the click action programmatically
+3. Capture the result
+4. Trace the data source
+5. Compare returned records vs expected records
+6. Log PASS or FAIL
+
+---
+
+## CLICKABLE ELEMENT COVERAGE
+
+Test ALL of the following surfaces:
+
+### 1. Control Tower
+
+* Flow card
+* Risk card
+* Execution card
+* Improvement card
+* Priority Actions (each item)
+
+### 2. Work Orders Page
+
+* Total work orders
+* Open work orders
+* Blocked turns
+* SLA violations
+* Aging work orders
+* Category spike
+
+### 3. Bottleneck Intelligence
+
+* Blocked turns card
+* Stage congestion card
+* Rework loops card
+* Stage congestion map items
+
+### 4. Operational Priorities
+
+* Each priority item
+
+### 5. Property Impact Ranking
+
+* Each property row
+
+### 6. Work Order Table
+
+* Each row
+* Resolution badge
+* Category filters
+* Status filters
+
+---
+
+## VALIDATION REQUIREMENTS
+
+Each click MUST return:
+
+### 1. Correct Records
+
+* The exact rows contributing to the signal
+* No missing records
+* No unrelated records
+
+### 2. Context Integrity
+
+* Property
+* Unit
+* Category
+* Status
+* Stage
+
+### 3. Filter Alignment
+
+* Returned data must match the signal definition
+
+Example:
+
+"SLA Violations = 76"
+→ Click MUST return exactly those 76 records
+→ Each must violate SLA
+
+---
+
+## FAILURE CONDITIONS
+
+Mark FAIL if ANY of the following occur:
+
+1. Click returns zero results when signal > 0
+2. Returned count ≠ signal count
+3. Records do not match signal criteria
+4. Context missing (no property/unit linkage)
+5. Click does nothing
+6. Click returns generic or unrelated dataset
+
+---
+
+## OUTPUT FORMAT
+
+Return a structured verification report:
+
+### VERIFIED SIGNALS
+
+* List all PASS items
+
+### FAILED SIGNALS
+
+For each failure include:
+
+* Signal name
+* Expected count
+* Actual count
+* Root cause
+
+### PARTIAL SIGNALS
+
+* Data present but incomplete or mismatched
+
+### FINAL VERDICT
+
+Choose ONE:
+
+* FULLY WIRED
+* MOSTLY WIRED
+* PARTIALLY WIRED
+* NOT WIRED
+
+---
+
+## CRITICAL RULE
+
+Do NOT assume a signal is valid because a number appears on screen.
+
+The signal is ONLY valid if:
+
+> The click reveals the exact records that created it.
+
+---
+
+## SUCCESS DEFINITION
+
+The system is ONLY considered complete when:
+
+* Every clickable element returns real data
+* Every signal matches its underlying dataset
+* Every interaction supports a real operational decision
+
+---
+
+## FINAL STATEMENT
+
+This test determines whether Ascent 1.0 is:
+
+> A dashboard
+
+OR
+
+> A true operational intelligence system
+
+There is no middle ground.
