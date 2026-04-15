@@ -97,6 +97,32 @@ export const workOrdersTable = pgTable("work_orders", {
   importBatchId: text("import_batch_id"),
   importedAt: timestamp("imported_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+
+  // ── Import Governance Layer ────────────────────────────────────────────────
+  // Phase 1 — Dual-Mode Controlled Ingestion
+
+  // Mode under which this row was imported
+  importMode: text("import_mode"),          // 'flexible' | 'strict'
+
+  // Resolution state — the single source of truth about linkage quality
+  resolutionStatus: text("resolution_status"), // 'fully_resolved' | 'partially_resolved' | 'unresolved'
+
+  // Confidence of the assignment engine's matching decisions
+  assignmentConfidence: text("assignment_confidence"), // 'high' | 'medium' | 'low' | 'none'
+
+  // Granular match status per linkage dimension
+  propertyMatchStatus: text("property_match_status"), // 'matched' | 'fuzzy' | 'created' | 'unmatched'
+  unitMatchStatus: text("unit_match_status"),         // 'matched' | 'unmatched' | 'skipped'
+
+  // Source audit trail
+  sourceFileName: text("source_file_name"),
+  sourceRowIndex: integer("source_row_index"),
+  governanceNotes: text("governance_notes"),
+
+  // Rollup eligibility flags — downstream systems read these before aggregating
+  excludedFromStrictWiring: boolean("excluded_from_strict_wiring").notNull().default(false),
+  availableForPropertyRollup: boolean("available_for_property_rollup").notNull().default(true),
+  availableForUnitRollup: boolean("available_for_unit_rollup").notNull().default(false),
 });
 
 export type WorkOrder = typeof workOrdersTable.$inferSelect;

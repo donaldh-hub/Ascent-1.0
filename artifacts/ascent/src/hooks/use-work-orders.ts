@@ -67,6 +67,18 @@ export interface WorkOrder {
   importedAt: string;
   updatedAt: string;
 
+  // Governance
+  importMode: string | null;
+  resolutionStatus: "fully_resolved" | "partially_resolved" | "unresolved" | null;
+  assignmentConfidence: "high" | "medium" | "low" | "none" | null;
+  propertyMatchStatus: string | null;
+  unitMatchStatus: string | null;
+  sourceFileName: string | null;
+  governanceNotes: string | null;
+  excludedFromStrictWiring: boolean;
+  availableForPropertyRollup: boolean;
+  availableForUnitRollup: boolean;
+
   // Enriched
   unitNumber: string | null;
   propertyName: string | null;
@@ -104,13 +116,26 @@ export interface WorkOrderStats {
   stageCongestion: StageCongestion[];
 }
 
+export interface GovernanceSummary {
+  mode: "flexible" | "strict";
+  totalRows: number;
+  fullyResolved: number;
+  partiallyResolved: number;
+  unresolved: number;
+  readyForFullWiring: number;
+  needsUnitConfirmation: number;
+  needsReview: number;
+  slaViolations: number;
+  blockedCount: number;
+}
+
 export interface WorkOrderImportResult {
   batchId: string;
   imported: number;
   errors: number;
   slaViolations: number;
   blockedCount: number;
-  propertySummary: Record<string, number>;
+  governance: GovernanceSummary;
   results: {
     row: number;
     status: "imported" | "error";
@@ -122,6 +147,8 @@ export interface WorkOrderImportResult {
     slaStatus: string;
     isBlocked: boolean;
     bottleneckType?: string | null;
+    resolutionStatus?: "fully_resolved" | "partially_resolved" | "unresolved";
+    assignmentConfidence?: "high" | "medium" | "low" | "none";
   }[];
 }
 
@@ -199,7 +226,12 @@ export function useWorkOrderStats() {
 
 export async function importWorkOrders(
   rows: Record<string, string>[],
-  options: { slaDeadlineHours?: number; createWorkflowItems?: boolean } = {}
+  options: {
+    slaDeadlineHours?: number;
+    createWorkflowItems?: boolean;
+    importMode?: "flexible" | "strict";
+    sourceFileName?: string;
+  } = {}
 ): Promise<WorkOrderImportResult> {
   const response = await fetch("/api/work-orders/import", {
     method: "POST",

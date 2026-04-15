@@ -152,6 +152,7 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
   const [importResult, setImportResult] = useState<WorkOrderImportResult | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [importMode, setImportMode] = useState<"flexible" | "strict">("flexible");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -227,7 +228,11 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
     setIsImporting(true);
     setStep("importing");
     try {
-      const result = await importWorkOrders(remapped, { createWorkflowItems: true });
+      const result = await importWorkOrders(remapped, {
+        createWorkflowItems: true,
+        importMode,
+        sourceFileName: fileName ?? undefined,
+      });
       setImportResult(result);
       setStep("results");
       onImportComplete();
@@ -246,6 +251,7 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
     setFileName(null);
     setImportResult(null);
     setColumnMapping({});
+    setImportMode("flexible");
   };
 
   return (
@@ -303,6 +309,37 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
               </div>
               <input ref={fileInputRef} type="file" accept=".csv,.txt" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+
+              {/* Import mode selector */}
+              <div className="mt-3 p-3 rounded-lg border border-border/40 bg-muted/20">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Import Mode</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setImportMode("flexible"); }}
+                    className={cn(
+                      "flex-1 rounded-lg p-2.5 text-left border transition-colors text-[11px]",
+                      importMode === "flexible"
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border/40 bg-transparent text-muted-foreground hover:border-border"
+                    )}
+                  >
+                    <div className="font-semibold mb-0.5">Flexible</div>
+                    <div className="opacity-80">Accepts partial matches. Best for first imports or incomplete data.</div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setImportMode("strict"); }}
+                    className={cn(
+                      "flex-1 rounded-lg p-2.5 text-left border transition-colors text-[11px]",
+                      importMode === "strict"
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border/40 bg-transparent text-muted-foreground hover:border-border"
+                    )}
+                  >
+                    <div className="font-semibold mb-0.5">Strict</div>
+                    <div className="opacity-80">Flags unresolved records. Use for wiring audits and verified imports.</div>
+                  </button>
+                </div>
+              </div>
 
               {/* Sample CSV template */}
               <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/40">
@@ -407,44 +444,99 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
             </motion.div>
           )}
 
-          {/* ── Step 4: Results ── */}
+          {/* ── Step 4: Governance Results ── */}
           {step === "results" && importResult && (
-            <motion.div key="results" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-                  <div className="text-2xl font-black tabular-nums text-foreground">{importResult.imported}</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">Imported</div>
-                </div>
-                <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-                  <div className={cn("text-2xl font-black tabular-nums", importResult.slaViolations > 0 ? "text-red-400" : "text-green-400")}>
-                    {importResult.slaViolations}
+            <motion.div key="results" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+
+              {/* Top strip */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-full bg-green-500/15 flex items-center justify-center">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">SLA Violations</div>
-                </div>
-                <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-                  <div className="text-2xl font-black tabular-nums text-green-400">
-                    {importResult.results.filter(r => r.unitMatched).length}
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{importResult.imported} work orders imported</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {importResult.governance.mode === "strict" ? "Strict mode" : "Flexible mode"} · Batch {importResult.batchId.slice(0, 8)}
+                    </p>
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">Units Matched</div>
                 </div>
-                <div className="rounded-lg border border-border/60 bg-card p-3 text-center">
-                  <div className={cn("text-2xl font-black tabular-nums", importResult.errors > 0 ? "text-amber-400" : "text-muted-foreground")}>
-                    {importResult.errors}
+                {importResult.errors > 0 && (
+                  <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px]">
+                    {importResult.errors} row{importResult.errors !== 1 ? "s" : ""} skipped
+                  </Badge>
+                )}
+              </div>
+
+              {/* Resolution cards */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Fully Resolved</span>
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">Errors</div>
+                  <div className="text-2xl font-black tabular-nums text-green-400">{importResult.governance.fullyResolved}</div>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                    Property + unit matched. Ready for all analytics and rollups.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Property Only</span>
+                  </div>
+                  <div className="text-2xl font-black tabular-nums text-amber-400">{importResult.governance.partiallyResolved}</div>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                    Property matched, unit pending. Counts in property reports.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">Needs Review</span>
+                  </div>
+                  <div className="text-2xl font-black tabular-nums text-red-400">{importResult.governance.unresolved}</div>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+                    No property match found. Excluded from all rollups.
+                  </p>
                 </div>
               </div>
 
-              {importResult.slaViolations > 0 && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/5 border border-red-500/20 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
-                  <p className="text-xs text-red-400">
-                    {importResult.slaViolations} work orders exceeded the 24h response SLA. Review the SLA Violations signal above for details.
+              {/* Operational alerts */}
+              {(importResult.governance.slaViolations > 0 || importResult.governance.blockedCount > 0) && (
+                <div className="space-y-2">
+                  {importResult.governance.slaViolations > 0 && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/5 border border-red-500/15">
+                      <AlertTriangle className="h-3.5 w-3.5 text-red-400 mt-0.5 shrink-0" />
+                      <p className="text-[11px] text-red-400">
+                        <span className="font-semibold">{importResult.governance.slaViolations} SLA violations</span> detected — these work orders exceeded the 24-hour response window. Review the SLA Violations signal above.
+                      </p>
+                    </div>
+                  )}
+                  {importResult.governance.blockedCount > 0 && (
+                    <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                      <ShieldAlert className="h-3.5 w-3.5 text-amber-400 mt-0.5 shrink-0" />
+                      <p className="text-[11px] text-amber-400">
+                        <span className="font-semibold">{importResult.governance.blockedCount} blocked</span> — turns or stages are stalled. Check the Bottleneck Intelligence panel for details.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Strict mode callout */}
+              {importResult.governance.mode === "strict" && importResult.governance.unresolved > 0 && (
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-[10px] font-semibold text-primary mb-0.5">Strict Mode — Wiring Audit</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {importResult.governance.unresolved} record{importResult.governance.unresolved !== 1 ? "s" : ""} could not be resolved to a known property. In strict mode, these are flagged and excluded from all wiring and rollup computations until confirmed.
                   </p>
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <Button variant="outline" size="sm" onClick={reset}>Import another file</Button>
                 <Button variant="ghost" size="sm" onClick={onImportComplete}>
                   <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
@@ -479,6 +571,22 @@ function BottleneckBadge({ type }: { type: string | null }) {
     <Badge className={cn("text-[10px] py-0", map[type] ?? "bg-muted/50 text-muted-foreground border-border")}>
       {labels[type] ?? type}
     </Badge>
+  );
+}
+
+// ─── Resolution Badge ─────────────────────────────────────────────────────────
+
+function ResolutionBadge({ status }: { status: WorkOrder["resolutionStatus"] }) {
+  if (!status) return null;
+  const config: Record<string, { label: string; cls: string }> = {
+    fully_resolved:     { label: "Resolved",       cls: "bg-green-500/15 text-green-400 border-green-500/30" },
+    partially_resolved: { label: "Property Only",  cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+    unresolved:         { label: "Unresolved",      cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  };
+  const c = config[status];
+  if (!c) return null;
+  return (
+    <Badge className={cn("text-[10px] py-0 h-4", c.cls)}>{c.label}</Badge>
   );
 }
 
@@ -531,7 +639,10 @@ function WorkOrderRow({ wo }: { wo: WorkOrder }) {
         )}
       </td>
       <td className="px-4 py-2.5">
-        <BottleneckBadge type={wo.bottleneckType ?? null} />
+        <div className="flex flex-col gap-1">
+          <BottleneckBadge type={wo.bottleneckType ?? null} />
+          <ResolutionBadge status={wo.resolutionStatus ?? null} />
+        </div>
       </td>
       <td className="px-4 py-2.5"><StatusBadge status={wo.status} /></td>
       <td className="px-4 py-2.5"><SlaStatusBadge status={wo.slaStatus} /></td>

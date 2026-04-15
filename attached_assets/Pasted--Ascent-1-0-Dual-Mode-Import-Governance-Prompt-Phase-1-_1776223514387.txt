@@ -1,0 +1,505 @@
+# Ascent 1.0 — Dual-Mode Import Governance Prompt
+
+## Phase 1 Governance Layer for Controlled Ingestion
+
+---
+
+## CORE PRINCIPLE
+
+**Users are allowed to upload imperfect data.**
+
+**The system is NOT allowed to confuse imperfect data with fully resolved truth.**
+
+This build creates a dual-mode import governance layer that allows incomplete records to enter the system without blocking user momentum, while protecting system wiring, assignment integrity, dashboard trust, and downstream drill-down behavior.
+
+---
+
+## BUILD INTENT
+
+This is NOT a new ingestion engine.
+
+This is NOT a rebuild of the assignment engine.
+
+This is NOT a hard-stop rejection system.
+
+This is a GOVERNANCE LAYER that sits between:
+
+**CSV / upload intake → assignment engine → workflow / dashboard / alerts / reporting**
+
+The purpose is to let imperfect data come in, but classify it correctly before the system treats it as fully wired.
+
+---
+
+## DUAL-MODE GOVERNANCE MODEL
+
+Create TWO operating modes.
+
+### MODE 1 — USER INGESTION MODE (Flexible)
+
+Use this for customer-facing uploads.
+
+Goal:
+
+* accept incomplete or imperfect source files
+* preserve user momentum
+* extract whatever usable value exists
+* never hard-fail unless the file is unreadable or structurally invalid
+
+Behavior:
+
+* ingest rows even if some required linkage fields are missing
+* classify each row by resolution state
+* route incomplete rows into review / partial state
+* allow partial visibility where appropriate
+* prevent unresolved records from being treated as fully trustworthy system truth
+
+### MODE 2 — SYSTEM VALIDATION MODE (Strict)
+
+Use this for internal testing, wiring audits, demo validation, stress tests, and pre-release verification.
+
+Goal:
+
+* protect architecture integrity
+* verify true end-to-end wiring
+* identify missing fields before they pollute downstream logic
+
+Behavior:
+
+* validate every required linkage field
+* flag weak matches aggressively
+* fail strict validation when required context is missing
+* surface import governance report before data is treated as fully wired
+
+---
+
+## REQUIRED LINKAGE DEFINITIONS
+
+For work-order ingestion, define the following:
+
+### Required for FULL RESOLUTION
+
+* organization match
+* property match
+* unit match OR unit_id resolution
+
+### Optional but useful
+
+* category
+* description
+* created_date
+* vendor
+* SLA timestamps
+* stage hint
+* priority
+* status
+
+### Important rule
+
+A row may still be ingested without all optional fields.
+
+A row may NOT be considered **fully resolved** unless required linkage is complete.
+
+---
+
+## RESOLUTION STATES
+
+Each imported row must be assigned exactly ONE state.
+
+### 1. FULLY RESOLVED
+
+Use when:
+
+* property match succeeded
+* unit match succeeded
+* organization scope is valid
+
+Behavior:
+
+* assign property_id
+* assign unit_id
+* allow full downstream participation
+* allow dashboard aggregation
+* allow workflow creation / linkage
+* allow alert contribution
+* allow unit-level context
+* mark row as `resolution_status = fully_resolved`
+
+### 2. PARTIALLY RESOLVED
+
+Use when:
+
+* property matched
+* unit did NOT resolve confidently
+* record is still useful at higher context level
+
+Behavior:
+
+* assign property_id
+* preserve raw unit text as `unit_number_raw`
+* do NOT assign fake unit_id
+* allow limited aggregation only where safe
+* exclude from unit-level truth views unless later resolved
+* exclude from any metric that claims precise unit-level certainty
+* mark row as `resolution_status = partially_resolved`
+
+### 3. UNRESOLVED
+
+Use when:
+
+* property did not match
+* organization scope unclear
+* row lacks enough structure to be safely connected
+
+Behavior:
+
+* ingest row into unresolved intake table or review queue
+* preserve raw payload
+* do NOT inject into dashboard truth layer
+* do NOT create workflow linkage
+* do NOT create full alerts from unresolved records
+* mark row as `resolution_status = unresolved`
+
+---
+
+## IMPORT GOVERNANCE RULES
+
+### RULE 1 — NEVER REJECT VALUE UNLESS FILE IS INVALID
+
+Reject only when:
+
+* file cannot be parsed
+* headers unusable and no mapping possible
+* file is empty
+* organization scope cannot be determined at all
+
+Otherwise:
+
+* ingest
+* classify
+* preserve
+* govern
+
+### RULE 2 — NEVER AUTO-INVENT LINKS
+
+Do NOT:
+
+* guess unit_id without match confidence
+* assign nearest-looking unit with weak evidence
+* treat description keywords alone as full linkage
+
+### RULE 3 — PRESERVE RAW SOURCE SIGNALS
+
+Store:
+
+* raw unit text
+* raw property text
+* original source row
+* source filename
+* import timestamp
+* import mode used
+* match explanation
+
+### RULE 4 — DOWNSTREAM SYSTEMS MUST RESPECT RESOLUTION STATUS
+
+Dashboard, workflow, alerts, reporting, and scoring layers must read resolution status and behave accordingly.
+
+---
+
+## DOWNSTREAM BEHAVIOR BY RESOLUTION STATE
+
+### FULLY RESOLVED rows may:
+
+* appear in property and unit context
+* create or link workflow items
+* contribute to alerts
+* contribute to dashboards
+* participate in bottleneck logic
+* participate in reaction-layer drill-down
+
+### PARTIALLY RESOLVED rows may:
+
+* appear in property-level reporting
+* appear in “needs review” summaries
+* contribute to limited high-level counts if labeled clearly
+* remain visible in governance reports
+
+PARTIALLY RESOLVED rows must NOT:
+
+* appear as confirmed unit-level truth
+* create fake unit drill-downs
+* be counted as fully assigned in audit mode
+
+### UNRESOLVED rows may:
+
+* appear in intake review queue only
+* be available for manual resolution
+* be preserved for later reprocessing
+
+UNRESOLVED rows must NOT:
+
+* feed executive dashboard truth
+* create workflow items as if linked
+* generate misleading bottleneck or SLA precision
+
+---
+
+## STRICT VS FLEXIBLE COUNTING RULES
+
+Create separate metrics.
+
+### Flexible Mode Metrics
+
+Show:
+
+* total uploaded rows
+* fully resolved rows
+  n- partially resolved rows
+* unresolved rows
+* property-level usable rows
+
+### Strict Mode Metrics
+
+Show:
+
+* total rows eligible for fully wired testing
+* rows missing required unit linkage
+* rows missing property linkage
+* rows failing assignment confidence threshold
+* rows excluded from strict wiring audit
+
+### Critical rule
+
+Never let the UI collapse these into a single “all good” import count.
+
+---
+
+## USER-FACING IMPORT EXPERIENCE
+
+After upload, show an Import Governance Summary.
+
+### Required summary cards
+
+* Total rows uploaded
+* Fully resolved
+* Partially resolved
+* Unresolved
+* Ready for full system wiring
+* Needs review
+
+### User-facing language examples
+
+* “52 records are fully connected and ready for full system use.”
+* “11 records were accepted but need unit confirmation.”
+* “4 records could not be linked and are waiting for review.”
+
+### Tone rule
+
+Do NOT shame the user.
+Do NOT make the upload feel like failure.
+Make it feel controlled, transparent, and fixable.
+
+---
+
+## INTERNAL VALIDATION EXPERIENCE
+
+In strict mode, generate a validation panel or report before final acceptance.
+
+### Required fields in strict report
+
+* file name
+* import timestamp
+* mode used
+* row counts by status
+* required-field failures
+* weak match explanations
+* exact rows excluded from full wiring
+* recommendation: pass / fail / partial pass
+
+### Strict mode verdicts
+
+* VERIFIED FOR WIRING
+* PARTIAL — DATA LIMITATIONS PRESENT
+* NOT VALID FOR WIRING
+
+---
+
+## ASSIGNMENT ENGINE INTEGRATION
+
+Do NOT replace the assignment engine.
+
+Instead, wrap it with governance.
+
+### Required sequence
+
+1. Parse row
+2. Normalize fields
+3. Attempt property match
+4. Attempt unit match
+5. Assign confidence level
+6. Classify resolution state
+7. Route row appropriately
+8. Persist audit metadata
+
+### Confidence use
+
+* HIGH confidence → may resolve fully
+* MEDIUM confidence → partial or review
+* LOW confidence → unresolved
+
+---
+
+## WORKFLOW + DASHBOARD SAFETY RULES
+
+### Workflow safety
+
+Only FULLY RESOLVED records may create or represent fully trusted workflow items by default.
+
+PARTIALLY RESOLVED records may create provisional workflow entries only if clearly labeled as provisional and excluded from unit-specific truth claims.
+
+### Dashboard safety
+
+Executive dashboard metrics must distinguish between:
+
+* fully resolved operational truth
+* partial intake volume
+
+Do NOT let partial rows silently distort executive certainty.
+
+Examples:
+
+* good: “67 work orders uploaded, 56 fully resolved, 11 need unit confirmation”
+* bad: “67 work orders active” when 11 are not fully linked
+
+---
+
+## DOCUMENT GOVERNANCE PARALLEL RULE
+
+Apply the same philosophy to documents.
+
+### Documents may be:
+
+* uploaded without perfect metadata
+* stored before exact linkage is confirmed
+
+But they must be classified as:
+
+* linked
+* partially linked
+* unlinked
+
+Do NOT block document capture.
+Do NOT treat unlinked documents as fully contextual proof.
+
+---
+
+## REACTION-LAYER SAFETY
+
+If a signal is produced from partially resolved data, the drill-down must say so.
+
+Example language:
+
+* “45 aging work orders identified; 8 require unit confirmation.”
+
+Do NOT present mixed-confidence output as if all records are equally verified.
+
+---
+
+## DATA MODEL ADDITIONS
+
+Add only what is needed to support governance.
+
+### Suggested fields for imported work orders
+
+* import_mode
+* resolution_status
+* assignment_confidence
+* property_match_status
+* unit_match_status
+* unit_number_raw
+* property_name_raw
+* source_file_name
+* source_row_index
+* governance_notes
+* excluded_from_strict_wiring (boolean)
+* available_for_property_rollup (boolean)
+* available_for_unit_rollup (boolean)
+
+### Optional support tables
+
+* import_runs
+* import_row_reviews
+* unresolved_import_queue
+
+Keep schema lean.
+Do NOT duplicate core work-order truth tables unnecessarily.
+
+---
+
+## AUDIT LOG REQUIREMENTS
+
+Track:
+
+* import started
+* import completed
+* row classified as fully resolved
+* row classified as partially resolved
+* row classified as unresolved
+* manual resolution completed
+* row promoted from partial to full
+* row excluded from strict wiring test
+
+---
+
+## CODE QUALITY RULES
+
+DO:
+
+* keep governance logic separate from UI
+* keep governance logic separate from assignment logic
+* centralize classification rules
+* make mode selection explicit
+* preserve raw source truth
+* protect downstream trust
+
+DO NOT:
+
+* block imperfect uploads by default
+* auto-fake unit matches
+* collapse partial rows into full counts
+* let dashboards imply false certainty
+* bury governance rules inside components
+
+---
+
+## SUCCESS STATE
+
+This build is complete when:
+
+1. Users can upload imperfect work-order data without hitting a stone wall
+2. The system accepts rows and classifies them honestly
+3. Fully resolved rows flow through the full system
+4. Partially resolved rows remain useful without corrupting wiring
+5. Unresolved rows are preserved for review instead of lost or misused
+6. Strict mode can be used for internal wiring validation
+7. Dashboard and reaction layers respect data confidence
+8. No incomplete upload is silently treated as complete truth
+
+---
+
+## INTERNAL LABEL
+
+**Phase 1 — Import Governance Layer: Dual-Mode Controlled Ingestion**
+
+---
+
+## FINAL INTENT
+
+Let users be messy.
+
+Let the system stay intelligent.
+
+Accept imperfect data.
+Classify it honestly.
+Protect the truth layer.
+
+That is how Ascent 1.0 becomes flexible for customers and trustworthy for operators.

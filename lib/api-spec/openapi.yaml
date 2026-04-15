@@ -25,6 +25,8 @@ tags:
     description: Analytics and trends
   - name: reports
     description: Reporting and analytics backbone
+  - name: work-orders
+    description: Work order import, governance, and tracking
 paths:
   /healthz:
     get:
@@ -1093,6 +1095,109 @@ paths:
       responses:
         "204":
           description: Deleted
+
+  /work-orders/import:
+    post:
+      operationId: importWorkOrders
+      tags: [work-orders]
+      summary: Import work orders from CSV rows with governance classification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportWorkOrdersBody"
+      responses:
+        "200":
+          description: Import result with governance summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrderImportResult"
+
+  /work-orders/imports/{batchId}:
+    get:
+      operationId: getImportRun
+      tags: [work-orders]
+      summary: Get governance summary for an import run
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Import run governance summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportRun"
+        "404":
+          description: Not found
+
+  /work-orders:
+    get:
+      operationId: listWorkOrders
+      tags: [work-orders]
+      summary: List work orders with optional filters
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: slaStatus
+          in: query
+          schema: { type: string }
+        - name: propertyId
+          in: query
+          schema: { type: integer }
+        - name: isBlocked
+          in: query
+          schema: { type: boolean }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: List of work orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkOrder"
+
+  /work-orders/stats:
+    get:
+      operationId: getWorkOrderStats
+      tags: [work-orders]
+      summary: Aggregate stats including bottleneck intelligence
+      responses:
+        "200":
+          description: Work order stats
+
+  /work-orders/{id}:
+    get:
+      operationId: getWorkOrder
+      tags: [work-orders]
+      summary: Get work order detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Work order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkOrder"
+        "404":
+          description: Not found
 
 components:
   schemas:
@@ -2617,4 +2722,296 @@ components:
       required:
         - imported
         - skipped
+
+    WorkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        externalId:
+          type: string
+          nullable: true
+        propertyId:
+          type: integer
+          nullable: true
+        unitId:
+          type: integer
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        priority:
+          type: string
+        status:
+          type: string
+        assignedTo:
+          type: string
+          nullable: true
+        regionName:
+          type: string
+          nullable: true
+        propertyNameRaw:
+          type: string
+          nullable: true
+        unitNumberRaw:
+          type: string
+          nullable: true
+        turnId:
+          type: string
+          nullable: true
+        createdDate:
+          type: string
+          nullable: true
+        scheduledDate:
+          type: string
+          nullable: true
+        firstResponseDate:
+          type: string
+          nullable: true
+        completedDate:
+          type: string
+          nullable: true
+        estimatedHours:
+          type: number
+          nullable: true
+        actualHours:
+          type: number
+          nullable: true
+        slaDeadlineHours:
+          type: integer
+        slaStatus:
+          type: string
+        slaResponseDelayHours:
+          type: number
+          nullable: true
+        stage:
+          type: string
+          nullable: true
+        stageStatus:
+          type: string
+          nullable: true
+        daysInStage:
+          type: integer
+          nullable: true
+        isBlocked:
+          type: boolean
+        delayReason:
+          type: string
+          nullable: true
+        vendor:
+          type: string
+          nullable: true
+        bottleneckFlag:
+          type: boolean
+        bottleneckType:
+          type: string
+          nullable: true
+        aggregationScope:
+          type: string
+          nullable: true
+        importMode:
+          type: string
+          nullable: true
+          enum: [flexible, strict]
+        resolutionStatus:
+          type: string
+          nullable: true
+          enum: [fully_resolved, partially_resolved, unresolved]
+        assignmentConfidence:
+          type: string
+          nullable: true
+          enum: [high, medium, low, none]
+        propertyMatchStatus:
+          type: string
+          nullable: true
+        unitMatchStatus:
+          type: string
+          nullable: true
+        sourceFileName:
+          type: string
+          nullable: true
+        governanceNotes:
+          type: string
+          nullable: true
+        excludedFromStrictWiring:
+          type: boolean
+        availableForPropertyRollup:
+          type: boolean
+        availableForUnitRollup:
+          type: boolean
+        importBatchId:
+          type: string
+          nullable: true
+        importedAt:
+          type: string
+        updatedAt:
+          type: string
+        unitNumber:
+          type: string
+          nullable: true
+        propertyName:
+          type: string
+          nullable: true
+      required:
+        - id
+        - priority
+        - status
+        - slaDeadlineHours
+        - slaStatus
+        - isBlocked
+        - bottleneckFlag
+        - excludedFromStrictWiring
+        - availableForPropertyRollup
+        - availableForUnitRollup
+        - importedAt
+        - updatedAt
+
+    GovernanceSummary:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [flexible, strict]
+        totalRows:
+          type: integer
+        fullyResolved:
+          type: integer
+        partiallyResolved:
+          type: integer
+        unresolved:
+          type: integer
+        readyForFullWiring:
+          type: integer
+        needsUnitConfirmation:
+          type: integer
+        needsReview:
+          type: integer
+        slaViolations:
+          type: integer
+        blockedCount:
+          type: integer
+      required:
+        - mode
+        - totalRows
+        - fullyResolved
+        - partiallyResolved
+        - unresolved
+        - readyForFullWiring
+        - needsUnitConfirmation
+        - needsReview
+        - slaViolations
+        - blockedCount
+
+    WorkOrderImportResult:
+      type: object
+      properties:
+        batchId:
+          type: string
+        imported:
+          type: integer
+        errors:
+          type: integer
+        slaViolations:
+          type: integer
+        blockedCount:
+          type: integer
+        governance:
+          $ref: "#/components/schemas/GovernanceSummary"
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              row:
+                type: integer
+              status:
+                type: string
+                enum: [imported, error]
+              workOrderId:
+                type: integer
+              resolutionStatus:
+                type: string
+                nullable: true
+                enum: [fully_resolved, partially_resolved, unresolved]
+              assignmentConfidence:
+                type: string
+                nullable: true
+                enum: [high, medium, low, none]
+              unitMatched:
+                type: boolean
+              propertyMatched:
+                type: boolean
+              slaStatus:
+                type: string
+              isBlocked:
+                type: boolean
+      required:
+        - batchId
+        - imported
+        - errors
+        - slaViolations
+        - blockedCount
+        - governance
+        - results
+
+    ImportWorkOrdersBody:
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+        importMode:
+          type: string
+          enum: [flexible, strict]
+          default: flexible
+        sourceFileName:
+          type: string
+        slaDeadlineHours:
+          type: integer
+        createWorkflowItems:
+          type: boolean
+      required:
+        - rows
+
+    ImportRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        batchId:
+          type: string
+        importMode:
+          type: string
+          enum: [flexible, strict]
+        sourceFileName:
+          type: string
+          nullable: true
+        totalRows:
+          type: integer
+        fullyResolvedCount:
+          type: integer
+        partiallyResolvedCount:
+          type: integer
+        unresolvedCount:
+          type: integer
+        errorCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - batchId
+        - importMode
+        - totalRows
+        - fullyResolvedCount
+        - partiallyResolvedCount
+        - unresolvedCount
+        - errorCount
+        - createdAt
         - units

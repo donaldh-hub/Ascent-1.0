@@ -819,7 +819,197 @@ export interface ImportUnitsBody {
 export interface ImportUnitsResult {
   imported: number;
   skipped: number;
-  units: Unit[];
+  units?: Unit[];
+}
+
+export type WorkOrderImportMode =
+  | (typeof WorkOrderImportMode)[keyof typeof WorkOrderImportMode]
+  | null;
+
+export const WorkOrderImportMode = {
+  flexible: "flexible",
+  strict: "strict",
+} as const;
+
+export type WorkOrderResolutionStatus =
+  | (typeof WorkOrderResolutionStatus)[keyof typeof WorkOrderResolutionStatus]
+  | null;
+
+export const WorkOrderResolutionStatus = {
+  fully_resolved: "fully_resolved",
+  partially_resolved: "partially_resolved",
+  unresolved: "unresolved",
+} as const;
+
+export type WorkOrderAssignmentConfidence =
+  | (typeof WorkOrderAssignmentConfidence)[keyof typeof WorkOrderAssignmentConfidence]
+  | null;
+
+export const WorkOrderAssignmentConfidence = {
+  high: "high",
+  medium: "medium",
+  low: "low",
+  none: "none",
+} as const;
+
+export interface WorkOrder {
+  id: number;
+  externalId?: string | null;
+  propertyId?: number | null;
+  unitId?: number | null;
+  category?: string | null;
+  description?: string | null;
+  priority: string;
+  status: string;
+  assignedTo?: string | null;
+  regionName?: string | null;
+  propertyNameRaw?: string | null;
+  unitNumberRaw?: string | null;
+  turnId?: string | null;
+  createdDate?: string | null;
+  scheduledDate?: string | null;
+  firstResponseDate?: string | null;
+  completedDate?: string | null;
+  estimatedHours?: number | null;
+  actualHours?: number | null;
+  slaDeadlineHours: number;
+  slaStatus: string;
+  slaResponseDelayHours?: number | null;
+  stage?: string | null;
+  stageStatus?: string | null;
+  daysInStage?: number | null;
+  isBlocked: boolean;
+  delayReason?: string | null;
+  vendor?: string | null;
+  bottleneckFlag: boolean;
+  bottleneckType?: string | null;
+  aggregationScope?: string | null;
+  importMode?: WorkOrderImportMode;
+  resolutionStatus?: WorkOrderResolutionStatus;
+  assignmentConfidence?: WorkOrderAssignmentConfidence;
+  propertyMatchStatus?: string | null;
+  unitMatchStatus?: string | null;
+  sourceFileName?: string | null;
+  governanceNotes?: string | null;
+  excludedFromStrictWiring: boolean;
+  availableForPropertyRollup: boolean;
+  availableForUnitRollup: boolean;
+  importBatchId?: string | null;
+  importedAt: string;
+  updatedAt: string;
+  unitNumber?: string | null;
+  propertyName?: string | null;
+}
+
+export type GovernanceSummaryMode =
+  (typeof GovernanceSummaryMode)[keyof typeof GovernanceSummaryMode];
+
+export const GovernanceSummaryMode = {
+  flexible: "flexible",
+  strict: "strict",
+} as const;
+
+export interface GovernanceSummary {
+  mode: GovernanceSummaryMode;
+  totalRows: number;
+  fullyResolved: number;
+  partiallyResolved: number;
+  unresolved: number;
+  readyForFullWiring: number;
+  needsUnitConfirmation: number;
+  needsReview: number;
+  slaViolations: number;
+  blockedCount: number;
+}
+
+export type WorkOrderImportResultResultsItemStatus =
+  (typeof WorkOrderImportResultResultsItemStatus)[keyof typeof WorkOrderImportResultResultsItemStatus];
+
+export const WorkOrderImportResultResultsItemStatus = {
+  imported: "imported",
+  error: "error",
+} as const;
+
+export type WorkOrderImportResultResultsItemResolutionStatus =
+  | (typeof WorkOrderImportResultResultsItemResolutionStatus)[keyof typeof WorkOrderImportResultResultsItemResolutionStatus]
+  | null;
+
+export const WorkOrderImportResultResultsItemResolutionStatus = {
+  fully_resolved: "fully_resolved",
+  partially_resolved: "partially_resolved",
+  unresolved: "unresolved",
+} as const;
+
+export type WorkOrderImportResultResultsItemAssignmentConfidence =
+  | (typeof WorkOrderImportResultResultsItemAssignmentConfidence)[keyof typeof WorkOrderImportResultResultsItemAssignmentConfidence]
+  | null;
+
+export const WorkOrderImportResultResultsItemAssignmentConfidence = {
+  high: "high",
+  medium: "medium",
+  low: "low",
+  none: "none",
+} as const;
+
+export type WorkOrderImportResultResultsItem = {
+  row?: number;
+  status?: WorkOrderImportResultResultsItemStatus;
+  workOrderId?: number;
+  resolutionStatus?: WorkOrderImportResultResultsItemResolutionStatus;
+  assignmentConfidence?: WorkOrderImportResultResultsItemAssignmentConfidence;
+  unitMatched?: boolean;
+  propertyMatched?: boolean;
+  slaStatus?: string;
+  isBlocked?: boolean;
+};
+
+export interface WorkOrderImportResult {
+  batchId: string;
+  imported: number;
+  errors: number;
+  slaViolations: number;
+  blockedCount: number;
+  governance: GovernanceSummary;
+  results: WorkOrderImportResultResultsItem[];
+}
+
+export type ImportWorkOrdersBodyRowsItem = { [key: string]: string };
+
+export type ImportWorkOrdersBodyImportMode =
+  (typeof ImportWorkOrdersBodyImportMode)[keyof typeof ImportWorkOrdersBodyImportMode];
+
+export const ImportWorkOrdersBodyImportMode = {
+  flexible: "flexible",
+  strict: "strict",
+} as const;
+
+export interface ImportWorkOrdersBody {
+  rows: ImportWorkOrdersBodyRowsItem[];
+  importMode?: ImportWorkOrdersBodyImportMode;
+  sourceFileName?: string;
+  slaDeadlineHours?: number;
+  createWorkflowItems?: boolean;
+}
+
+export type ImportRunImportMode =
+  (typeof ImportRunImportMode)[keyof typeof ImportRunImportMode];
+
+export const ImportRunImportMode = {
+  flexible: "flexible",
+  strict: "strict",
+} as const;
+
+export interface ImportRun {
+  id: number;
+  batchId: string;
+  importMode: ImportRunImportMode;
+  sourceFileName?: string | null;
+  totalRows: number;
+  fullyResolvedCount: number;
+  partiallyResolvedCount: number;
+  unresolvedCount: number;
+  errorCount: number;
+  createdAt: string;
 }
 
 export type ListWorkflowsParams = {
@@ -963,4 +1153,13 @@ export type GetAssignmentReportParams = {
 
 export type ListUnitsParams = {
   propertyId?: number;
+};
+
+export type ListWorkOrdersParams = {
+  status?: string;
+  category?: string;
+  slaStatus?: string;
+  propertyId?: number;
+  isBlocked?: boolean;
+  limit?: number;
 };

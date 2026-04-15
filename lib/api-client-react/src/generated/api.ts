@@ -38,12 +38,15 @@ import type {
   GetOperationalReportParams,
   GetWorkflowReportParams,
   HealthStatus,
+  ImportRun,
   ImportUnitsBody,
   ImportUnitsResult,
+  ImportWorkOrdersBody,
   ListAlertsParams,
   ListAssetsParams,
   ListDocumentsParams,
   ListUnitsParams,
+  ListWorkOrdersParams,
   ListWorkflowItemsParams,
   ListWorkflowsParams,
   MoveWorkflowItemBody,
@@ -61,6 +64,8 @@ import type {
   UpdateWorkflowBody,
   UpdateWorkflowItemBody,
   WarrantyStatus,
+  WorkOrder,
+  WorkOrderImportResult,
   Workflow,
   WorkflowBottleneckAnalysis,
   WorkflowDetail,
@@ -4766,3 +4771,432 @@ export const useDeleteUnit = <
 > => {
   return useMutation(getDeleteUnitMutationOptions(options));
 };
+
+/**
+ * @summary Import work orders from CSV rows with governance classification
+ */
+export const getImportWorkOrdersUrl = () => {
+  return `/api/work-orders/import`;
+};
+
+export const importWorkOrders = async (
+  importWorkOrdersBody: ImportWorkOrdersBody,
+  options?: RequestInit,
+): Promise<WorkOrderImportResult> => {
+  return customFetch<WorkOrderImportResult>(getImportWorkOrdersUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(importWorkOrdersBody),
+  });
+};
+
+export const getImportWorkOrdersMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importWorkOrders>>,
+    TError,
+    { data: BodyType<ImportWorkOrdersBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof importWorkOrders>>,
+  TError,
+  { data: BodyType<ImportWorkOrdersBody> },
+  TContext
+> => {
+  const mutationKey = ["importWorkOrders"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof importWorkOrders>>,
+    { data: BodyType<ImportWorkOrdersBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return importWorkOrders(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ImportWorkOrdersMutationResult = NonNullable<
+  Awaited<ReturnType<typeof importWorkOrders>>
+>;
+export type ImportWorkOrdersMutationBody = BodyType<ImportWorkOrdersBody>;
+export type ImportWorkOrdersMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Import work orders from CSV rows with governance classification
+ */
+export const useImportWorkOrders = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof importWorkOrders>>,
+    TError,
+    { data: BodyType<ImportWorkOrdersBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof importWorkOrders>>,
+  TError,
+  { data: BodyType<ImportWorkOrdersBody> },
+  TContext
+> => {
+  return useMutation(getImportWorkOrdersMutationOptions(options));
+};
+
+/**
+ * @summary Get governance summary for an import run
+ */
+export const getGetImportRunUrl = (batchId: string) => {
+  return `/api/work-orders/imports/${batchId}`;
+};
+
+export const getImportRun = async (
+  batchId: string,
+  options?: RequestInit,
+): Promise<ImportRun> => {
+  return customFetch<ImportRun>(getGetImportRunUrl(batchId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetImportRunQueryKey = (batchId: string) => {
+  return [`/api/work-orders/imports/${batchId}`] as const;
+};
+
+export const getGetImportRunQueryOptions = <
+  TData = Awaited<ReturnType<typeof getImportRun>>,
+  TError = ErrorType<void>,
+>(
+  batchId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getImportRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetImportRunQueryKey(batchId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getImportRun>>> = ({
+    signal,
+  }) => getImportRun(batchId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!batchId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getImportRun>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetImportRunQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getImportRun>>
+>;
+export type GetImportRunQueryError = ErrorType<void>;
+
+/**
+ * @summary Get governance summary for an import run
+ */
+
+export function useGetImportRun<
+  TData = Awaited<ReturnType<typeof getImportRun>>,
+  TError = ErrorType<void>,
+>(
+  batchId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getImportRun>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetImportRunQueryOptions(batchId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List work orders with optional filters
+ */
+export const getListWorkOrdersUrl = (params?: ListWorkOrdersParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/work-orders?${stringifiedParams}`
+    : `/api/work-orders`;
+};
+
+export const listWorkOrders = async (
+  params?: ListWorkOrdersParams,
+  options?: RequestInit,
+): Promise<WorkOrder[]> => {
+  return customFetch<WorkOrder[]>(getListWorkOrdersUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListWorkOrdersQueryKey = (params?: ListWorkOrdersParams) => {
+  return [`/api/work-orders`, ...(params ? [params] : [])] as const;
+};
+
+export const getListWorkOrdersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listWorkOrders>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListWorkOrdersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWorkOrders>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListWorkOrdersQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkOrders>>> = ({
+    signal,
+  }) => listWorkOrders(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listWorkOrders>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListWorkOrdersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listWorkOrders>>
+>;
+export type ListWorkOrdersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List work orders with optional filters
+ */
+
+export function useListWorkOrders<
+  TData = Awaited<ReturnType<typeof listWorkOrders>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListWorkOrdersParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listWorkOrders>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListWorkOrdersQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Aggregate stats including bottleneck intelligence
+ */
+export const getGetWorkOrderStatsUrl = () => {
+  return `/api/work-orders/stats`;
+};
+
+export const getWorkOrderStats = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getGetWorkOrderStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWorkOrderStatsQueryKey = () => {
+  return [`/api/work-orders/stats`] as const;
+};
+
+export const getGetWorkOrderStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkOrderStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkOrderStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWorkOrderStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWorkOrderStats>>
+  > = ({ signal }) => getWorkOrderStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkOrderStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkOrderStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkOrderStats>>
+>;
+export type GetWorkOrderStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Aggregate stats including bottleneck intelligence
+ */
+
+export function useGetWorkOrderStats<
+  TData = Awaited<ReturnType<typeof getWorkOrderStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkOrderStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkOrderStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get work order detail
+ */
+export const getGetWorkOrderUrl = (id: number) => {
+  return `/api/work-orders/${id}`;
+};
+
+export const getWorkOrder = async (
+  id: number,
+  options?: RequestInit,
+): Promise<WorkOrder> => {
+  return customFetch<WorkOrder>(getGetWorkOrderUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetWorkOrderQueryKey = (id: number) => {
+  return [`/api/work-orders/${id}`] as const;
+};
+
+export const getGetWorkOrderQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWorkOrder>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkOrder>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetWorkOrderQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkOrder>>> = ({
+    signal,
+  }) => getWorkOrder(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWorkOrder>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWorkOrderQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWorkOrder>>
+>;
+export type GetWorkOrderQueryError = ErrorType<void>;
+
+/**
+ * @summary Get work order detail
+ */
+
+export function useGetWorkOrder<
+  TData = Awaited<ReturnType<typeof getWorkOrder>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWorkOrder>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWorkOrderQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

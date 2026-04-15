@@ -1,12 +1,14 @@
 /**
  * Build 2.5 — Work Order Routes (Extended: Turn + Bottleneck Layer)
+ * Build 8.0 — Import Governance Layer (Phase 1: Dual-Mode Controlled Ingestion)
  *
- * POST /api/work-orders/reset         — clear all work-order + associated workflow data
- * POST /api/work-orders/import        — CSV row ingestion (all bottleneck fields preserved)
- * GET  /api/work-orders               — list with filters
- * GET  /api/work-orders/stats         — aggregate stats (includes bottleneck intelligence)
- * GET  /api/work-orders/categories    — category breakdown
- * GET  /api/work-orders/:id           — detail view
+ * POST /api/work-orders/reset              — clear all work-order + associated workflow data
+ * POST /api/work-orders/import             — CSV row ingestion with governance classification
+ * GET  /api/work-orders/imports/:batchId   — import run governance summary
+ * GET  /api/work-orders                    — list with filters
+ * GET  /api/work-orders/stats              — aggregate stats
+ * GET  /api/work-orders/categories         — category breakdown
+ * GET  /api/work-orders/:id                — detail view
  */
 
 import { Router } from "express";
@@ -41,6 +43,12 @@ import {
   WO_WORKFLOW_TITLE,
 } from "../services/work-order-service";
 import { buildImpactAnalysis } from "../services/work-order-impact-service";
+import {
+  computeGovernanceFields,
+  recordImportRun,
+  getImportSummary,
+  type ImportMode,
+} from "../services/governance-service";
 
 const router = Router();
 
@@ -148,10 +156,14 @@ router.post("/work-orders/import", async (req, res) => {
       rows,
       slaDeadlineHours = DEFAULT_SLA_HOURS,
       createWorkflowItems = true,
+      importMode = "flexible",
+      sourceFileName,
     } = req.body as {
       rows?: Record<string, string>[];
       slaDeadlineHours?: number;
       createWorkflowItems?: boolean;
+      importMode?: ImportMode;
+      sourceFileName?: string;
     };
 
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -160,6 +172,11 @@ router.post("/work-orders/import", async (req, res) => {
     }
 
     const batchId = randomUUID();
+
+    // Governance counters
+    let fullyResolvedCount = 0;
+    let partiallyResolvedCount = 0;
+    let unresolvedCount = 0;
 
     // Property resolution cache (avoid repeated DB lookups for same property)
     const propertyCache = new Map<string, { propertyId: number | null; confidence: string }>();
@@ -178,6 +195,8 @@ router.post("/work-orders/import", async (req, res) => {
       slaStatus: string;
       isBlocked: boolean;
       bottleneckType?: string | null;
+      resolutionStatus?: "fully_resolved" | "partially_resolved" | "unresolved";
+      assignmentConfidence?: "high" | "medium" | "low" | "none";
     }[] = [];
 
     let importedCount = 0;
@@ -260,6 +279,22 @@ router.post("/work-orders/import", async (req, res) => {
           unitId = await resolveUnit(unitNumberRaw, propertyId);
         }
 
+        // ── Governance classification ─────────────────────────────────────────
+        const gov = computeGovernanceFields({
+          mode: importMode,
+          propertyId,
+          unitId,
+          propertyConfidence,
+          unitNumberRaw,
+          sourceFileName,
+          sourceRowIndex: i,
+        });
+
+        // Track resolution state counts
+        if (gov.resolutionStatus === "fully_resolved") fullyResolvedCount++;
+        else if (gov.resolutionStatus === "partially_resolved") partiallyResolvedCount++;
+        else unresolvedCount++;
+
         // ── SLA computation ──────────────────────────────────────────────────
         const sla = computeSla(createdDate, firstResponseDate, slaDeadlineHours);
 
@@ -315,6 +350,19 @@ router.post("/work-orders/import", async (req, res) => {
           bottleneckType: bottleneckType ?? null,
           aggregationScope: aggregationScope ?? null,
 
+          // Governance
+          importMode: gov.importMode,
+          resolutionStatus: gov.resolutionStatus,
+          assignmentConfidence: gov.assignmentConfidence,
+          propertyMatchStatus: gov.propertyMatchStatus,
+          unitMatchStatus: gov.unitMatchStatus,
+          sourceFileName: gov.sourceFileName ?? null,
+          sourceRowIndex: gov.sourceRowIndex ?? null,
+          governanceNotes: gov.governanceNotes,
+          excludedFromStrictWiring: gov.excludedFromStrictWiring,
+          availableForPropertyRollup: gov.availableForPropertyRollup,
+          availableForUnitRollup: gov.availableForUnitRollup,
+
           // Raw + import metadata
           rawData: raw,
           importBatchId: batchId,
@@ -346,6 +394,8 @@ router.post("/work-orders/import", async (req, res) => {
           slaStatus: sla.status,
           isBlocked,
           bottleneckType,
+          resolutionStatus: gov.resolutionStatus,
+          assignmentConfidence: gov.assignmentConfidence,
         });
       } catch (err) {
         req.log.warn({ err, row: i }, "Failed to import work order row");
@@ -357,18 +407,46 @@ router.post("/work-orders/import", async (req, res) => {
           propertyMatched: false,
           slaStatus: "pending",
           isBlocked: false,
+          resolutionStatus: "unresolved" as const,
+          assignmentConfidence: "none" as const,
         });
       }
     }
 
     const slaViolations = results.filter(r => r.slaStatus === "missed").length;
     const blockedCount = results.filter(r => r.isBlocked).length;
-    const propertySummary = results.reduce((acc, r) => {
-      acc[r.propertyConfidence ?? "none"] = (acc[r.propertyConfidence ?? "none"] ?? 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
 
-    req.log.info({ importedCount, errorCount, batchId, blockedCount }, "Work orders imported");
+    // ── Record import run ──────────────────────────────────────────────────────
+    await recordImportRun({
+      batchId,
+      mode: importMode,
+      sourceFileName,
+      totalRows: rows.length,
+      fullyResolvedCount,
+      partiallyResolvedCount,
+      unresolvedCount,
+      errorCount,
+      summaryData: { slaViolations, blockedCount },
+    });
+
+    req.log.info(
+      { importedCount, errorCount, batchId, blockedCount, fullyResolvedCount, partiallyResolvedCount, unresolvedCount },
+      "Work orders imported with governance classification"
+    );
+
+    // ── Governance summary ────────────────────────────────────────────────────
+    const governance = {
+      mode: importMode,
+      totalRows: rows.length,
+      fullyResolved: fullyResolvedCount,
+      partiallyResolved: partiallyResolvedCount,
+      unresolved: unresolvedCount,
+      readyForFullWiring: fullyResolvedCount,
+      needsUnitConfirmation: partiallyResolvedCount,
+      needsReview: unresolvedCount,
+      slaViolations,
+      blockedCount,
+    };
 
     res.json({
       batchId,
@@ -376,11 +454,28 @@ router.post("/work-orders/import", async (req, res) => {
       errors: errorCount,
       slaViolations,
       blockedCount,
-      propertySummary,
+      governance,
       results,
     });
   } catch (err) {
     req.log.error({ err }, "Work order import failed");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── GET /api/work-orders/imports/:batchId ────────────────────────────────────
+
+router.get("/work-orders/imports/:batchId", async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const summary = await getImportSummary(batchId);
+    if (!summary) {
+      res.status(404).json({ error: "Import run not found" });
+      return;
+    }
+    res.json(summary);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get import summary");
     res.status(500).json({ error: "Internal server error" });
   }
 });

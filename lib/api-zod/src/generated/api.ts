@@ -1424,3 +1424,197 @@ export const ImportUnitsBody = zod.object({
 export const DeleteUnitParams = zod.object({
   id: zod.coerce.number(),
 });
+
+/**
+ * @summary Import work orders from CSV rows with governance classification
+ */
+export const importWorkOrdersBodyImportModeDefault = `flexible`;
+
+export const ImportWorkOrdersBody = zod.object({
+  rows: zod.array(zod.record(zod.string(), zod.string())),
+  importMode: zod
+    .enum(["flexible", "strict"])
+    .default(importWorkOrdersBodyImportModeDefault),
+  sourceFileName: zod.string().optional(),
+  slaDeadlineHours: zod.number().optional(),
+  createWorkflowItems: zod.boolean().optional(),
+});
+
+export const ImportWorkOrdersResponse = zod.object({
+  batchId: zod.string(),
+  imported: zod.number(),
+  errors: zod.number(),
+  slaViolations: zod.number(),
+  blockedCount: zod.number(),
+  governance: zod.object({
+    mode: zod.enum(["flexible", "strict"]),
+    totalRows: zod.number(),
+    fullyResolved: zod.number(),
+    partiallyResolved: zod.number(),
+    unresolved: zod.number(),
+    readyForFullWiring: zod.number(),
+    needsUnitConfirmation: zod.number(),
+    needsReview: zod.number(),
+    slaViolations: zod.number(),
+    blockedCount: zod.number(),
+  }),
+  results: zod.array(
+    zod.object({
+      row: zod.number().optional(),
+      status: zod.enum(["imported", "error"]).optional(),
+      workOrderId: zod.number().optional(),
+      resolutionStatus: zod
+        .enum(["fully_resolved", "partially_resolved", "unresolved"])
+        .nullish(),
+      assignmentConfidence: zod
+        .enum(["high", "medium", "low", "none"])
+        .nullish(),
+      unitMatched: zod.boolean().optional(),
+      propertyMatched: zod.boolean().optional(),
+      slaStatus: zod.string().optional(),
+      isBlocked: zod.boolean().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get governance summary for an import run
+ */
+export const GetImportRunParams = zod.object({
+  batchId: zod.coerce.string(),
+});
+
+export const GetImportRunResponse = zod.object({
+  id: zod.number(),
+  batchId: zod.string(),
+  importMode: zod.enum(["flexible", "strict"]),
+  sourceFileName: zod.string().nullish(),
+  totalRows: zod.number(),
+  fullyResolvedCount: zod.number(),
+  partiallyResolvedCount: zod.number(),
+  unresolvedCount: zod.number(),
+  errorCount: zod.number(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary List work orders with optional filters
+ */
+export const ListWorkOrdersQueryParams = zod.object({
+  status: zod.coerce.string().optional(),
+  category: zod.coerce.string().optional(),
+  slaStatus: zod.coerce.string().optional(),
+  propertyId: zod.coerce.number().optional(),
+  isBlocked: zod.coerce.boolean().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListWorkOrdersResponseItem = zod.object({
+  id: zod.number(),
+  externalId: zod.string().nullish(),
+  propertyId: zod.number().nullish(),
+  unitId: zod.number().nullish(),
+  category: zod.string().nullish(),
+  description: zod.string().nullish(),
+  priority: zod.string(),
+  status: zod.string(),
+  assignedTo: zod.string().nullish(),
+  regionName: zod.string().nullish(),
+  propertyNameRaw: zod.string().nullish(),
+  unitNumberRaw: zod.string().nullish(),
+  turnId: zod.string().nullish(),
+  createdDate: zod.string().nullish(),
+  scheduledDate: zod.string().nullish(),
+  firstResponseDate: zod.string().nullish(),
+  completedDate: zod.string().nullish(),
+  estimatedHours: zod.number().nullish(),
+  actualHours: zod.number().nullish(),
+  slaDeadlineHours: zod.number(),
+  slaStatus: zod.string(),
+  slaResponseDelayHours: zod.number().nullish(),
+  stage: zod.string().nullish(),
+  stageStatus: zod.string().nullish(),
+  daysInStage: zod.number().nullish(),
+  isBlocked: zod.boolean(),
+  delayReason: zod.string().nullish(),
+  vendor: zod.string().nullish(),
+  bottleneckFlag: zod.boolean(),
+  bottleneckType: zod.string().nullish(),
+  aggregationScope: zod.string().nullish(),
+  importMode: zod.enum(["flexible", "strict"]).nullish(),
+  resolutionStatus: zod
+    .enum(["fully_resolved", "partially_resolved", "unresolved"])
+    .nullish(),
+  assignmentConfidence: zod.enum(["high", "medium", "low", "none"]).nullish(),
+  propertyMatchStatus: zod.string().nullish(),
+  unitMatchStatus: zod.string().nullish(),
+  sourceFileName: zod.string().nullish(),
+  governanceNotes: zod.string().nullish(),
+  excludedFromStrictWiring: zod.boolean(),
+  availableForPropertyRollup: zod.boolean(),
+  availableForUnitRollup: zod.boolean(),
+  importBatchId: zod.string().nullish(),
+  importedAt: zod.string(),
+  updatedAt: zod.string(),
+  unitNumber: zod.string().nullish(),
+  propertyName: zod.string().nullish(),
+});
+export const ListWorkOrdersResponse = zod.array(ListWorkOrdersResponseItem);
+
+/**
+ * @summary Get work order detail
+ */
+export const GetWorkOrderParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetWorkOrderResponse = zod.object({
+  id: zod.number(),
+  externalId: zod.string().nullish(),
+  propertyId: zod.number().nullish(),
+  unitId: zod.number().nullish(),
+  category: zod.string().nullish(),
+  description: zod.string().nullish(),
+  priority: zod.string(),
+  status: zod.string(),
+  assignedTo: zod.string().nullish(),
+  regionName: zod.string().nullish(),
+  propertyNameRaw: zod.string().nullish(),
+  unitNumberRaw: zod.string().nullish(),
+  turnId: zod.string().nullish(),
+  createdDate: zod.string().nullish(),
+  scheduledDate: zod.string().nullish(),
+  firstResponseDate: zod.string().nullish(),
+  completedDate: zod.string().nullish(),
+  estimatedHours: zod.number().nullish(),
+  actualHours: zod.number().nullish(),
+  slaDeadlineHours: zod.number(),
+  slaStatus: zod.string(),
+  slaResponseDelayHours: zod.number().nullish(),
+  stage: zod.string().nullish(),
+  stageStatus: zod.string().nullish(),
+  daysInStage: zod.number().nullish(),
+  isBlocked: zod.boolean(),
+  delayReason: zod.string().nullish(),
+  vendor: zod.string().nullish(),
+  bottleneckFlag: zod.boolean(),
+  bottleneckType: zod.string().nullish(),
+  aggregationScope: zod.string().nullish(),
+  importMode: zod.enum(["flexible", "strict"]).nullish(),
+  resolutionStatus: zod
+    .enum(["fully_resolved", "partially_resolved", "unresolved"])
+    .nullish(),
+  assignmentConfidence: zod.enum(["high", "medium", "low", "none"]).nullish(),
+  propertyMatchStatus: zod.string().nullish(),
+  unitMatchStatus: zod.string().nullish(),
+  sourceFileName: zod.string().nullish(),
+  governanceNotes: zod.string().nullish(),
+  excludedFromStrictWiring: zod.boolean(),
+  availableForPropertyRollup: zod.boolean(),
+  availableForUnitRollup: zod.boolean(),
+  importBatchId: zod.string().nullish(),
+  importedAt: zod.string(),
+  updatedAt: zod.string(),
+  unitNumber: zod.string().nullish(),
+  propertyName: zod.string().nullish(),
+});

@@ -5,10 +5,5 @@
  * Ascent 1.0 - Operational Intelligence Platform
  * OpenAPI spec version: 0.1.0
  */
-import type { Unit } from "./unit";
 
-export interface ImportUnitsResult {
-  imported: number;
-  skipped: number;
-  units?: Unit[];
-}
+export type ImportWorkOrdersBodyRowsItem = { [key: string]: string };
