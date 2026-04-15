@@ -1,0 +1,336 @@
+🔧 ASCENT 1.0 — FULL SYSTEM WIRING AUDIT (NEXT-LEVEL PROMPT)
+
+(COPY + PASTE INTO REPLIT AGENT)
+
+---
+
+## CORE QUESTION
+
+Is the system ACTUALLY producing truth…
+
+or just returning aligned numbers?
+
+This audit verifies FULL SYSTEM INTEGRITY — not just clickable signals.
+
+We are testing:
+
+INPUT → ASSIGNMENT → CONTEXT → WORKFLOW → SCORING → ALERT → DASHBOARD → CLICK → DATA
+
+If ANY layer fails, the system is NOT wired.
+
+---
+
+## STRICT RULES (NON-NEGOTIABLE)
+
+DO NOT:
+
+* Assume correctness
+* Trust UI values
+* Use mock or simulated data
+* Skip layers
+
+DO:
+
+* Query real database records
+* Trace actual relationships
+* Validate logic at EACH layer
+* Return PASS / FAIL with proof
+
+---
+
+## LAYER 1 — INPUT VALIDATION
+
+VERIFY:
+
+* Uploaded records exist in raw tables
+* Required fields are populated
+* No silent data loss
+
+TEST:
+
+* Select 10 sample records from ingestion
+* Confirm presence in database
+
+PASS IF:
+
+* Records exist and match uploaded data
+
+FAIL IF:
+
+* Missing, altered, or incomplete records
+
+---
+
+## LAYER 2 — ASSIGNMENT ENGINE
+
+VERIFY:
+
+* Records correctly attach to:
+  organization
+  property
+  unit
+
+TEST:
+
+* Trace sample records
+* Confirm correct unit/property linkage
+
+PASS IF:
+
+* Correct assignment with HIGH confidence
+
+FAIL IF:
+
+* Misassigned, unassigned, or guessed matches
+
+CRITICAL CHECK:
+
+* NO auto-invented unit matches
+
+---
+
+## LAYER 3 — GOVERNANCE VALIDATION
+
+VERIFY RESOLUTION STATES:
+
+* fully_resolved
+* partially_resolved
+* unresolved
+
+TEST:
+
+* Confirm each row is correctly classified
+
+PASS IF:
+
+* Fully resolved rows have full linkage
+* Partial rows excluded from unit-level truth
+* Unresolved rows NOT in dashboard
+
+FAIL IF:
+
+* Partial/unresolved data pollutes dashboard
+
+---
+
+## LAYER 4 — CONTEXT LAYER
+
+VERIFY:
+
+* Data appears correctly in:
+  unit profile
+  workflow
+  document context
+
+TEST:
+
+* Open unit profile
+* Confirm linked records visible
+
+PASS IF:
+
+* Data visible in correct context
+
+FAIL IF:
+
+* Data exists but is not connected
+
+---
+
+## LAYER 5 — WORKFLOW ENGINE
+
+VERIFY:
+
+* Records become workflow items
+* Items move between stages
+* History logs correctly
+
+TEST:
+
+* Move items across stages
+
+PASS IF:
+
+* Movement updates + logs
+
+FAIL IF:
+
+* Broken movement or missing history
+
+---
+
+## LAYER 6 — SCORING ENGINE (CRITICAL)
+
+VERIFY:
+
+* Flow, Risk, Execution, Improvement scores
+* Scores reflect REAL data
+
+TEST:
+
+* Modify workflow conditions
+
+PASS IF:
+
+* Score changes correctly
+
+FAIL IF:
+
+* Static or incorrect scoring
+
+---
+
+## LAYER 7 — ALERT ENGINE
+
+VERIFY:
+
+* Alerts trigger from:
+  aging
+  bottlenecks
+  SLA violations
+
+TEST:
+
+* Create failing condition
+
+PASS IF:
+
+* Alert appears AND resolves when fixed
+
+FAIL IF:
+
+* Missing or incorrect alerts
+
+---
+
+## LAYER 8 — DASHBOARD VALIDATION
+
+VERIFY:
+
+* Dashboard numbers match real system data
+
+TEST:
+
+* Compare counts vs database
+
+PASS IF:
+
+* Numbers match EXACT records
+
+FAIL IF:
+
+* Mismatch or stale data
+
+---
+
+## LAYER 9 — SIGNAL CAUSATION TEST (NEW — CRITICAL)
+
+For EACH signal:
+
+1. Identify signal definition
+2. Pull underlying dataset
+3. Validate EACH record meets criteria
+
+EXAMPLE:
+
+SLA VIOLATIONS:
+
+* Every returned row must violate SLA
+
+BLOCKED TURNS:
+
+* Every row must be blocked
+
+PASS IF:
+
+* 100% of rows satisfy signal condition
+
+FAIL IF:
+
+* ANY false positives
+
+---
+
+## LAYER 10 — CLICK VERIFICATION (REACTION LAYER)
+
+VERIFY:
+
+* Click → returns EXACT dataset
+
+PASS IF:
+
+* Count matches
+* Records match criteria
+
+FAIL IF:
+
+* Mismatch or empty results
+
+---
+
+## END-TO-END TRACE TEST (MANDATORY)
+
+Select ONE real record and trace it through:
+
+INPUT → ASSIGNMENT → CONTEXT → WORKFLOW → SCORING → ALERT → DASHBOARD → CLICK
+
+PASS IF:
+
+* Same record appears correctly in ALL layers
+
+FAIL IF:
+
+* Record disappears or changes incorrectly
+
+---
+
+## OUTPUT FORMAT
+
+Return:
+
+Layer 1 — PASS / FAIL
+Layer 2 — PASS / FAIL
+Layer 3 — PASS / FAIL
+Layer 4 — PASS / FAIL
+Layer 5 — PASS / FAIL
+Layer 6 — PASS / FAIL
+Layer 7 — PASS / FAIL
+Layer 8 — PASS / FAIL
+Layer 9 — PASS / FAIL
+Layer 10 — PASS / FAIL
+
+END-TO-END — PASS / FAIL
+
+---
+
+## FAILURE REQUIREMENTS
+
+For EACH failure:
+
+* What is broken
+* Where it breaks
+* Why it breaks
+* What data is wrong
+
+NO vague answers.
+
+---
+
+## FINAL VERDICT
+
+Return ONE:
+
+VERIFIED
+MOSTLY WIRED
+PARTIALLY WIRED
+NOT WIRED
+
+---
+
+## FINAL DIRECTIVE
+
+Do NOT prove the UI works.
+
+Prove the SYSTEM tells the TRUTH.
+
+That is the only thing that matters.
