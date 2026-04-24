@@ -27,6 +27,7 @@ import Turns from "@/pages/turns";
 import Setup from "@/pages/setup";
 import ControlTower from "@/pages/control-tower";
 import Governance from "@/pages/governance";
+import Reports from "@/pages/reports";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ function Router() {
         <Route path="/work-orders" component={WorkOrders} />
         <Route path="/turns" component={Turns} />
         <Route path="/governance" component={Governance} />
+        <Route path="/reports" component={Reports} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

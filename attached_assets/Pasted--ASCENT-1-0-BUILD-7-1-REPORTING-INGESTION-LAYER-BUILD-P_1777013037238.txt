@@ -1,0 +1,873 @@
+# ASCENT 1.0 — BUILD 7.1 REPORTING INGESTION LAYER
+
+## BUILD PROMPT
+
+Copy and paste this into the Replit Agent.
+
+---
+
+## PROJECT NAME
+
+Ascent 1.0
+
+---
+
+## BUILD CONTEXT
+
+We are continuing the phased build of Ascent 1.0.
+
+This is:
+
+**BUILD 7.1 — REPORTING INGESTION LAYER**
+
+The system already has:
+
+1. Authentication
+2. Role-based access
+3. App shell / navigation shell
+4. Organization, property, and unit structure
+5. Guided system activation and unit intake
+6. Unit profile and immediate history visibility
+7. Assignment engine logic
+8. Dual-mode import governance
+9. Workflow engine
+10. Work order logic
+11. Turn logic
+12. Timing and bottleneck foundation
+13. Scoring + stoplight engine
+14. Alert and warning engine
+15. Dashboard intelligence layer
+16. Document + evidence engine
+17. Evidence visibility layer
+18. Signal strength + language layer
+19. System integration + reaction layer
+20. Build 7 Master Spine reporting architecture
+21. Control Tower dashboard pre-wiring
+
+---
+
+## DO NOT
+
+Do NOT rebuild the foundation.
+
+Do NOT redesign the application.
+
+Do NOT create a second reporting system.
+
+Do NOT duplicate scoring, alert, dashboard, assignment, document, work order, turn, or Control Tower logic.
+
+Do NOT create fake reporting results with hardcoded summaries.
+
+Do NOT treat imperfect uploads as fully resolved truth.
+
+Do NOT break the Control Tower relationship to the same shared source of truth.
+
+---
+
+## CORE GOAL
+
+Build 7.1 creates the **Reporting Ingestion Layer** for Ascent 1.0.
+
+This layer must collect, normalize, classify, and prepare operational records so the Build 7 reporting spine can generate trustworthy reports from real system data.
+
+The goal is not just to upload files.
+
+The goal is to create a governed reporting intake path that feeds:
+
+1. Reports
+2. Analytics
+3. Control Tower validation
+4. Work order reporting
+5. Turn reporting
+6. PM reporting readiness
+7. Asset reporting readiness
+8. Assignment coverage reporting
+9. Evidence/documentation reporting
+10. Future trend and recalculation engines
+
+The reporting layer must answer:
+
+**What data entered the system?**
+
+**Was it connected correctly?**
+
+**Can it safely be used for reporting?**
+
+**What still needs review?**
+
+That is the difference between a dashboard that looks right and a system that can prove it.
+
+---
+
+## CRITICAL SYSTEM PRINCIPLE
+
+All imported or ingested data must follow:
+
+**SOURCE FILE → NORMALIZED RECORD → GOVERNANCE STATUS → ASSIGNMENT STATUS → REPORTING ELIGIBILITY → SUPPORTING RECORDS**
+
+No report should treat a record as fully reportable unless the record is properly classified.
+
+No dashboard or Control Tower output should silently mix fully resolved and partially resolved records without saying so.
+
+No reporting metric should imply certainty where the source data is incomplete.
+
+---
+
+## BUILD 7.1 SCOPE
+
+This build focuses on reporting ingestion only.
+
+It must create or strengthen the intake pathway for structured operational data, especially:
+
+1. Work orders
+2. Turns / make-ready records
+3. Preventative maintenance records
+4. Asset records
+5. Warranty records
+6. Assignment records
+7. Document/evidence metadata
+8. Unit/property linked operational records
+
+This build does NOT complete the full analytics suite.
+
+This build creates the trusted intake layer that analytics will stand on.
+
+---
+
+# 1. REPORTING INGESTION ARCHITECTURE
+
+Create a centralized reporting ingestion service layer.
+
+This layer must:
+
+1. Accept structured records from existing imports or system tables
+2. Normalize fields into a reporting-ready shape
+3. Classify reporting eligibility
+4. Respect dual-mode import governance
+5. Respect assignment confidence
+6. Preserve raw source references
+7. Produce ingestion summaries
+8. Feed the Build 7 reporting spine
+9. Feed Reports page foundations
+10. Remain compatible with Control Tower validation
+
+Preferred structure:
+
+1. reportingIngestionService
+2. reportSourceNormalizer
+3. reportingEligibilityClassifier
+4. ingestionSummaryBuilder
+5. reportingSourceRegistry
+6. reportingReadinessSelectors
+
+Keep this logic outside UI components.
+
+---
+
+# 2. REPORTING SOURCE REGISTRY
+
+Create a centralized registry of reportable source types.
+
+Each source definition must include:
+
+1. source_type
+2. display_name
+3. required_fields
+4. optional_fields
+5. accepted_resolution_states
+6. assignment_requirements
+7. reporting_scope_support
+8. supported_report_families
+9. drill_down_target
+10. low_data_message
+
+Initial source types:
+
+1. work_orders
+2. turns
+3. preventative_maintenance
+4. assets
+5. warranties
+6. documents
+7. assignments
+8. workflow_items
+9. alerts
+10. score_snapshots, if already supported
+
+Do not create disconnected source definitions inside report components.
+
+One registry. One reporting language.
+
+---
+
+# 3. NORMALIZED REPORTING RECORD CONTRACT
+
+Create a normalized reporting record shape that future Build 7 reports can reuse.
+
+Each normalized reporting record should support:
+
+1. id
+2. organization_id
+3. source_type
+4. source_record_id
+5. source_file_name, if imported
+6. source_row_index, if imported
+7. property_id
+8. property_name
+9. unit_id
+10. unit_name_or_number
+11. workflow_id, if applicable
+12. workflow_item_id, if applicable
+13. asset_id, if applicable
+14. document_id, if applicable
+15. category
+16. status
+17. priority
+18. opened_at / created_at
+19. updated_at
+20. completed_at, if applicable
+21. due_at, if applicable
+22. age_days or age_hours, when calculable
+23. resolution_status
+24. assignment_confidence
+25. reporting_eligibility
+26. reporting_limitations
+27. supporting_context
+28. raw_payload_reference
+
+Rules:
+
+1. Use real fields where available.
+2. Do not invent missing property, unit, asset, or workflow links.
+3. Preserve raw source text if a match is incomplete.
+4. Keep report readiness separate from raw data existence.
+
+---
+
+# 4. REPORTING ELIGIBILITY CLASSIFICATION
+
+Every normalized record must receive a reporting eligibility classification.
+
+Required classifications:
+
+## A. FULLY REPORTABLE
+
+Use when:
+
+1. Organization scope is valid
+2. Property link is valid where required
+3. Unit link is valid where required
+4. Assignment confidence is high or confirmed
+5. Resolution status is fully_resolved
+6. Source record has enough data to support the report family
+
+Behavior:
+
+1. Can feed reports
+2. Can feed analytics
+3. Can feed Control Tower validation
+4. Can appear in drill-downs as confirmed truth
+5. Can contribute to unit-level and property-level reporting
+
+## B. PARTIALLY REPORTABLE
+
+Use when:
+
+1. Organization scope is valid
+2. Property may be valid
+3. Unit or asset context is incomplete
+4. Resolution status is partially_resolved
+5. Record can support limited rollups but not precise unit-level claims
+
+Behavior:
+
+1. Can feed clearly labeled property-level or intake-quality reports
+2. Can appear in reporting readiness summaries
+3. Must be excluded from confirmed unit-level truth
+4. Must not silently inflate confirmed operational counts
+5. Drill-down must label limitations
+
+## C. NOT REPORTABLE YET
+
+Use when:
+
+1. Property match failed
+2. Organization scope is unclear
+3. Required linkage is missing
+4. Assignment confidence is low
+5. Resolution status is unresolved
+6. Record is awaiting manual review
+
+Behavior:
+
+1. Must not feed executive reporting truth
+2. Must not feed confirmed Control Tower performance metrics
+3. Must appear in data quality / review reports
+4. Must remain available for manual resolution
+5. Must preserve source data
+
+---
+
+# 5. DUAL-MODE GOVERNANCE INTEGRATION
+
+Build 7.1 must reuse and respect the dual-mode import governance layer.
+
+## USER INGESTION MODE
+
+Flexible mode must:
+
+1. Accept imperfect records when files are readable
+2. Preserve raw source data
+3. Classify records honestly
+4. Allow partial reporting where safe
+5. Route incomplete records to review
+6. Avoid making the upload feel like failure
+
+## SYSTEM VALIDATION MODE
+
+Strict mode must:
+
+1. Validate required reporting fields
+2. Aggressively flag weak matches
+3. Produce a reporting readiness report
+4. Fail strict validation if required context is missing
+5. Separate fully reportable records from limited records
+
+Strict mode must be available for:
+
+1. Wiring audits
+2. Stress tests
+3. Demo validation
+4. Pre-release verification
+5. Build 7.1 through 7.9 testing
+
+---
+
+# 6. INGESTION SUMMARY OUTPUT
+
+After ingestion or normalization, generate an ingestion summary.
+
+Required summary fields:
+
+1. total_records_reviewed
+2. fully_reportable_count
+3. partially_reportable_count
+4. not_reportable_count
+5. records_missing_property
+6. records_missing_unit
+7. records_missing_asset
+8. records_missing_dates
+9. records_missing_status
+10. records_missing_priority
+11. records_needing_assignment_review
+12. records_ready_for_control_tower
+13. records_ready_for_reports
+14. records_excluded_from_strict_validation
+15. generated_at
+
+Required language examples:
+
+1. “52 records are fully reportable and ready for analytics.”
+2. “11 records were accepted but need unit confirmation before unit-level reporting.”
+3. “4 records are preserved in review and excluded from reporting truth.”
+
+Tone rule:
+
+Clear. Controlled. Fixable.
+
+No shame. No fake certainty.
+
+---
+
+# 7. REPORTING READINESS PANEL
+
+Upgrade or create a reporting readiness section inside the Reports area.
+
+This section must show:
+
+1. Source type
+2. Total records available
+3. Fully reportable records
+4. Partially reportable records
+5. Not reportable records
+6. Coverage percentage
+7. Top missing fields
+8. Recommended next action
+
+Example rows:
+
+1. Work Orders — 86 records — 72 fully reportable — 10 partial — 4 review needed
+2. Turns — 30 records — 27 fully reportable — 3 partial — 0 unresolved
+3. Assets — 120 records — 91 fully reportable — 18 partial — 11 review needed
+
+This section must use real system data.
+
+No placeholder counts.
+
+---
+
+# 8. CONTROL TOWER COMPATIBILITY
+
+Build 7.1 must protect the Control Tower.
+
+The Control Tower uses shared source data and remains the customer-facing validation source for operational performance.
+
+Build 7.1 must make sure Control Tower metrics can distinguish:
+
+1. Fully reportable operational truth
+2. Partial intake volume
+3. Unresolved records needing review
+
+Required behavior:
+
+1. Work Order Performance must only treat fully reportable work order records as confirmed truth.
+2. Turn Performance must only treat fully reportable turn records as confirmed truth.
+3. PM Performance may use temporary logic, but must label missing or incomplete PM records clearly.
+4. Asset Performance may use temporary logic, but must label unknown warranty/install-date records clearly.
+5. Priority Actions must route to supporting records and show reporting limitations where applicable.
+
+Example drill-down language:
+
+“76 work orders exceed 24 hours. 68 are fully resolved. 8 require unit confirmation.”
+
+This protects the truth layer.
+
+---
+
+# 9. WORK ORDER REPORTING INGESTION
+
+Normalize work order records into reporting-ready shape.
+
+Required fields where available:
+
+1. work_order_id
+2. property_id / property_name
+3. unit_id / unit_number_raw
+4. category
+5. description
+6. priority
+7. status
+8. created_at
+9. first_response_at, if available
+10. completed_at, if available
+11. assigned_to, if available
+12. vendor, if available
+13. SLA status if calculable
+14. resolution_status
+15. assignment_confidence
+16. reporting_eligibility
+
+Required calculations where data supports them:
+
+1. age_hours
+2. response_age_hours
+3. is_over_24_hours
+4. is_open
+5. is_completed
+6. is_critical
+7. has_unit_context
+8. has_property_context
+
+Do not fabricate SLA timing if timestamps are missing.
+
+If timestamps are missing, classify the limitation.
+
+---
+
+# 10. TURN REPORTING INGESTION
+
+Normalize turn / make-ready records into reporting-ready shape.
+
+Required fields where available:
+
+1. turn_id
+2. property_id / property_name
+3. unit_id / unit_number_raw
+4. vacant_start_date / keys_returned_date
+5. current_stage
+6. stage_owner_type, if available
+7. expected_stage_duration
+8. current_stage_started_at
+9. projected_ready_date, if available
+10. actual_ready_date, if available
+11. delayed_stage_flag
+12. status
+13. resolution_status
+14. assignment_confidence
+15. reporting_eligibility
+
+Required calculations where data supports them:
+
+1. days_vacant
+2. days_in_current_stage
+3. expected_vs_actual_duration
+4. delayed_stage_count
+5. is_over_expected_duration
+6. active_turn_flag
+7. completed_turn_flag
+
+Do not mix turn language into work order reports.
+
+Do not mix work order language into turn reports.
+
+Language must stay clean by operational category.
+
+---
+
+# 11. PM REPORTING INGESTION READINESS
+
+Create PM reporting ingestion readiness without overbuilding the full PM engine.
+
+Normalize PM records if they exist.
+
+Required fields where available:
+
+1. pm_record_id
+2. property_id
+3. unit_id, if applicable
+4. asset_id, if applicable
+5. pm_type
+6. scheduled_date
+7. completed_date
+8. status
+9. overdue_flag if calculable
+10. source_reference
+11. resolution_status
+12. reporting_eligibility
+
+If PM records do not exist yet:
+
+1. Show low-data state
+2. Identify missing PM source data
+3. Do not invent PM completion records
+4. Allow reporting readiness to show: “PM reporting not yet available — upload PM source data.”
+
+Temporary Control Tower PM logic may count missing or overdue PM entries only when data exists or missingness is objectively supported by asset records.
+
+---
+
+# 12. ASSET + WARRANTY REPORTING INGESTION READINESS
+
+Normalize asset and warranty data for reporting readiness.
+
+Required fields where available:
+
+1. asset_id
+2. property_id
+3. unit_id
+4. asset_type
+5. manufacturer
+6. model_number
+7. serial_number
+8. install_date
+9. warranty_start_date
+10. warranty_expiration_date
+11. warranty_status
+12. document_count
+13. source_reference
+14. resolution_status
+15. reporting_eligibility
+
+Required calculations where data supports them:
+
+1. missing_install_date_flag
+2. missing_warranty_flag
+3. expired_warranty_flag
+4. unknown_warranty_flag
+5. asset_age
+6. document_coverage_state
+
+Do not create predictive lifecycle intelligence yet.
+
+This is reporting ingestion readiness only.
+
+---
+
+# 13. DOCUMENT + EVIDENCE REPORTING INGESTION
+
+Normalize document and evidence metadata for reporting.
+
+Required fields:
+
+1. document_id
+2. linked_entity_type
+3. linked_entity_id
+4. linked_workflow_id
+5. linked_workflow_item_id
+6. linked_asset_id, if applicable
+7. linked_unit_id, if applicable
+8. document_type
+9. file_type
+10. uploaded_at
+11. uploaded_by
+12. attachment_count_context
+13. linkage_state
+14. reporting_eligibility
+
+Classifications:
+
+1. linked
+2. partially_linked
+3. unlinked
+
+Reporting behavior:
+
+1. Linked documents can support evidence reports.
+2. Partially linked documents can support data quality reports.
+3. Unlinked documents must not be treated as contextual proof.
+
+---
+
+# 14. ASSIGNMENT COVERAGE REPORTING INGESTION
+
+Prepare assignment engine results for reporting.
+
+Required fields:
+
+1. assignment_id
+2. source_type
+3. source_record_id
+4. target_entity_type
+5. target_entity_id
+6. confidence_level
+7. assignment_method
+8. assignment_status
+9. created_at
+10. confirmed_at, if applicable
+11. match_explanation
+12. reporting_eligibility
+
+Required reportable metrics:
+
+1. high-confidence assignments
+2. medium-confidence suggestions
+3. low-confidence unresolved records
+4. manual confirmations
+5. reassignment count
+6. unresolved queue count
+7. unit linkage coverage
+8. property linkage coverage
+
+---
+
+# 15. DRILL-DOWN COMPATIBILITY
+
+Every reporting ingestion summary must be compatible with the reaction layer.
+
+Counts must be clickable where supporting records exist.
+
+Clicking must open a side panel or modal showing:
+
+1. Matching records
+2. Source type
+3. Property
+4. Unit, if available
+5. Resolution status
+6. Assignment confidence
+7. Reporting eligibility
+8. Reason included or excluded
+9. Source file / row reference if imported
+
+Required example:
+
+Click “11 records need unit confirmation” → panel opens with those 11 records and explains why each one is not fully reportable.
+
+No dead counts.
+
+No generic tables.
+
+No navigation that breaks context.
+
+---
+
+# 16. REPORTING INGESTION AUDIT LOG
+
+Extend audit behavior to track reporting ingestion activity.
+
+Required audit events:
+
+1. reporting_ingestion_started
+2. reporting_ingestion_completed
+3. record_normalized
+4. record_classified_fully_reportable
+5. record_classified_partially_reportable
+6. record_classified_not_reportable
+7. reporting_readiness_generated
+8. strict_validation_passed
+9. strict_validation_failed
+10. manual_resolution_promoted_record
+
+Audit entries must preserve:
+
+1. source type
+2. source file, if applicable
+3. affected count
+4. user/system actor
+5. timestamp
+
+---
+
+# 17. ROLE-AWARE REPORTING INGESTION
+
+Respect existing roles.
+
+Admin / Supervisor:
+
+1. Full reporting ingestion visibility
+2. Can run strict validation
+3. Can view unresolved records
+4. Can access review recommendations
+
+Manager:
+
+1. Can view reporting readiness
+2. Can view reportable and partial summaries
+3. Can confirm suggested matches if existing permissions allow
+
+Technician:
+
+1. Limited scope visibility
+2. Only records tied to assigned or visible work
+
+Viewer:
+
+1. Read-only reporting readiness summaries
+2. No edit or resolution permissions
+
+No role should see data outside organization or allowed scope.
+
+---
+
+# 18. EMPTY + LOW-DATA STATES
+
+The reporting ingestion layer must handle low-data conditions honestly.
+
+Required states:
+
+1. No work order source data available
+2. No turn source data available
+3. No PM source data available
+4. No asset source data available
+5. No assignment results available
+6. No reportable records yet
+7. Records exist but are not reporting-ready
+
+Approved language:
+
+1. “No reportable work order records are available yet.”
+2. “Records exist, but unit confirmation is needed before unit-level reporting.”
+3. “PM reporting will activate after PM source data is uploaded or created.”
+4. “Current reporting readiness is based on available system records.”
+
+Do not show misleading green states.
+
+Do not imply all clear just because data is missing.
+
+---
+
+# 19. PERFORMANCE REQUIREMENTS
+
+Reporting ingestion must remain fast.
+
+Requirements:
+
+1. Reuse existing records and relationships
+2. Avoid duplicate heavy queries
+3. Cache lightweight readiness summaries only if justified
+4. Do not block UI while ingestion summaries calculate
+5. Do not rebuild records unnecessarily
+6. Do not duplicate raw operational tables
+
+---
+
+# 20. CODE QUALITY RULES
+
+## DO
+
+1. Centralize reporting ingestion logic
+2. Reuse import governance
+3. Reuse assignment engine outputs
+4. Reuse document/evidence data
+5. Reuse reaction layer drill-down behavior
+6. Preserve raw source truth
+7. Keep reporting eligibility deterministic
+8. Keep operational category language clean
+9. Keep Reports page and Control Tower connected to the same source of truth
+
+## DO NOT
+
+1. Hardcode reporting metrics
+2. Invent reportable records
+3. Auto-fake unit or property links
+4. Build a separate analytics database disconnected from the app
+5. Collapse partial and fully resolved data into one count
+6. Mix work order, turn, PM, and asset language incorrectly
+7. Create dead-end summary numbers
+8. Recalculate scoring differently inside reporting ingestion
+
+---
+
+# 21. SUCCESS STATE
+
+This build is complete when:
+
+1. Reports area shows real reporting ingestion readiness
+2. Work order records are normalized for reporting
+3. Turn records are normalized for reporting
+4. PM reporting readiness exists without fake PM data
+5. Asset/warranty reporting readiness exists without predictive overbuild
+6. Document/evidence metadata is available for reporting
+7. Assignment coverage can be reported
+8. Each record has clear reporting eligibility
+9. Fully reportable, partially reportable, and not reportable records are separated
+10. Control Tower can distinguish confirmed truth from partial intake volume
+11. Reporting counts can drill down to supporting records
+12. Strict validation mode can confirm whether data is valid for wiring audits
+13. No incomplete data is silently treated as complete truth
+
+---
+
+# 22. IMPORTANT LIMITS
+
+This build is NOT for:
+
+1. Full visual analytics dashboard
+2. Full narrative insights engine
+3. Deep time allocation reporting
+4. PM rules engine
+5. PM gap detection
+6. Warranty intelligence suite
+7. Predictive analytics
+8. Export / PDF generation
+9. Scheduled reports
+10. AI recommendations
+
+Those belong to later Build 7 sub-builds and future engines.
+
+This build is the trusted reporting intake layer.
+
+---
+
+# 23. INTERNAL LABEL
+
+**Build 7.1 — Reporting Ingestion Layer**
+
+---
+
+## BUILD INTENT
+
+Build 7 created the reporting spine.
+
+Build 7.1 creates the reporting intake gate.
+
+This is where Ascent stops asking, “Do we have data?”
+
+And starts asking:
+
+**Can this data be trusted enough to report?**
+
+That is the foundation of real operational intelligence.
+
+---
+
+## END OF PROMPT

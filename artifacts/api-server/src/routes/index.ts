@@ -14,6 +14,7 @@ import workOrdersRouter from "./work-orders";
 import turnsRouter from "./turns";
 import reportsRouter from "./reports";
 import governanceRouter from "./governance";
+import reportingIngestionRouter from "./reporting-ingestion";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(workOrdersRouter);
 router.use(turnsRouter);
 router.use(reportsRouter);
 router.use(governanceRouter);
+router.use(reportingIngestionRouter);
 
 export default router;
