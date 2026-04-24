@@ -1,0 +1,232 @@
+REPLIT AGENT PROMPT — ASCENT 1.12.7 CONTROL TOWER GOVERNANCE ENFORCEMENT
+
+We are continuing Ascent 1.0.
+
+This is NOT a UI build.
+This is NOT a dashboard update.
+This is NOT a feature addition.
+
+This is a SYSTEM ENFORCEMENT LAYER.
+
+OBJECTIVE:
+
+Prevent ANY future build (Build 7+, Build 8, Build 9, or later) from:
+
+- creating alternate metric logic
+- bypassing shared services
+- introducing conflicting data interpretations
+- breaking Control Tower symmetry
+- corrupting the single source of truth
+
+--------------------------------------------------
+
+CORE SYSTEM LAW (NON-NEGOTIABLE)
+
+ALL operational metrics must originate from ONE shared service layer.
+
+Control Tower is the ONLY client-facing truth surface.
+
+Detail pages, reporting, analytics, alerts, and future engines MUST:
+
+READ from the same shared services
+NOT redefine logic
+NOT recalculate metrics independently
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 1 — SHARED SERVICE CONTRACTS
+
+Create strict service contracts for all operational metrics.
+
+Each service must define:
+
+- metric name
+- input sources
+- calculation rules
+- output structure
+- allowed consumers
+
+Example:
+
+getWorkOrderMetrics()
+
+Outputs:
+- open_count
+- sla_violations
+- aging_items
+- completion_rate
+
+Consumers:
+- Control Tower
+- Work Orders page
+- Priority Actions
+- Reporting layer
+- Alert engine
+
+RULE:
+
+If a component needs this data, it MUST call this service.
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 2 — DUPLICATION BLOCK
+
+Implement a system-level guard:
+
+If ANY UI component, report, or service attempts to:
+
+- calculate metrics locally
+- redefine logic already in shared services
+
+THEN:
+
+- block execution OR
+- log a critical violation
+
+Violation message:
+
+"Metric duplication detected. All metrics must use shared service layer."
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 3 — CONTROL TOWER SYMMETRY CHECK
+
+Create a validation function:
+
+validateControlTowerSymmetry(signal)
+
+This must verify:
+
+- Control Tower count
+- Detail page count
+- Drill-down count
+
+ALL MATCH.
+
+If mismatch:
+
+- log error
+- flag system inconsistency
+
+This enforces:
+
+SIGNAL → CLICK → DATA → DECISION
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 4 — REPORTING INTEGRATION RULE
+
+Build 7+ reporting MUST:
+
+- reuse shared service outputs
+- NOT compute separate metrics
+- NOT reinterpret thresholds
+
+If reporting needs aggregation:
+
+- aggregate existing outputs
+- do NOT recreate logic
+
+This aligns with:
+
+REAL DATA → SHARED LOGIC → REPORT STRUCTURE :contentReference[oaicite:1]{index=1}
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 5 — DATA CONFIDENCE FILTER
+
+Integrate with import governance layer.
+
+Rules:
+
+ONLY fully_resolved + fully_reportable records may:
+
+- drive Control Tower metrics
+- drive performance tiles
+
+Partially resolved data:
+
+- may appear in reporting
+- must be labeled
+- must NOT inflate operational truth
+
+Unresolved data:
+
+- excluded from all metrics
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 6 — SIGNAL VALIDITY CHECK
+
+Before any signal is rendered:
+
+validateSignal(signal)
+
+Checks:
+
+- does supporting data exist?
+- does count match dataset?
+- is data fully reportable?
+
+If FAIL:
+
+- disable click OR
+- show warning:
+
+"Signal not backed by verified data"
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 7 — FUTURE BUILD COMPATIBILITY
+
+All future builds must plug into:
+
+Shared Services → Control Tower → Reaction Layer
+
+NOT:
+
+Custom logic → UI → isolated outputs
+
+Specifically enforce for:
+
+- Build 7 reporting spine
+- Build 7.1 ingestion layer
+- Build 8 recalculation engine
+- Build 9 asset intelligence
+
+--------------------------------------------------
+
+ENFORCEMENT REQUIREMENT 8 — SYSTEM AUDIT HOOK
+
+Automatically run wiring validation after major updates using:
+
+Universal Wiring Audit Prompt :contentReference[oaicite:2]{index=2}
+
+Trigger after:
+
+- new data ingestion
+- new reporting features
+- new dashboard logic
+
+--------------------------------------------------
+
+SUCCESS STATE:
+
+This enforcement layer is complete when:
+
+1. No metric is calculated outside shared services
+2. Control Tower always matches drill-down data
+3. Reporting reuses system truth (never recreates it)
+4. Partial/unresolved data never corrupts metrics
+5. All future builds inherit this structure automatically
+6. System cannot silently drift out of alignment
+
+--------------------------------------------------
+
+FINAL DIRECTIVE:
+
+Lock the system.
+
+Protect the truth layer.
+
+Force consistency across ALL current and future builds.

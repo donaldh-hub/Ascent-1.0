@@ -14,6 +14,13 @@ import { eq, and, isNull, inArray, lt, ne } from "drizzle-orm";
 import { loadAllWorkflowInputs } from "./loader";
 import { calcWorkflowHealth } from "./scoring";
 import type { WorkflowInput, ItemInput, StageInput } from "./scoring";
+// Ascent 1.12.7 — alerts MUST consume the shared selector layer.
+// Do NOT redefine SLA / aging logic here.
+import {
+  isWoSlaViolation,
+  isWoAging,
+  isWorkOrderReportable,
+} from "../services/operational-selectors";
 
 // ─────────────────────────────────────────────
 // Centralized Thresholds
@@ -431,7 +438,10 @@ async function evaluateWorkOrderAlerts(): Promise<AlertCandidate[]> {
 
   const wos = await db.select().from(workOrdersTable);
 
-  const AGING_THRESHOLD = new Date(Date.now() - ALERT_THRESHOLDS.ITEM_AGING_WARNING_DAYS * 86_400_000);
+  // Ascent 1.12.7 — SLA / aging detection MUST come from the shared selector
+  // layer (operational-selectors.ts). The local ALERT_THRESHOLDS.ITEM_AGING_*
+  // constants are no longer the source of truth for these two rules; they
+  // remain only for unrelated alert categories below.
 
   // Category frequency analysis for repeat-issue detection
   const unitCategoryMap = new Map<string, number>();
@@ -442,8 +452,12 @@ async function evaluateWorkOrderAlerts(): Promise<AlertCandidate[]> {
   }
 
   for (const wo of wos) {
-    // Rule WO-1: SLA violation → critical alert
-    if (wo.slaStatus === "missed") {
+    // Confidence gate — alert engine only fires on records the import
+    // governance layer marked as reportable.
+    const reportable = isWorkOrderReportable(wo);
+
+    // Rule WO-1: SLA violation → critical alert (shared selector)
+    if (reportable && isWoSlaViolation(wo)) {
       const delayHours = Math.round(wo.slaResponseDelayHours ?? 0);
       candidates.push({
         ruleKey: `sla_violation_wo_${wo.id}`,
@@ -468,12 +482,8 @@ async function evaluateWorkOrderAlerts(): Promise<AlertCandidate[]> {
       });
     }
 
-    // Rule WO-2: Aging in-progress work order → warning alert
-    if (
-      wo.status === "in_progress" &&
-      wo.createdDate &&
-      wo.createdDate < AGING_THRESHOLD
-    ) {
+    // Rule WO-2: Aging in-progress work order → warning alert (shared selector)
+    if (reportable && isWoAging(wo) && wo.createdDate) {
       const daysOpen = Math.round((Date.now() - wo.createdDate.getTime()) / 86_400_000);
       candidates.push({
         ruleKey: `aging_wo_${wo.id}`,

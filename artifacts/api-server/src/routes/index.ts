@@ -13,6 +13,7 @@ import drillRouter from "./drill";
 import workOrdersRouter from "./work-orders";
 import turnsRouter from "./turns";
 import reportsRouter from "./reports";
+import governanceRouter from "./governance";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(drillRouter);
 router.use(workOrdersRouter);
 router.use(turnsRouter);
 router.use(reportsRouter);
+router.use(governanceRouter);
 
 export default router;

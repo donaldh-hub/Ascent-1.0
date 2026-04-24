@@ -23,7 +23,12 @@ import {
 } from "@workspace/db/schema";
 import { eq, and, sql, inArray, ne, desc } from "drizzle-orm";
 import type { WorkOrder, InsertWorkOrder } from "@workspace/db/schema";
-import { isWoSlaViolation, isWoAging, isWoBlocked } from "./operational-selectors";
+import {
+  isWoSlaViolation,
+  isWoAging,
+  isWoBlocked,
+  isWorkOrderReportable,
+} from "./operational-selectors";
 
 // ─── SLA defaults ─────────────────────────────────────────────────────────────
 
@@ -484,6 +489,9 @@ export async function getWorkOrderStats(): Promise<WorkOrderStats> {
       bottleneckType: workOrdersTable.bottleneckType,
       turnId: workOrdersTable.turnId,
       propertyNameRaw: workOrdersTable.propertyNameRaw,
+      // Ascent 1.12.7 — required by isWorkOrderReportable confidence filter.
+      availableForPropertyRollup: workOrdersTable.availableForPropertyRollup,
+      availableForUnitRollup: workOrdersTable.availableForUnitRollup,
     })
     .from(workOrdersTable);
 
@@ -493,27 +501,33 @@ export async function getWorkOrderStats(): Promise<WorkOrderStats> {
   const open = all.filter(w => w.status !== "completed" && w.status !== "cancelled").length;
   const completed = all.filter(w => w.status === "completed").length;
   const slaMetCount = all.filter(w => w.slaStatus === "met").length;
-  const slaMissedCount = all.filter(isWoSlaViolation).length;
+  // Ascent 1.12.7 — apply default confidence filter so tile counts match
+  // drill / list / audit. Every locked-metric count below is computed over
+  // the `reportable` subset; raw counts (total/open/completed/slaMet/pending)
+  // remain unfiltered for honest dataset reporting.
+  const reportable = all.filter(w => isWorkOrderReportable(w));
+  const slaMissedCount = reportable.filter(isWoSlaViolation).length;
   const slaPendingCount = all.filter(w => w.slaStatus === "pending").length;
 
-  const agingCount = all.filter(isWoAging).length;
+  const agingCount = reportable.filter(isWoAging).length;
 
-  // Blocked counts
-  const blockedCount = all.filter(isWoBlocked).length;
-  const blockedTurnCount = all.filter(w => isWoBlocked(w) && w.turnId).length;
+  // Blocked counts (also confidence-gated)
+  const blockedCount = reportable.filter(isWoBlocked).length;
+  const blockedTurnCount = reportable.filter(w => isWoBlocked(w) && w.turnId).length;
 
   const slaComplianceRate = total > 0
     ? Math.round((slaMetCount / (slaMetCount + slaMissedCount || 1)) * 100)
     : 100;
 
-  // Category breakdown
+  // Category breakdown — same confidence gate, so per-category violation
+  // counts roll up to the same locked totals as the headline tiles.
   const catMap = new Map<string, { count: number; violations: number; responseTimes: number[]; units: number[]; blocked: number }>();
-  for (const wo of all) {
+  for (const wo of reportable) {
     const cat = wo.category ?? "General";
     if (!catMap.has(cat)) catMap.set(cat, { count: 0, violations: 0, responseTimes: [], units: [], blocked: 0 });
     const entry = catMap.get(cat)!;
     entry.count++;
-    if (wo.slaStatus === "missed") entry.violations++;
+    if (isWoSlaViolation(wo)) entry.violations++;
     if (wo.slaResponseDelayHours != null) entry.responseTimes.push(wo.slaResponseDelayHours);
     if (wo.unitId) entry.units.push(wo.unitId);
     if (wo.isBlocked) entry.blocked++;

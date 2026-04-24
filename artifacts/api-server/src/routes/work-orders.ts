@@ -27,6 +27,7 @@ import { randomUUID } from "crypto";
 import {
   WORK_ORDER_SIGNAL_WHERE,
   isWorkOrderSignal,
+  isWoSlaViolation,
 } from "../services/operational-selectors";
 import {
   extractField,
@@ -417,7 +418,7 @@ router.post("/work-orders/import", async (req, res) => {
       }
     }
 
-    const slaViolations = results.filter(r => r.slaStatus === "missed").length;
+    const slaViolations = results.filter(r => isWoSlaViolation(r)).length;
     const blockedCount = results.filter(r => r.isBlocked).length;
 
     // ── Record import run ──────────────────────────────────────────────────────

@@ -13,6 +13,8 @@
 import { db } from "@workspace/db";
 import { importRunsTable, workOrdersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
+// Ascent 1.12.7 — single source of truth for SLA-violation detection.
+import { isWoSlaViolation } from "./operational-selectors";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -267,7 +269,7 @@ export async function getImportSummary(batchId: string): Promise<ImportRunSummar
     .from(workOrdersTable)
     .where(eq(workOrdersTable.importBatchId, batchId));
 
-  const slaViolations = wos.filter(w => w.slaStatus === "missed").length;
+  const slaViolations = wos.filter(w => isWoSlaViolation(w)).length;
   const blockedCount = wos.filter(w => w.isBlocked).length;
 
   return {

@@ -26,6 +26,40 @@ export const AGING_DAYS = 7;
 export const BLOCK_THRESHOLD_DAYS = 7;
 export const WARRANTY_EXPIRING_DAYS = 90;
 
+// ─── Confidence Filter (Ascent 1.12.7 — data-confidence governance) ──────────
+//
+// Operational metrics may only be driven by records the import governance
+// layer marked as reportable. This single function is the gate; any consumer
+// that wants to bypass it must do so explicitly with mode = "all" and is
+// expected to label its output as such (e.g. admin-only review queues).
+//
+// Modes:
+//   "reportable"     — excludes resolutionStatus = "unresolved"
+//                      (default for every operational metric)
+//   "fully_resolved" — excludes resolutionStatus != "fully_resolved"
+//                      (strict mode: future builds with import data that
+//                      reaches the fully_resolved tier)
+//   "all"            — no confidence gate (admin-only, must be labeled)
+
+export type ConfidenceMode = "reportable" | "fully_resolved" | "all";
+
+export const DEFAULT_CONFIDENCE_MODE: ConfidenceMode = "reportable";
+
+export function workOrderConfidenceWhere(mode: ConfidenceMode = DEFAULT_CONFIDENCE_MODE): SQL | undefined {
+  if (mode === "all") return undefined;
+  if (mode === "fully_resolved") return eq(workOrdersTable.availableForUnitRollup, true);
+  return eq(workOrdersTable.availableForPropertyRollup, true);
+}
+
+export function isWorkOrderReportable(
+  w: { availableForPropertyRollup: boolean | null; availableForUnitRollup: boolean | null },
+  mode: ConfidenceMode = DEFAULT_CONFIDENCE_MODE,
+): boolean {
+  if (mode === "all") return true;
+  if (mode === "fully_resolved") return w.availableForUnitRollup === true;
+  return w.availableForPropertyRollup === true;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function agingThresholdDate(): Date {
@@ -44,27 +78,46 @@ function expiringSoonStr(): string {
 
 // ─── Work Order WHERE-builders ────────────────────────────────────────────────
 
-export function slaViolationsWhere(propertyId?: number): SQL | undefined {
+// Ascent 1.12.7 — every WO WHERE-builder applies the confidence filter
+// (DEFAULT_CONFIDENCE_MODE = "reportable") by default. Pass mode="all" to
+// opt out for explicitly-labeled debug/admin views only.
+
+export function slaViolationsWhere(
+  propertyId?: number,
+  mode: ConfidenceMode = DEFAULT_CONFIDENCE_MODE,
+): SQL | undefined {
   const c: SQL[] = [eq(workOrdersTable.slaStatus, "missed")];
   if (propertyId) c.push(eq(workOrdersTable.propertyId, propertyId));
+  const conf = workOrderConfidenceWhere(mode);
+  if (conf) c.push(conf);
   return and(...c);
 }
 
-export function agingWorkOrdersWhere(propertyId?: number): SQL | undefined {
+export function agingWorkOrdersWhere(
+  propertyId?: number,
+  mode: ConfidenceMode = DEFAULT_CONFIDENCE_MODE,
+): SQL | undefined {
   const c: SQL[] = [
     eq(workOrdersTable.status, "in_progress"),
     lt(workOrdersTable.createdDate, agingThresholdDate()),
   ];
   if (propertyId) c.push(eq(workOrdersTable.propertyId, propertyId));
+  const conf = workOrderConfidenceWhere(mode);
+  if (conf) c.push(conf);
   return and(...c);
 }
 
-export function blockedWorkOrdersWhere(propertyId?: number): SQL | undefined {
+export function blockedWorkOrdersWhere(
+  propertyId?: number,
+  mode: ConfidenceMode = DEFAULT_CONFIDENCE_MODE,
+): SQL | undefined {
   const c: SQL[] = [
     eq(workOrdersTable.isBlocked, true),
     ne(workOrdersTable.status, "completed"),
   ];
   if (propertyId) c.push(eq(workOrdersTable.propertyId, propertyId));
+  const conf = workOrderConfidenceWhere(mode);
+  if (conf) c.push(conf);
   return and(...c);
 }
 
@@ -149,11 +202,12 @@ export function isTurnBlocked(t: {
   daysInStage: number;
   isBlockedCalc?: boolean;
 }): boolean {
+  // Ascent 1.12.7 — match blockedTurnsWhere() exactly: a completed turn is
+  // NEVER blocked, even if isBlocked=true or isBlockedCalc=true. This closes
+  // the latent SQL/JS divergence flagged by the symmetry audit.
+  if (t.turnStatus === "completed") return false;
   if (typeof t.isBlockedCalc === "boolean") return t.isBlockedCalc;
-  return (
-    t.isBlocked ||
-    (t.turnStatus !== "completed" && t.daysInStage > BLOCK_THRESHOLD_DAYS)
-  );
+  return t.isBlocked || t.daysInStage > BLOCK_THRESHOLD_DAYS;
 }
 
 export function isTurnRework(t: {

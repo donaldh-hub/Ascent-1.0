@@ -1,18 +1,6 @@
 # Overview
 
-Ascent 1.0 is a continuous improvement operational intelligence platform designed as an "air traffic control tower" for teams managing workflows, assets, and operational health. It aims to provide comprehensive insights and tools for optimizing operational efficiency.
-
-**Key Capabilities:**
-
--   **Control Tower Dashboard:** A central hub for operational intelligence. Two views are shipped: the original `/` overview (Flow / Risk / Execution / Improvement) and the new 1.12.5 `/control-tower` route — five top-level tiles (Operational Health master, Work Order Performance, Turn Performance, PM Performance, Asset Performance) with inline expandable drill panels (multiple open at once) and a Priority Actions panel below, all wired to live API data. PM is derived from `assets.maintenance_schedule` coverage until a dedicated PM source is connected.
--   **Workflow Engine:** Facilitates the creation and management of multi-stage workflows, tracking progress, detecting bottlenecks, and recalculating health scores dynamically.
--   **Operational Health Scoring:** Implements a Red/Yellow/Green stoplight system for immediate visual feedback on operational health at stage, workflow, and global levels.
--   **Asset & Warranty Management:** Provides a registry for assets, tracks warranty lifecycles, calculates health scores, and schedules maintenance.
--   **Alert Engine:** Automatically evaluates operational conditions against predefined rules to generate, deduplicate, and manage alerts, ensuring timely response to critical issues.
--   **Analytics & Trends:** Offers tools for analyzing performance trends and workflow effectiveness.
--   **Document Engine:** Enables linking and managing documents and evidence directly within workflows, stages, and assets.
--   **Assignment & Impact Engines:** Manages work order ingestion, intelligent assignment, bottleneck detection, and calculates operational impact and priorities.
--   **Turn Matrix Engine:** Provides detailed intelligence on operational "turns" (e.g., make-ready processes), including completion rates, bottleneck aggregation, and integration into overall operational health scoring.
+Ascent 1.0 is an operational intelligence platform designed to act as an "air traffic control tower" for teams managing workflows, assets, and operational health. Its primary purpose is to provide comprehensive insights and tools to optimize operational efficiency and decision-making. Key capabilities include a central dashboard for operational intelligence, a workflow engine, operational health scoring, asset and warranty management, an alert engine, analytics, a document engine, and intelligent assignment and impact analysis. It also features a Turn Matrix Engine for detailed operational "turn" intelligence.
 
 # User Preferences
 
@@ -20,52 +8,41 @@ I prefer iterative development, with a focus on delivering core features first a
 
 # System Architecture
 
-The project utilizes a pnpm workspace monorepo structure with TypeScript.
-
-**Monorepo Structure:**
-
--   `artifacts/`: Contains the main applications: `api-server` (Express API) and `ascent` (React+Vite frontend).
--   `lib/`: Houses shared libraries including `api-spec` (OpenAPI and Orval codegen), `api-client-react` (generated React Query hooks), `api-zod` (generated Zod schemas), and `db` (Drizzle ORM and DB connection).
--   `scripts/`: Holds utility scripts, such as database seeding.
+The project is structured as a pnpm workspace monorepo using TypeScript. The architecture separates concerns into `artifacts/` (main applications like `api-server` and `ascent` frontend), `lib/` (shared libraries for API specifications, client generation, Zod schemas, and database interactions), and `scripts/` (utility scripts).
 
 **Technology Stack:**
 
--   **Monorepo Tool:** pnpm workspaces
--   **Language:** TypeScript 5.9
--   **Package Manager:** pnpm
--   **Runtime:** Node.js 24
--   **API Framework:** Express 5
+-   **Monorepo:** pnpm workspaces
+-   **Language:** TypeScript
+-   **Runtime:** Node.js
+-   **API:** Express 5
 -   **Database:** PostgreSQL with Drizzle ORM
--   **Validation:** Zod (`zod/v4`), `drizzle-zod`
--   **API Codegen:** Orval (from OpenAPI specification)
--   **Build Tool:** esbuild (CJS bundle)
+-   **Validation:** Zod
+-   **API Codegen:** Orval (from OpenAPI)
 -   **Frontend:** React, Vite, Tailwind CSS, shadcn/ui, Recharts, framer-motion
 
 **UI/UX Decisions:**
 
--   **Design System:** shadcn/ui and Tailwind CSS for a consistent and modern aesthetic.
--   **Data Visualization:** Recharts for analytical graphs and charts.
--   **Animations:** framer-motion for smooth UI transitions.
--   **Dashboards:** Feature rich dashboards like the Control Tower dashboard, Asset Health Pulse, and specific property/unit detail views.
--   **Interaction:** Extensive use of drill-down sheets and clickable operational signals for detailed context.
+The frontend leverages shadcn/ui and Tailwind CSS for a modern, consistent design, with Recharts for data visualization and framer-motion for UI animations. The design emphasizes feature-rich dashboards (e.g., Control Tower, Asset Health Pulse), extensive use of drill-down sheets, and clickable operational signals for detailed context.
 
 **Core Feature Implementations:**
 
--   **Scoring Engine:** Centralized logic in `artifacts/api-server/src/engine/scoring.ts` for calculating Flow, Risk, Improvement, Execution, and Operational Health Scores. It uses a loader (`loader.ts`) to assemble data from the database without direct DB access in calculation functions. Stoplight thresholds are consistently applied: ≥75 (Green), 50-74 (Yellow), <50 (Red).
--   **Alert Engine:** Implemented in `artifacts/api-server/src/engine/alerts.ts`, featuring six rule evaluators (critical items, overdue, aging, bottleneck, health, unassigned critical). Alerts are deduplicated using a stable `ruleKey` and follow an `active` → `acknowledged` → `resolved` lifecycle.
--   **Document Engine:** Utilizes Google Cloud Storage for document storage. A two-step upload process involves requesting a presigned URL from the API (`POST /api/documents/upload-url`), direct browser upload to GCS, and then registration of the document via `POST /api/documents`.
--   **Reaction Layer (Drill-Downs):** A robust system where major operational signals are clickable, opening a `DrillDownSheet` panel. The backend (`GET /api/drill`) provides structured `DrillResponse` data for various signal types.
--   **Financial Intelligence Engine:** Integrates replacement cost data by mapping asset types to benchmark costs in `artifacts/api-server/src/lib/cost-lookup.ts`. This data is reflected in drill-down responses, portfolio summaries, and property/unit detail views, showing dollar exposure for warranties and assets.
--   **Turn Matrix Engine:** Manages `turns` data, including weighted completion, blocked turn detection, and rework logic. It integrates deeply into the Control Tower, providing turn-derived scores and signals for Flow, Risk, Execution, and Improvement, overriding workflow-based scores where turn data exists.
--   **Narrative Intelligence Layer (Build 1.11):** Structured WHAT/WHY/IMPACT/ACTION narratives computed client-side from turnStats for all 4 dimension reveal panels and the Primary Turn Bottleneck panel. Logic lives in `artifacts/ascent/src/lib/turn-narratives.ts` (5 generators). The `NarrativeBlock` component (`artifacts/ascent/src/components/narrative-block.tsx`) renders narratives with color-coded accent borders and clickable ACTION rows that open the DrillDownSheet with relevant turn records. Property-detail reveal panels also emit narratives when property-scoped turn data is available. Narratives degrade gracefully to null when no turn data exists.
--   **Dual-Mode Import Governance Layer (Build 8 — Phase 1):** Every CSV row ingested via `POST /api/work-orders/import` is now classified into one of three resolution states: `fully_resolved` (property + unit matched → all analytics + rollups), `partially_resolved` (property matched, unit pending → property rollup only), or `unresolved` (no confident property match → review queue only, excluded from dashboard truth). Governed by `artifacts/api-server/src/services/governance-service.ts` which exposes `classifyResolutionState()`, `computeGovernanceFields()`, `recordImportRun()`, and `getImportSummary()`. Import mode (`flexible` | `strict`) is selectable per-batch; strict mode additionally flags fuzzy property matches as partial. Key rule: `created` confidence (auto-created properties for unknowns) → `unresolved`. All 11 governance columns added to `work_orders` (`import_mode`, `resolution_status`, `assignment_confidence`, `property_match_status`, `unit_match_status`, `source_file_name`, `source_row_index`, `governance_notes`, `excluded_from_strict_wiring`, `available_for_property_rollup`, `available_for_unit_rollup`). `import_runs` table tracks each batch. Frontend: `CSVUploadPanel` has a mode toggle (Flexible/Strict), `ResolutionBadge` component shows resolution state in WO list rows, Governance Summary results step shows 3 resolution cards + operational alert banners. API spec updated with `WorkOrder`, `GovernanceSummary`, `WorkOrderImportResult`, `ImportRun`, `ImportWorkOrdersBody` schemas + `/work-orders`, `/work-orders/import`, `/work-orders/imports/{batchId}` paths. New GET endpoint `GET /api/work-orders/imports/:batchId` returns live governance summary for any past batch.
--   **Reporting + Analytics Backbone (Build 7 — Master Spine):** Centralized reporting service in `artifacts/api-server/src/services/reporting-service.ts` that reads from all existing engines (scoring, intelligence, work orders, turns, documents, assignments). Defines `ReportFilter`, `ReportOutput`, `ReportInsight`, and `ReportSection` as the shared report data contract for all future sub-builds. Analysis blocks: `buildBottleneckAnalysis()`, `buildTimingAnalysis()`, `buildRiskAnalysis()`, `buildEvidenceAnalysis()`, `buildAssignmentAnalysis()`. Report builders: `buildOperationalReport()`, `buildWorkflowReport()`, `buildDocumentReport()`, `buildAssignmentReport()`. Narrative insight generators produce plain-language insights grounded in real metric counts. `REPORT_REGISTRY` defines all 4 report types (operational, workflow-summary, document-coverage, assignment-coverage). API routes in `artifacts/api-server/src/routes/reports.ts`: `GET /api/reports`, `GET /api/reports/operational`, `GET /api/reports/workflow-summary`, `GET /api/reports/document-coverage`, `GET /api/reports/assignment-coverage`. Honest about data limits — no fabricated trends. Analytics page (`artifacts/ascent/src/pages/analytics.tsx`) upgraded to full reporting home with 4 tabs, date range filter, metric grids, bottleneck/timing analysis sections, and sorted insight lists with severity badges.
--   **Control Tower Dashboard Restructure (Build 1.11.5):** Major layout overhaul of `dashboard.tsx`. Row 1 compressed to 3-column grid (OHS gauge col-3 | 4 dim cards col-5 | Priority Actions col-4). Priority Actions panel (`PriorityActionsPanel`) shows exactly 3 fixed items — WORK ORDER (from SLA data), TURN (from blocked turnStats), PM (from aging WO count) — each clickable to drill-down. Rows 3/4/5a replaced with a 3-column Operational Focus Layer (Stage Aging & Blocking | Primary Turn Bottleneck | Operational Queue). `OperationalPrioritiesPanel` shows top 8 intel.actions ranked by urgency. `StageDistributionChart` completely removed. Navigation restructured to 8 items: Overview, Property, Work Orders, Turns, Assignments, Documents, Assets, Analytics (Workflows and Alerts removed).
--   **Governance / Architecture Lock (Build 1.12.6):** Control Tower is now the single source of truth for every operational signal. **Shared selector layer** in `artifacts/api-server/src/services/operational-selectors.ts` exposes Drizzle WHERE-builders + JS predicates for every WO / Turn / Asset signal (AGING_DAYS=7, BLOCK_THRESHOLD_DAYS=7, WARRANTY_EXPIRING_DAYS=90), plus `WORK_ORDER_SIGNAL_WHERE` / `TURN_SIGNAL_WHERE` / `ASSET_SIGNAL_WHERE` registries and `isWorkOrderSignal` / `isTurnSignal` / `isAssetSignal` type guards. Client mirror in `artifacts/ascent/src/lib/operational-predicates.ts` (mirrors the server WHERE clauses for client-side asset filtering since `useListAssets` is generated). All drill endpoints (`drill.ts`) and `getWorkOrderStats` consume the shared layer — no inline recompute. **Routing:** sidebar no longer shows Overview, `/control-tower` is the default landing (`ControlTowerRedirect` mounted at `/`), `/overview` retained for admin access, brand logo points to `/control-tower`. **Detail-page filter contract:** `/api/work-orders` and `/api/turns` accept `?signal=<sig>` and apply the shared WHERE; `/assets` filters client-side via the shared predicate. Detail pages show a "Filtered by Control Tower signal" banner with clear-filter link. Drill rows for WO and Turn signals navigate to `/work-orders?signal=…` and `/turns?signal=…` so the visible list matches the drill exactly. Asset drill rows intentionally deep-link to `/units/<id>` for unit-level context (count symmetry preserved at the drill badge). **Locked count invariants** (verified end-to-end): SLA Violations = 76, Blocked Turns = 30, Expired Warranties = 102 — drill total = list endpoint length = banner count. The OHS tile is documented as a TEMPORARY COMPOSITE (no drill records of its own; it averages the four child tiles).
+-   **Scoring Engine:** Calculates Flow, Risk, Improvement, Execution, and Operational Health Scores with a Red/Yellow/Green stoplight system (≥75 Green, 50-74 Yellow, <50 Red).
+-   **Alert Engine:** Automatically evaluates operational conditions against rules to generate, deduplicate, and manage alerts through an `active` → `acknowledged` → `resolved` lifecycle.
+-   **Document Engine:** Integrates with Google Cloud Storage for document management, utilizing presigned URLs for secure uploads.
+-   **Reaction Layer (Drill-Downs):** Provides detailed context for operational signals via `DrillDownSheet` panels, backed by structured API responses.
+-   **Financial Intelligence Engine:** Maps asset types to benchmark costs to show financial exposure in various views.
+-   **Turn Matrix Engine:** Manages `turns` data, including completion, bottleneck detection, and rework logic, integrating these insights into overall operational health scoring.
+-   **Narrative Intelligence Layer:** Generates structured WHAT/WHY/IMPACT/ACTION narratives from turn statistics for various panels.
+-   **Import Governance Layer:** Classifies imported CSV rows (e.g., work orders) into resolution states (`fully_resolved`, `partially_resolved`, `unresolved`) based on property and unit matching, ensuring data quality for analytics.
+-   **Reporting + Analytics Backbone:** A centralized reporting service that consolidates data from various engines to generate comprehensive operational, workflow, document, and assignment reports with narrative insights.
+-   **Control Tower Dashboard:** A redesigned central hub that is the single source of truth for operational signals, featuring a streamlined layout, priority actions, and an operational focus layer.
+-   **Governance / Architecture Lock:** Establishes a shared selector layer for consistent signal logic across the API and client, ensuring signal integrity and routing.
+-   **System Enforcement Layer:** Adds runtime and static enforcement mechanisms, including service contracts, a confidence filter for reportable data, and a symmetry validator to ensure consistency between SQL selectors and JavaScript predicates for critical operational signals.
 
 # External Dependencies
 
--   **Google Cloud Storage (GCS):** Used for object storage, specifically for the Document Engine.
--   **PostgreSQL:** The primary relational database for storing all application data.
--   **Drizzle ORM:** Used for programmatic interaction with the PostgreSQL database.
--   **Orval:** An OpenAPI code generator used to create API client hooks and Zod schemas.
+-   **Google Cloud Storage (GCS):** For document storage within the Document Engine.
+-   **PostgreSQL:** The primary database for all application data.
+-   **Drizzle ORM:** Used for database interaction.
+-   **Orval:** Utilized for OpenAPI code generation.

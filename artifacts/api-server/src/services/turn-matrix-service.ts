@@ -17,6 +17,8 @@ import { db } from "@workspace/db";
 import { turnsTable, propertiesTable, unitsTable } from "@workspace/db/schema";
 import { eq, inArray, and } from "drizzle-orm";
 import type { Turn } from "@workspace/db/schema";
+// Ascent 1.12.7 — re-export from the shared selector layer; keep one source of truth.
+import { BLOCK_THRESHOLD_DAYS as SHARED_BLOCK_THRESHOLD_DAYS } from "./operational-selectors";
 
 // ─── Stage Configuration ──────────────────────────────────────────────────────
 
@@ -63,8 +65,12 @@ export const STAGE_CONTRIBUTION: Record<string, number> = {
   "Completed":   0,
 };
 
-/** Days-in-stage threshold before a turn is considered blocked */
-export const BLOCK_THRESHOLD_DAYS = 7;
+/**
+ * Days-in-stage threshold before a turn is considered blocked.
+ * Source of truth lives in operational-selectors.ts (governance lock).
+ * Re-exported here for backwards compatibility with existing imports.
+ */
+export const BLOCK_THRESHOLD_DAYS = SHARED_BLOCK_THRESHOLD_DAYS;
 
 /** Aging severity thresholds (days in stage) */
 export const AGING_THRESHOLDS = {
