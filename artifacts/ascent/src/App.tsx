@@ -25,6 +25,7 @@ import AssignmentsReview from "@/pages/assignments-review";
 import WorkOrders from "@/pages/work-orders";
 import Turns from "@/pages/turns";
 import Setup from "@/pages/setup";
+import ControlTower from "@/pages/control-tower";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Dashboard} />
+        <Route path="/control-tower" component={ControlTower} />
         <Route path="/workflows" component={Workflows} />
         <Route path="/workflows/:id" component={WorkflowDetail} />
         <Route path="/assets" component={Assets} />

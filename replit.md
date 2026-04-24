@@ -4,7 +4,7 @@ Ascent 1.0 is a continuous improvement operational intelligence platform designe
 
 **Key Capabilities:**
 
--   **Control Tower Dashboard:** A central hub for operational intelligence, displaying overall health, key performance indicators across four dimensions (Flow, Risk, Execution, Improvement), trend signals, priority actions, primary bottlenecks, and workflow distribution.
+-   **Control Tower Dashboard:** A central hub for operational intelligence. Two views are shipped: the original `/` overview (Flow / Risk / Execution / Improvement) and the new 1.12.5 `/control-tower` route — five top-level tiles (Operational Health master, Work Order Performance, Turn Performance, PM Performance, Asset Performance) with inline expandable drill panels (multiple open at once) and a Priority Actions panel below, all wired to live API data. PM is derived from `assets.maintenance_schedule` coverage until a dedicated PM source is connected.
 -   **Workflow Engine:** Facilitates the creation and management of multi-stage workflows, tracking progress, detecting bottlenecks, and recalculating health scores dynamically.
 -   **Operational Health Scoring:** Implements a Red/Yellow/Green stoplight system for immediate visual feedback on operational health at stage, workflow, and global levels.
 -   **Asset & Warranty Management:** Provides a registry for assets, tracks warranty lifecycles, calculates health scores, and schedules maintenance.

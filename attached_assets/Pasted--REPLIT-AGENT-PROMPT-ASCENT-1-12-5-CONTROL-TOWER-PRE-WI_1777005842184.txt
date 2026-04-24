@@ -1,0 +1,173 @@
+### REPLIT AGENT PROMPT — ASCENT 1.12.5 CONTROL TOWER PRE-WIRING
+
+Build a fully functional Control Tower dashboard for Ascent 1.0 using existing system layers (1.8 Integration Layer, 7.0 Master Spine, 2.5 Work Orders, 1.10 Turns).
+
+This is NOT a placeholder build. This must be a working dashboard with real routing, clickable tiles, and drill-down panels.
+
+-------------------------------------
+
+### OBJECTIVE
+
+Create a 5-tile top-level dashboard with a Priority Actions panel underneath.
+
+Tiles must reflect REAL INDUSTRY LANGUAGE, not system language.
+
+-------------------------------------
+
+### TOP LEVEL DASHBOARD (REQUIRED)
+
+Create 5 tiles across the top:
+
+1. Operational Health (Master Score)
+2. Work Order Performance
+3. Turn Performance
+4. PM Performance
+5. Asset Performance
+
+Below the tiles:
+
+6. Priority Actions Panel
+
+-------------------------------------
+
+### TILE REQUIREMENTS
+
+Each tile must include:
+
+- Title
+- Stoplight color (Red / Yellow / Green)
+- Score or key metric
+- Click interaction
+
+-------------------------------------
+
+### TILE LOGIC (INITIAL — DO NOT WAIT FOR FUTURE BUILDS)
+
+Operational Health:
+- Average score of all 4 performance tiles
+
+Work Order Performance:
+- Pull from Work Order dataset
+- Metrics:
+  - Open work orders
+  - Work orders over 24 hours
+  - Completion rate
+
+Turn Performance:
+- Pull from Turn dataset
+- Metrics:
+  - Active turns
+  - Days vacant
+  - Delayed stages
+
+PM Performance (Temporary Logic):
+- Count missing or overdue PM entries
+
+Asset Performance (Temporary Logic):
+- Count assets missing install date
+- Count assets with expired or unknown warranty
+
+-------------------------------------
+
+### PRIORITY ACTIONS PANEL (REQUIRED)
+
+Generate a dynamic list using simple rule logic:
+
+- Turns exceeding expected duration
+- Work orders over 24 hours
+- Missing or overdue PM
+- Assets missing documentation or warranty
+
+Each item must be:
+- Clickable
+- Routed to supporting records
+
+-------------------------------------
+
+### INTERACTION / BEHAVIOR (CRITICAL)
+
+When a tile is clicked:
+
+- Expand a drill-down panel BELOW the tiles
+- Do NOT navigate away from dashboard
+- Allow MULTIPLE panels open at once
+
+-------------------------------------
+
+### DRILL-DOWN REQUIREMENTS
+
+Each tile must open a panel showing:
+
+- Supporting records
+- Table or list view
+- Unit / property reference
+
+Routing must be accurate:
+
+- Work Orders → Work order records
+- Turns → Turn records
+- PM → PM records (or placeholders)
+- Assets → Asset records
+
+-------------------------------------
+
+### WIRING (MANDATORY)
+
+Use 1.8 Integration Layer to:
+
+- Connect tiles to datasets
+- Route clicks to correct records
+- Maintain state (expanded panels stay open)
+
+-------------------------------------
+
+### DATA HANDLING
+
+If real data is missing:
+
+- Generate structured mock datasets
+- MUST follow schema:
+  - Units
+  - Work Orders
+  - Turns
+  - PM
+  - Assets
+
+Data must support:
+- Drill-down functionality
+- Priority Actions triggers
+
+-------------------------------------
+
+### UI REQUIREMENTS
+
+- Clean dashboard layout
+- 5 tiles in a row
+- Priority Actions directly underneath
+- Drill-down panels expand below
+
+-------------------------------------
+
+### FINAL VALIDATION (REQUIRED BEFORE COMPLETE)
+
+1. All 5 tiles visible
+2. Priority Actions visible
+3. Each tile clickable
+4. Drill-down opens with correct records
+5. Multiple tiles can stay open
+6. Priority Actions items route correctly
+7. No broken links or empty panels
+
+-------------------------------------
+
+### OUTPUT EXPECTATION
+
+A fully interactive Control Tower dashboard that:
+
+- Shows operational status in 5 seconds
+- Uses real industry language
+- Supports drill-down into real data
+- Is wired for future integration (Build 7.4, 7.5–7.9, 8, 9)
+
+Do NOT return partial implementation.
+Return a COMPLETE, working dashboard.
