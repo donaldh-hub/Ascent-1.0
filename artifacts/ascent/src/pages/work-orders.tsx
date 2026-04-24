@@ -9,7 +9,9 @@
  * - Work orders list table with filters
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
+import { useSearch } from "wouter";
+import { WORK_ORDER_SIGNAL_LABELS } from "@/lib/operational-predicates";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Wrench, Upload, FileText, CheckCircle2, AlertTriangle,
@@ -666,12 +668,23 @@ export default function WorkOrders() {
   const [blockedFilter, setBlockedFilter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Ascent 1.12.6 — operational signal from URL (?signal=…). Single source of
+  // truth via /api/work-orders?signal=… so detail-page count == tile == drill.
+  const search = useSearch();
+  const signal = useMemo(() => {
+    const p = new URLSearchParams(search);
+    return p.get("signal");
+  }, [search]);
+  const signalLabel =
+    signal && WORK_ORDER_SIGNAL_LABELS[signal] ? WORK_ORDER_SIGNAL_LABELS[signal] : null;
+
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useWorkOrderStats();
   const { data: impact, isLoading: impactLoading, refetch: refetchImpact } = useWorkOrderImpact();
 
   const filters = {
     ...(statusFilter !== "all" ? { status: statusFilter } : {}),
     ...(blockedFilter ? { isBlocked: true } : {}),
+    ...(signal ? { signal } : {}),
     limit: 200,
   };
   const { data: workOrders, isLoading: listLoading, refetch: refetchList } = useWorkOrders(filters);
@@ -722,6 +735,26 @@ export default function WorkOrders() {
           Refresh
         </Button>
       </div>
+
+      {/* ── Signal banner (Ascent 1.12.6 — Control Tower drill-in) ── */}
+      {signalLabel && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-primary" />
+            <span className="font-semibold">Filtered by Control Tower signal:</span>
+            <span className="text-primary font-bold">{signalLabel}</span>
+            <span className="text-muted-foreground">
+              · {workOrders?.length ?? 0} work order{(workOrders?.length ?? 0) === 1 ? "" : "s"}
+            </span>
+          </div>
+          <a
+            href={`${import.meta.env.BASE_URL}work-orders`}
+            className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          >
+            Clear filter
+          </a>
+        </div>
+      )}
 
       {/* ── Stats Strip ── */}
       <div className="grid grid-cols-5 gap-3">

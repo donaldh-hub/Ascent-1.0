@@ -162,6 +162,11 @@ export interface WorkOrderFilters {
   stage?: string;
   regionName?: string;
   limit?: number;
+  /**
+   * Operational signal — see operational-selectors.ts.
+   * Valid: "sla_violations" | "aging_work_orders" | "blocked_work_orders".
+   */
+  signal?: string;
 }
 
 // ─── useWorkOrders ────────────────────────────────────────────────────────────
@@ -181,6 +186,7 @@ export function useWorkOrders(filters: WorkOrderFilters = {}) {
     if (filters.bottleneckType) params.set("bottleneckType", filters.bottleneckType);
     if (filters.stage) params.set("stage", filters.stage);
     if (filters.regionName) params.set("regionName", filters.regionName);
+    if (filters.signal) params.set("signal", filters.signal);
     if (filters.limit) params.set("limit", String(filters.limit));
 
     setIsLoading(true);
@@ -195,6 +201,7 @@ export function useWorkOrders(filters: WorkOrderFilters = {}) {
   useEffect(() => { fetchData(); }, [
     filters.status, filters.category, filters.slaStatus, filters.propertyId,
     filters.isBlocked, filters.bottleneckType, filters.stage, filters.regionName, filters.limit,
+    filters.signal,
   ]);
 
   return { data, isLoading, error, refetch: fetchData };

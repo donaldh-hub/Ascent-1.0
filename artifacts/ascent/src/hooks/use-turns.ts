@@ -170,6 +170,11 @@ export function useTurns(filters?: {
   isBlocked?: boolean;
   propertyId?: number;
   limit?: number;
+  /**
+   * Operational signal — see operational-selectors.ts.
+   * Valid: "blocked_turns" | "rework_loop" | "not_rent_ready".
+   */
+  signal?: string;
 }) {
   const [data, setData] = useState<TurnListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,6 +185,7 @@ export function useTurns(filters?: {
     if (filters?.status) params.set("status", filters.status);
     if (filters?.isBlocked) params.set("isBlocked", "true");
     if (filters?.propertyId) params.set("propertyId", String(filters.propertyId));
+    if (filters?.signal) params.set("signal", filters.signal);
     if (filters?.limit) params.set("limit", String(filters.limit));
     const qs = params.toString();
 
@@ -195,6 +201,7 @@ export function useTurns(filters?: {
     filters?.status,
     filters?.isBlocked,
     filters?.propertyId,
+    filters?.signal,
     filters?.limit,
   ]);
   return { data, isLoading, error, refetch: fetchList };

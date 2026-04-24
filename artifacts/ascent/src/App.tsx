@@ -69,7 +69,14 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={Dashboard} />
+        {/*
+          Ascent 1.12.6 — Control Tower is the default landing page.
+          The legacy Overview/Dashboard remains accessible at /overview
+          for admin debugging only. The root path always redirects to
+          /control-tower so there is exactly one entry point.
+        */}
+        <Route path="/" component={ControlTowerRedirect} />
+        <Route path="/overview" component={Dashboard} />
         <Route path="/control-tower" component={ControlTower} />
         <Route path="/workflows" component={Workflows} />
         <Route path="/workflows/:id" component={WorkflowDetail} />
@@ -94,6 +101,14 @@ function Router() {
 function SetupRedirect({ navigate }: { navigate: (path: string) => void }) {
   useEffect(() => {
     navigate("/setup");
+  }, [navigate]);
+  return <SetupCheckLoader />;
+}
+
+function ControlTowerRedirect() {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate("/control-tower", { replace: true });
   }, [navigate]);
   return <SetupCheckLoader />;
 }

@@ -1,0 +1,182 @@
+REPLIT AGENT PROMPT — ASCENT 1.12.6 SINGLE SOURCE OF TRUTH + CONTROL TOWER GOVERNANCE LOCK
+
+We are continuing Ascent 1.0.
+
+This is NOT a redesign.
+This is NOT a rebuild.
+This is NOT a new dashboard.
+
+This is a governance and architecture lock.
+
+OBJECTIVE:
+
+Lock the system so all dashboard-facing metrics, detail pages, drill-downs, and analytics outputs use ONE shared source of truth.
+
+The Control Tower is the client-facing source of truth.
+
+The Overview page is no longer client-facing and must not be used as the operational validation surface going forward.
+
+CORE RULE:
+
+Control Tower does NOT create truth.
+Control Tower REFLECTS truth from shared services.
+
+All metrics must come from the same shared query/service layer used by the supporting detail pages.
+
+Required pattern:
+
+Shared Data / Shared Service
+→ Control Tower Tile
+→ Priority Action
+→ Detail Page
+→ Drill-Down Records
+
+There must be NO duplicate calculation logic between the Control Tower and detail pages.
+
+REFERENCE SYSTEM PRINCIPLE:
+
+Preserve the Build 1.8 reaction-layer rule:
+
+SIGNAL → CLICK → DATA → DECISION
+
+Every surfaced number must be traceable to the exact supporting records.
+
+The system must not show a number unless that number can be verified through records.
+
+NAVIGATION RULE:
+
+Remove Overview from the client-facing sidebar.
+
+Client-facing navigation must show ONLY:
+
+1. Control Tower
+2. Property
+3. Work Orders
+4. Turns
+5. Assignments
+6. Documents
+7. Assets
+8. Analytics
+
+Default client landing page must be:
+
+/control-tower
+
+If /overview or /dashboard is still present internally, it may remain for development/admin use only, but it must not be visible or presented as the client-facing operational screen.
+
+SINGLE SOURCE OF TRUTH REQUIREMENTS:
+
+Create or enforce shared services/selectors for all operational metrics.
+
+Examples:
+
+getWorkOrderSlaViolations()
+- Used by Work Order Performance tile
+- Used by Priority Actions
+- Used by Work Orders detail/filter view
+- Used by drill-down records
+
+getBlockedTurns()
+- Used by Turn Performance tile
+- Used by Priority Actions
+- Used by Turns detail/filter view
+- Used by drill-down records
+
+getExpiredWarrantyAssets()
+- Used by Asset Performance tile
+- Used by Priority Actions
+- Used by Asset Registry filter/view
+- Used by drill-down records
+
+getPmCoverageGaps()
+- Used by PM Performance tile
+- Used by Priority Actions
+- Used by PM-related asset/supporting records
+
+DO NOT:
+
+- Recalculate the same metric separately inside UI components
+- Hardcode Control Tower numbers
+- Create Control Tower-only data
+- Create Overview-only operational logic
+- Let detail pages use different filters than the Control Tower
+- Let Priority Actions use separate logic from tiles
+- Use mock data
+- Invent records
+- Treat missing data as healthy
+
+CONTROL TOWER GOVERNANCE ROLE:
+
+Going forward, the Control Tower must be used as the primary validation surface for:
+
+1. Symmetry
+2. Analytics alignment
+3. Drill-down integrity
+4. Client-facing operational truth
+
+Symmetry means:
+
+Displayed tile count = supporting detail page count = drill-down count
+
+Examples:
+
+Control Tower says 76 SLA violations
+→ Work Orders filtered SLA view must show 76
+→ Drill-down must return the same 76 records
+
+Control Tower says 30 blocked turns
+→ Turns filtered blocked view must show 30
+→ Drill-down must return the same 30 turn records
+
+Control Tower says 102 expired warranties
+→ Asset Registry expired warranty view must show 102
+→ Drill-down must return the same 102 asset records
+
+CONTROL TOWER OUTPUT RULE:
+
+Control Tower is the client-facing operational truth layer.
+
+Detail pages are supporting record layers.
+
+Analytics will later extend this truth through Build 7.2, Build 7.3, and Build 8, but those future layers must plug into the same shared service architecture.
+
+Do not make future analytics create separate metric truth.
+
+OPERATIONAL HEALTH NOTE:
+
+Operational Health may remain a simple composite placeholder for now.
+
+Do not overbuild it yet.
+
+However, label the current logic clearly in code as temporary/composite until future analytics layers provide:
+
+- driver identification
+- narrative explanation
+- impact forecasting
+- recommended next action
+- trend-based insight
+
+SUCCESS STATE:
+
+This update is complete when:
+
+1. Overview is removed from client-facing navigation
+2. Control Tower is the default client landing screen
+3. Control Tower metrics come from shared services
+4. Detail pages use the same services/filters
+5. Priority Actions use the same services/filters
+6. Drill-down counts match displayed counts
+7. No duplicated metric logic exists inside UI components
+8. Future Build 7.1–7.9, Build 8, and Build 9 can plug into the same truth structure without rebuilding the dashboard
+
+FINAL DIRECTIVE:
+
+Lock this architecture into the codebase.
+
+One source of truth.
+One client-facing command layer.
+One shared metric system.
+
+Control Tower reflects the truth.
+Detail pages prove the truth.
+Analytics will explain the truth.

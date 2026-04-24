@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSignalDrill, type SignalType, type DrillRow } from "@/hooks/use-signal-drill";
+import { isAssetWarrantyExpired } from "@/lib/operational-predicates";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,8 +186,7 @@ function calcAssetScore(rows?: AssetRow[]): number | null {
   const total = rows.length;
   const greens = rows.filter(a => a.stoplight === "green").length;
   const reds = rows.filter(a => a.stoplight === "red").length;
-  const today = new Date().toISOString().slice(0, 10);
-  const expired = rows.filter(a => a.warrantyExpiration && a.warrantyExpiration < today).length;
+  const expired = rows.filter(isAssetWarrantyExpired).length;
   const missingDocs = rows.filter(a => !a.installDate || !a.warrantyExpiration).length;
   const greenPct = (greens / total) * 100;
   const redPenalty = (reds / total) * 30;
@@ -220,23 +220,29 @@ function calcPmInfo(rows?: AssetRow[]): PmInfo {
 
 function destinationFor(signal: SignalType, row: DrillRow): string | null {
   if (row.navigateTo) return row.navigateTo;
-  if (
-    signal === "sla_violations" ||
-    signal === "aging_work_orders" ||
-    signal === "category_spike"
-  ) {
+  // Ascent 1.12.6 — append ?signal=… so the detail page filters by the SAME
+  // operational signal (single source of truth). Only signals that the shared
+  // selector layer can reproduce as a list filter get the query param;
+  // composite signals (category_spike, stage_congestion) navigate to the
+  // unfiltered detail page so we don't show a misleading "filtered" banner.
+  if (signal === "sla_violations" || signal === "aging_work_orders") {
+    return `/work-orders?signal=${signal}`;
+  }
+  if (signal === "category_spike") {
     return "/work-orders";
   }
   if (
     signal === "blocked_turns" ||
-    signal === "stage_congestion" ||
     signal === "rework_loop" ||
     signal === "not_rent_ready"
   ) {
+    return `/turns?signal=${signal}`;
+  }
+  if (signal === "stage_congestion") {
     return "/turns";
   }
   if (signal === "expired_warranty" || signal === "expiring_soon") {
-    return "/assets";
+    return `/assets?signal=${signal}`;
   }
   return null;
 }
@@ -589,8 +595,8 @@ export default function ControlTower() {
   const assetBreakdown = useMemo(() => {
     const rows = asset.data ?? [];
     const total = rows.length;
-    const today = new Date().toISOString().slice(0, 10);
-    const expired = rows.filter(a => a.warrantyExpiration && a.warrantyExpiration < today).length;
+    // Single source of truth: shared client predicate (mirrors server WHERE).
+    const expired = rows.filter(isAssetWarrantyExpired).length;
     const missingDocs = rows.filter(a => !a.installDate || !a.warrantyExpiration).length;
     const red = rows.filter(a => a.stoplight === "red").length;
     return { total, expired, missingDocs, red };
@@ -599,6 +605,20 @@ export default function ControlTower() {
   // ── Tiles ──
   const tiles: Tile[] = [
     {
+      // ─────────────────────────────────────────────────────────────────────
+      // TEMPORARY COMPOSITE — Operational Health (OHS)
+      //
+      // Ascent 1.12.6 governance lock: this tile is a derived composite of
+      // the four domain scores below (WO, Turn, PM, Asset). It does NOT have
+      // its own underlying record set, which is why drillSignals is empty
+      // and `emptyDrill` redirects the user to the four child tiles.
+      //
+      // We are intentionally keeping it as a temporary composite until the
+      // OHS scoring rubric is formalized in its own service module with its
+      // own drill-down records. Until then: do not add drill signals here —
+      // every tile in Ascent must use the shared selectors and produce a
+      // record set whose count matches the headline number.
+      // ─────────────────────────────────────────────────────────────────────
       id: "ohs",
       title: "Operational Health",
       subtitle: "Master score across all domains",

@@ -29,6 +29,15 @@ import {
 } from "@workspace/db/schema";
 import { eq, and, lt, ne, inArray, or, desc, sql } from "drizzle-orm";
 import { getReplacementCost } from "../lib/cost-lookup";
+import {
+  slaViolationsWhere,
+  agingWorkOrdersWhere,
+  blockedTurnsWhere,
+  reworkTurnsWhere,
+  notRentReadyWhere,
+  expiredWarrantyWhere,
+  expiringSoonWhere,
+} from "../services/operational-selectors";
 
 const router = Router();
 
@@ -160,10 +169,13 @@ function daysInStageFromTs(ts: Date): number {
 // ─── Drill functions ──────────────────────────────────────────────────────────
 
 async function assetWarrantyDrill(signal: string, propertyId?: number): Promise<DrillRow[]> {
-  const today = todayStr();
-  const ninety = ninetyDaysLaterStr();
+  // Use shared selectors so drill count == tile count == detail-page filtered count.
+  const where =
+    signal === "expired_warranty"
+      ? expiredWarrantyWhere(propertyId)
+      : expiringSoonWhere(propertyId);
 
-  const allAssets = await db
+  const filtered = await db
     .select({
       id: assetsTable.id,
       name: assetsTable.name,
@@ -179,20 +191,8 @@ async function assetWarrantyDrill(signal: string, propertyId?: number): Promise<
     })
     .from(assetsTable)
     .leftJoin(unitsTable, eq(assetsTable.unitId, unitsTable.id))
-    .leftJoin(propertiesTable, eq(assetsTable.propertyId, propertiesTable.id));
-
-  let filtered = allAssets;
-  if (propertyId) {
-    filtered = filtered.filter((a) => a.propertyId === propertyId);
-  }
-
-  if (signal === "expired_warranty") {
-    filtered = filtered.filter((a) => a.warrantyExpiration != null && a.warrantyExpiration < today);
-  } else {
-    filtered = filtered.filter(
-      (a) => a.warrantyExpiration != null && a.warrantyExpiration >= today && a.warrantyExpiration <= ninety,
-    );
-  }
+    .leftJoin(propertiesTable, eq(assetsTable.propertyId, propertiesTable.id))
+    .where(where);
 
   return filtered.map((a) => {
     const isExpired = signal === "expired_warranty";
@@ -446,11 +446,7 @@ async function slaViolationsDrill(propertyId?: number): Promise<DrillRow[]> {
   const wos = await db
     .select()
     .from(workOrdersTable)
-    .where(
-      propertyId
-        ? and(eq(workOrdersTable.slaStatus, "missed"), eq(workOrdersTable.propertyId, propertyId))
-        : eq(workOrdersTable.slaStatus, "missed")
-    )
+    .where(slaViolationsWhere(propertyId))
     .orderBy(desc(workOrdersTable.slaResponseDelayHours))
     .limit(100);
 
@@ -483,7 +479,7 @@ async function slaViolationsDrill(propertyId?: number): Promise<DrillRow[]> {
       id: wo.id,
       title: wo.description?.slice(0, 60) ?? wo.category ?? "Work Order",
       subtitle,
-      type: "item" as DrillRowType,
+      rowType: "item" as DrillRowType,
       badge: `${Math.round(delayHours)}h late`,
       badgeColor: delayHours > 48 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
       meta: {
@@ -499,23 +495,10 @@ async function slaViolationsDrill(propertyId?: number): Promise<DrillRow[]> {
 }
 
 async function agingWorkOrdersDrill(propertyId?: number): Promise<DrillRow[]> {
-  const agingThreshold = new Date(Date.now() - 7 * 86_400_000);
-
   const wos = await db
     .select()
     .from(workOrdersTable)
-    .where(
-      propertyId
-        ? and(
-            eq(workOrdersTable.status, "in_progress"),
-            lt(workOrdersTable.createdDate, agingThreshold),
-            eq(workOrdersTable.propertyId, propertyId)
-          )
-        : and(
-            eq(workOrdersTable.status, "in_progress"),
-            lt(workOrdersTable.createdDate, agingThreshold)
-          )
-    )
+    .where(agingWorkOrdersWhere(propertyId))
     .orderBy(workOrdersTable.createdDate)
     .limit(100);
 
@@ -549,7 +532,7 @@ async function agingWorkOrdersDrill(propertyId?: number): Promise<DrillRow[]> {
       id: wo.id,
       title: wo.description?.slice(0, 60) ?? wo.category ?? "Work Order",
       subtitle,
-      type: "item" as DrillRowType,
+      rowType: "item" as DrillRowType,
       badge: `${daysOpen}d open`,
       badgeColor: daysOpen > 14 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
       meta: {
@@ -611,7 +594,7 @@ async function categorySpikesDrill(propertyId?: number): Promise<DrillRow[]> {
       id: wo.id,
       title: wo.description?.slice(0, 60) ?? topCat,
       subtitle: unitNumber ? `Unit ${unitNumber}` : (wo.status ?? "open"),
-      type: "item" as DrillRowType,
+      rowType: "item" as DrillRowType,
       badge: topCat,
       badgeColor: "blue" as BadgeColor,
       meta: {
@@ -628,24 +611,10 @@ async function categorySpikesDrill(propertyId?: number): Promise<DrillRow[]> {
 // ─── Blocked Turns Drill ──────────────────────────────────────────────────────
 
 async function blockedTurnsDrill(propertyId?: number): Promise<DrillRow[]> {
-  // Match computeIsBlocked() in turn-matrix-service:
-  //   blocked = is_blocked=true  OR  daysInStage > 7 (and not completed)
-  const BLOCK_DAYS = 7;
-  const baseConditions = [
-    or(
-      eq(turnsTable.isBlocked, true),
-      and(
-        ne(turnsTable.turnStatus, "completed"),
-        sql`${turnsTable.daysInStage} > ${BLOCK_DAYS}`
-      )
-    )!,
-  ];
-  if (propertyId) baseConditions.push(eq(turnsTable.propertyId, propertyId));
-
   const turns = await db
     .select()
     .from(turnsTable)
-    .where(and(...baseConditions))
+    .where(blockedTurnsWhere(propertyId))
     .orderBy(desc(turnsTable.daysInStage))
     .limit(100);
 
@@ -673,7 +642,7 @@ async function blockedTurnsDrill(propertyId?: number): Promise<DrillRow[]> {
       ].filter(Boolean).join(" · "),
       badge: days > 7 ? `${days}d BLOCKED` : "BLOCKED",
       badgeColor: days > 7 ? "red" as BadgeColor : "yellow" as BadgeColor,
-      navigateTo: "/turns",
+      navigateTo: "/turns?signal=blocked_turns",
       meta: {
         turnId: turn.turnId,
         currentStage: turn.currentStage,
@@ -742,7 +711,7 @@ async function stageCongestionDrill(stage?: string, propertyId?: number): Promis
       ].filter(Boolean).join(" · "),
       badge: `${days}d STALLED`,
       badgeColor: days > 7 ? "red" as BadgeColor : "yellow" as BadgeColor,
-      navigateTo: "/turns",
+      navigateTo: "/turns",  // stage_congestion is composite — no list-side filter
       meta: {
         turnId: turn.turnId,
         currentStage: turn.currentStage,
@@ -759,18 +728,10 @@ async function stageCongestionDrill(stage?: string, propertyId?: number): Promis
 // ─── Rework Loop Drill (queries turns table) ──────────────────────────────────
 
 async function reworkLoopDrill(propertyId?: number): Promise<DrillRow[]> {
-  const conditions = [
-    or(
-      eq(turnsTable.reworkRequired, true),
-      eq(turnsTable.turnStatus, "in_rework")
-    )!,
-  ];
-  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
-
   const turns = await db
     .select()
     .from(turnsTable)
-    .where(and(...conditions))
+    .where(reworkTurnsWhere(propertyId))
     .orderBy(desc(turnsTable.daysInStage))
     .limit(100);
 
@@ -798,7 +759,7 @@ async function reworkLoopDrill(propertyId?: number): Promise<DrillRow[]> {
       ].filter(Boolean).join(" · "),
       badge: turn.reworkCompleted ? "REWORK DONE" : "FAILED INSPECTION",
       badgeColor: turn.reworkCompleted ? "yellow" as BadgeColor : "red" as BadgeColor,
-      navigateTo: "/turns",
+      navigateTo: "/turns?signal=rework_loop",
       meta: {
         turnId: turn.turnId,
         currentStage: turn.currentStage,
@@ -816,16 +777,10 @@ async function reworkLoopDrill(propertyId?: number): Promise<DrillRow[]> {
 // ─── Not Rent-Ready Drill (queries turns table) ───────────────────────────────
 
 async function notRentReadyDrill(propertyId?: number): Promise<DrillRow[]> {
-  const conditions = [
-    eq(turnsTable.rentReady, false),
-    ne(turnsTable.turnStatus, "completed"),
-  ];
-  if (propertyId) conditions.push(eq(turnsTable.propertyId, propertyId));
-
   const turns = await db
     .select()
     .from(turnsTable)
-    .where(and(...conditions))
+    .where(notRentReadyWhere(propertyId))
     .orderBy(desc(turnsTable.totalDaysOpen))
     .limit(100);
 
@@ -858,7 +813,7 @@ async function notRentReadyDrill(propertyId?: number): Promise<DrillRow[]> {
       ].filter(Boolean).join(" · "),
       badge: turn.isBlocked ? "BLOCKED" : reasons.length > 0 ? reasons[0].toUpperCase() : "NOT READY",
       badgeColor: turn.isBlocked ? "red" as BadgeColor : "yellow" as BadgeColor,
-      navigateTo: "/turns",
+      navigateTo: "/turns?signal=not_rent_ready",
       meta: {
         turnId: turn.turnId,
         currentStage: turn.currentStage,

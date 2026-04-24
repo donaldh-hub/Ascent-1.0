@@ -25,6 +25,10 @@ import {
 import { eq, and, or, inArray, desc, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import {
+  WORK_ORDER_SIGNAL_WHERE,
+  isWorkOrderSignal,
+} from "../services/operational-selectors";
+import {
   extractField,
   parseDate,
   parseBool,
@@ -511,6 +515,7 @@ router.get("/work-orders", async (req, res) => {
     const {
       status, category, slaStatus, propertyId, unitId, isBlocked,
       bottleneckType, stage, regionName,
+      signal,
       limit = "200", offset = "0",
     } = req.query as Record<string, string>;
 
@@ -524,6 +529,14 @@ router.get("/work-orders", async (req, res) => {
     if (bottleneckType) conditions.push(eq(workOrdersTable.bottleneckType, bottleneckType));
     if (stage) conditions.push(eq(workOrdersTable.stage, stage));
     if (regionName) conditions.push(eq(workOrdersTable.regionName, regionName));
+
+    // Operational-signal filter (single source of truth — see operational-selectors.ts).
+    if (signal && isWorkOrderSignal(signal)) {
+      const signalWhere = WORK_ORDER_SIGNAL_WHERE[signal](
+        propertyId ? parseInt(propertyId) : undefined,
+      );
+      if (signalWhere) conditions.push(signalWhere);
+    }
 
     const wos = await db
       .select()

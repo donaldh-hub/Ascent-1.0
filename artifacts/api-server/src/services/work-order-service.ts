@@ -23,6 +23,7 @@ import {
 } from "@workspace/db/schema";
 import { eq, and, sql, inArray, ne, desc } from "drizzle-orm";
 import type { WorkOrder, InsertWorkOrder } from "@workspace/db/schema";
+import { isWoSlaViolation, isWoAging, isWoBlocked } from "./operational-selectors";
 
 // ─── SLA defaults ─────────────────────────────────────────────────────────────
 
@@ -486,22 +487,20 @@ export async function getWorkOrderStats(): Promise<WorkOrderStats> {
     })
     .from(workOrdersTable);
 
+  // Use shared selectors so headline counts MUST match drill / list endpoints.
+  // (Symmetry rule — Ascent 1.12.6 governance lock.)
   const total = all.length;
   const open = all.filter(w => w.status !== "completed" && w.status !== "cancelled").length;
   const completed = all.filter(w => w.status === "completed").length;
   const slaMetCount = all.filter(w => w.slaStatus === "met").length;
-  const slaMissedCount = all.filter(w => w.slaStatus === "missed").length;
+  const slaMissedCount = all.filter(isWoSlaViolation).length;
   const slaPendingCount = all.filter(w => w.slaStatus === "pending").length;
 
-  const AGING_DAYS = 7;
-  const agingThreshold = new Date(Date.now() - AGING_DAYS * 86_400_000);
-  const agingCount = all.filter(
-    w => w.status === "in_progress" && w.createdDate && w.createdDate < agingThreshold
-  ).length;
+  const agingCount = all.filter(isWoAging).length;
 
   // Blocked counts
-  const blockedCount = all.filter(w => w.isBlocked && w.status !== "completed").length;
-  const blockedTurnCount = all.filter(w => w.isBlocked && w.turnId && w.status !== "completed").length;
+  const blockedCount = all.filter(isWoBlocked).length;
+  const blockedTurnCount = all.filter(w => isWoBlocked(w) && w.turnId).length;
 
   const slaComplianceRate = total > 0
     ? Math.round((slaMetCount / (slaMetCount + slaMissedCount || 1)) * 100)

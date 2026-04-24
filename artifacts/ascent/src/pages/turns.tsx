@@ -4,7 +4,9 @@
  * breakdown, stage congestion map, and CSV ingestion.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
+import { useSearch } from "wouter";
+import { TURN_SIGNAL_LABELS } from "@/lib/operational-predicates";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Layers,
@@ -229,11 +231,22 @@ export default function Turns() {
   const [blockedFilter, setBlockedFilter] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Ascent 1.12.6 — operational signal from URL (?signal=…). Single source of
+  // truth via /api/turns?signal=… so detail-page count == tile == drill.
+  const search = useSearch();
+  const signal = useMemo(() => {
+    const p = new URLSearchParams(search);
+    return p.get("signal");
+  }, [search]);
+  const signalLabel =
+    signal && TURN_SIGNAL_LABELS[signal] ? TURN_SIGNAL_LABELS[signal] : null;
+
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useTurnStats();
   const { data: matrix, isLoading: matrixLoading, refetch: refetchMatrix } = useTurnMatrix();
   const { data: turnList, isLoading: listLoading, refetch: refetchList } = useTurns({
     ...(statusFilter !== "all" ? { status: statusFilter } : {}),
     ...(blockedFilter ? { isBlocked: true } : {}),
+    ...(signal ? { signal } : {}),
     limit: 200,
   });
 
@@ -304,6 +317,25 @@ export default function Turns() {
           Refresh
         </Button>
       </div>
+
+      {/* ── Signal banner (Ascent 1.12.6 — Control Tower drill-in) ── */}
+      {signalLabel && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Filtered by Control Tower signal:</span>
+            <span className="text-primary font-bold">{signalLabel}</span>
+            <span className="text-muted-foreground">
+              · {turns.length} turn{turns.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <a
+            href={`${import.meta.env.BASE_URL}turns`}
+            className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          >
+            Clear filter
+          </a>
+        </div>
+      )}
 
       {/* ── CSV Upload ── */}
       <CsvUploadPanel onImportDone={refresh} />

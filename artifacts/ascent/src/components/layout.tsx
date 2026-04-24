@@ -6,8 +6,10 @@ import { cn } from "@/lib/utils";
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   
+  // Ascent 1.12.6 — Control Tower is the single landing page.
+  // Overview is intentionally NOT in the sidebar (route /overview is kept
+  // for admin-only debugging of the legacy dashboard).
   const navItems = [
-    { href: "/", label: "Overview", icon: LayoutDashboard },
     { href: "/control-tower", label: "Control Tower", icon: Radar },
     { href: "/properties", label: "Property", icon: MapPin },
     { href: "/work-orders", label: "Work Orders", icon: Wrench },
@@ -23,7 +25,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 border-r border-border bg-card flex flex-col z-10 shadow-xl">
         <div className="h-16 flex items-center px-6 border-b border-border">
-          <Link href="/" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/control-tower" className="flex items-center gap-2 cursor-pointer">
             <Activity className="h-6 w-6 text-primary" />
             <span className="font-bold text-lg tracking-wider text-primary">ASCENT <span className="text-muted-foreground text-sm font-normal">1.0</span></span>
           </Link>

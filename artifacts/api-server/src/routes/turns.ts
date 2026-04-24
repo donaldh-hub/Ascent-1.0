@@ -24,6 +24,10 @@ import {
   enrichTurn,
   STAGE_SEQUENCE,
 } from "../services/turn-matrix-service";
+import {
+  TURN_SIGNAL_PREDICATE,
+  isTurnSignal,
+} from "../services/operational-selectors";
 
 const router = Router();
 
@@ -241,6 +245,7 @@ router.get("/turns", async (req, res) => {
       status,
       isBlocked,
       propertyId,
+      signal,
       limit: limitStr,
     } = req.query as Record<string, string>;
 
@@ -259,6 +264,12 @@ router.get("/turns", async (req, res) => {
     if (propertyId) {
       const pid = parseInt(propertyId, 10);
       turns = turns.filter(t => t.propertyId === pid);
+    }
+
+    // Operational-signal filter (single source of truth — see operational-selectors.ts).
+    if (signal && isTurnSignal(signal)) {
+      const predicate = TURN_SIGNAL_PREDICATE[signal];
+      turns = turns.filter(predicate);
     }
 
     res.json({

@@ -5,9 +5,15 @@ import { Server, AlertTriangle, ShieldCheck, Building2, Hash, ShieldAlert } from
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { useState, useMemo } from "react";
+import { useSearch } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  applyAssetSignal,
+  ASSET_SIGNAL_LABELS,
+  type AssetSignal,
+} from "@/lib/operational-predicates";
 
 export default function Assets() {
   const { data: assets, isLoading } = useListAssets();
@@ -15,9 +21,22 @@ export default function Assets() {
   const [search, setSearch] = useState("");
   const [filterPropertyId, setFilterPropertyId] = useState<number | null>(null);
 
+  // Ascent 1.12.6 — operational signal from URL (?signal=…). Filters the
+  // already-fetched dataset using the same predicate the server uses.
+  const searchStr = useSearch();
+  const signal = useMemo(() => {
+    const p = new URLSearchParams(searchStr);
+    return p.get("signal");
+  }, [searchStr]);
+  const signalLabel =
+    signal && (signal === "expired_warranty" || signal === "expiring_soon")
+      ? ASSET_SIGNAL_LABELS[signal as AssetSignal]
+      : null;
+
   const filteredAssets = useMemo(() => {
     if (!assets) return [];
-    return assets.filter((asset) => {
+    const signalFiltered = applyAssetSignal(assets, signal);
+    return signalFiltered.filter((asset) => {
       const matchesSearch =
         asset.name.toLowerCase().includes(search.toLowerCase()) ||
         (asset.model && asset.model.toLowerCase().includes(search.toLowerCase())) ||
@@ -26,7 +45,7 @@ export default function Assets() {
       const matchesProp = filterPropertyId === null || asset.propertyId === filterPropertyId;
       return matchesSearch && matchesProp;
     });
-  }, [assets, search, filterPropertyId]);
+  }, [assets, search, filterPropertyId, signal]);
 
   // ── Compute summary stats from the SAME dataset ────────────────────────────
   const totalAssets = assets?.length ?? 0;
@@ -55,6 +74,25 @@ export default function Assets() {
           <Button variant="outline">Register Asset</Button>
         </div>
       </div>
+
+      {/* Signal banner (Ascent 1.12.6 — Control Tower drill-in) */}
+      {signalLabel && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/10 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Filtered by Control Tower signal:</span>
+            <span className="text-primary font-bold">{signalLabel}</span>
+            <span className="text-muted-foreground">
+              · {filteredAssets.length} asset{filteredAssets.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <a
+            href={`${import.meta.env.BASE_URL}assets`}
+            className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          >
+            Clear filter
+          </a>
+        </div>
+      )}
 
       {/* Summary strip — same query as Control Tower */}
       <div className="grid grid-cols-3 gap-3">
