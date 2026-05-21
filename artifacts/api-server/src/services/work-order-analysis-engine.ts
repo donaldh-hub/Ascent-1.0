@@ -125,10 +125,11 @@ function buildTopCategories(
     .sort((a, b) => b[1].length - a[1].length)
     .slice(0, 8);
   const factors: ContributingFactor[] = ordered.map(([label, rows]) => ({
-    // SEPARATE mode: explicitly label "Turn" as an imported WO category
-    // so the operator never confuses it with the native Turns analysis.
-    label: mode === "separate_turns_and_work_orders" && isTurnyCategory(label)
-      ? `${label} (imported work order category)`
+    // Build 7.3.1 — always clarify the "Turn" WO category so the operator
+    // never reads it as a generic, unrelated work-order bucket. The exact
+    // suffix depends on the active reporting mode.
+    label: isTurnyCategory(label)
+      ? `${label} ${turnCategorySuffix(mode)}`
       : label,
     displayValue: `${rows.length} work orders (${Math.round((rows.length / total) * 100)}%)`,
     numericValue: rows.length,
@@ -136,6 +137,15 @@ function buildTopCategories(
     supportingRecordIds: rows.map((r) => r.id),
   }));
   const top = ordered[0];
+  // Build 7.3.1 — apply the mode-aware turn suffix everywhere the top
+  // category surfaces, not just the contributing-factor labels, so the
+  // summary line and the primaryCategory used by downstream narrative
+  // headlines never read as a generic "Turn" bucket.
+  const topLabel = top
+    ? isTurnyCategory(top[0])
+      ? `${top[0]} ${turnCategorySuffix(mode)}`
+      : top[0]
+    : null;
 
   return finalise({
     part,
@@ -144,11 +154,11 @@ function buildTopCategories(
     analysisId: makeAnalysisId("work_order_time_allocation", "top-categories"),
     title: "Top work order categories",
     summary: top
-      ? `${top[0]} accounts for ${top[1].length} of ${total} admissible work orders (${Math.round((top[1].length / total) * 100)}%).`
+      ? `${topLabel} accounts for ${top[1].length} of ${total} admissible work orders (${Math.round((top[1].length / total) * 100)}%).`
       : `${total} work orders were analysed.`,
     metricValue: top ? top[1].length : null,
     metricUnit: top ? "work orders" : null,
-    primaryCategory: top ? top[0] : null,
+    primaryCategory: topLabel,
     contributingFactors: factors,
     minFloor: MIN_FOR_CONFIRMED,
     supportingRecordIds: admissible.map((r) => r.id),
@@ -385,6 +395,17 @@ function buildPotentialTurnRelatedWorkOrders(
     // the UI keeps the "needs confirmation" framing.
     confidenceCap: "qualified_analysis",
   });
+}
+
+function turnCategorySuffix(mode: TurnWorkOrderReportingModeValue): string {
+  switch (mode) {
+    case "separate_turns_and_work_orders":
+      return "(imported work-order category — turn record reviewed separately)";
+    case "work_orders_measure_turn_progress":
+      return "(turn-progress work orders)";
+    case "hybrid_or_unknown":
+      return "(turn-tagged work orders — needs confirmation)";
+  }
 }
 
 function isTurnyCategory(label: string): boolean {

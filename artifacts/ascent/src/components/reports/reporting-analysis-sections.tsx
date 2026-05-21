@@ -106,21 +106,46 @@ const CONFIDENCE_META: Record<
   { label: string; tone: string; icon: React.ComponentType<{ className?: string }> }
 > = {
   confirmed_analysis: {
-    label: "Confirmed analysis",
+    label: "Fully supported",
     tone: "border-status-green/40 bg-status-green/10 text-status-green",
     icon: CheckCircle2,
   },
   qualified_analysis: {
-    label: "Qualified analysis",
+    label: "Partially supported",
     tone: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
     icon: AlertTriangle,
   },
+  // Note: when insufficient_data is paired with meaningful counts (i.e. some
+  // records DID flow through, but the confidence floor wasn't met) the card
+  // re-labels this as "Directional only" — see resolveConfidenceMeta below.
   insufficient_data: {
-    label: "Insufficient data",
+    label: "Not enough data",
     tone: "border-border bg-secondary text-muted-foreground",
     icon: CircleSlash,
   },
 };
+
+/**
+ * Build 7.3.1 — the badge should distinguish "directional only" (signal
+ * exists but doesn't meet the confidence floor) from "not enough data"
+ * (no usable records at all). The previous version blanket-labelled every
+ * insufficient_data analysis "Insufficient data" even when the card showed
+ * 75 supporting records, which created a contradiction in the UI.
+ */
+function resolveConfidenceMeta(a: AnalysisOutput) {
+  const base = CONFIDENCE_META[a.confidenceState];
+  if (a.confidenceState !== "insufficient_data") return base;
+  const hasMeaningfulCounts =
+    a.supportingRecordCount > 0 ||
+    a.partiallyReportableRecordCount > 0 ||
+    a.fullyReportableRecordCount > 0;
+  if (!hasMeaningfulCounts) return base;
+  return {
+    label: "Directional only",
+    tone: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    icon: AlertTriangle,
+  };
+}
 
 const SECTION_META: Record<
   string,
@@ -198,7 +223,7 @@ function AnalysisCard({
   analysis: AnalysisOutput;
   onDrill: (ctx: AnalysisDrillContext) => void;
 }) {
-  const meta = CONFIDENCE_META[analysis.confidenceState];
+  const meta = resolveConfidenceMeta(analysis);
   const Icon = meta.icon;
 
   return (
@@ -259,8 +284,8 @@ function AnalysisCard({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <div className="text-[11px] text-muted-foreground italic truncate" title={analysis.recommendedReviewQuestion}>
+      <div className="flex items-start justify-between gap-2 pt-1">
+        <div className="text-[11px] text-muted-foreground italic leading-snug">
           {analysis.recommendedReviewQuestion}
         </div>
         <Button
@@ -381,9 +406,14 @@ export function ReportingAnalysisSections({
           })}
           <div className="text-[11px] text-muted-foreground italic">
             Analysis generated {new Date(bundle.generatedAt).toLocaleString()}.
-            Confirmed analyses use fully reportable records only. Qualified analyses include
-            partially reportable records and label which gaps weakened the conclusion.
-            Insufficient analyses honestly state that not enough reportable data is available yet.
+            <span className="font-medium text-status-green"> Fully supported</span> analyses use
+            fully reportable records only.
+            <span className="font-medium text-amber-500"> Partially supported</span> analyses
+            include partially reportable records and label which gaps weakened the conclusion.
+            <span className="font-medium text-sky-500"> Directional only</span> analyses surface
+            a real signal that has not yet met the confidence floor.
+            <span className="font-medium"> Not enough data</span> means no reportable records
+            were available for this view yet.
           </div>
         </div>
       )}
@@ -472,8 +502,8 @@ export function AnalysisSupportingRecordsSheet({
                   className="text-sm text-muted-foreground"
                   data-testid="analysis-drill-empty"
                 >
-                  No supporting records returned. This usually means the analysis is in an
-                  Insufficient Data state — upload more complete records to strengthen it.
+                  No supporting records returned. This usually means the analysis is in a
+                  Not Enough Data state — upload more complete records to strengthen it.
                 </p>
               )}
               {!loading && records && records.length > 0 && (

@@ -1,0 +1,261 @@
+SOURCE CONTINUITY NOTE
+
+Continue Ascent 1.0 from the existing Build 7.3 Narrative Insights Engine implementation.
+
+Do NOT rebuild the reporting system.
+
+Do NOT replace the existing narrative insight engine.
+
+Do NOT duplicate supporting-record drill-through logic.
+
+Do NOT create fake insights, fake counts, fake report summaries, or fake drill-downs.
+
+This is a correction pass only.
+
+Internal build label:
+
+BUILD 7.3.1 — NARRATIVE INSIGHTS VISIBILITY + LANGUAGE CLEANUP
+
+
+PRIMARY GOAL
+
+Clean up the Build 7.3 Narrative Insights presentation so the Reports page clearly shows the narrative insight layer, uses correct operational language, and distinguishes partial data from insufficient data.
+
+The current implementation created the narrative insights engine successfully, but the page still visually reads like Build 7.1 + 7.2, and some insight language needs tightening.
+
+
+REQUIRED FIXES
+
+1. Update the Reports page build badge/header
+
+The Reports page currently shows:
+
+Build 7.1 + 7.2
+
+Update it to reflect that Build 7.3 is now active.
+
+Use a clean badge such as:
+
+Build 7.1 + 7.2 + 7.3
+
+or:
+
+Build 7.3 Narrative Insights
+
+Do not remove the meaning of 7.1 and 7.2.
+
+The page should make it clear that:
+
+- 7.1 handles reporting ingestion/readiness
+- 7.2 handles reporting analysis/time allocation
+- 7.3 handles narrative insights
+
+
+2. Add a clearly visible section title for Build 7.3
+
+Add a distinct section after the Build 7.2 analysis section titled:
+
+NARRATIVE INSIGHTS — BUILD 7.3
+
+Subtitle:
+
+Plain-language operational insights generated from report analysis, data confidence, and supporting records.
+
+This section should be visually separate from the Build 7.2 analysis cards.
+
+Do not hide 7.3 inside the 7.2 section.
+
+
+3. Fix work order / turn language
+
+The current mode may be:
+
+Work orders measure turn progress
+
+When this mode is active, turn-related work orders may be included in turn-progress interpretation.
+
+However, do not show “Turn” as a generic work order category without clarification.
+
+Replace unclear category language like:
+
+Turn
+
+with clearer language such as:
+
+Turn-related work orders
+
+or:
+
+Work orders contributing to turn progress
+
+or:
+
+Turn progress work orders
+
+Use the most accurate label based on the existing data model.
+
+The goal is to prevent users from thinking “Turn” is just a normal work order category.
+
+Respect the existing turn/work order reporting mode.
+
+If mode is Separate:
+Use language such as:
+“Work order activity may be contributing context, but turn completion is tracked separately.”
+
+If mode is Work Orders Measure Turn Progress:
+Use language such as:
+“Because this organization measures turn progress through related work orders, these work orders are included in turn-progress interpretation.”
+
+If mode is Unknown:
+Use language such as:
+“Turn/work order reporting mode has not been confirmed. Ascent will not treat work order closure as turn completion until this setting is configured.”
+
+
+4. Improve data confidence badges
+
+Currently, some cards show large counts but also say:
+
+Insufficient data
+
+This is confusing.
+
+Refine confidence/status labels so they distinguish between:
+
+- Fully supported
+- Partially supported
+- Directional only
+- Insufficient data
+- Not enough data
+
+Use “Insufficient data” only when the system truly cannot generate a meaningful operational insight.
+
+If the card has meaningful counts but the records are mostly partially reportable, use:
+
+Directional only
+
+or:
+
+Partial data
+
+or:
+
+Partially supported
+
+The UI should help the user understand:
+
+“The signal exists, but the conclusion has limits.”
+
+Do not overstate partial data.
+
+Do not bury meaningful signals.
+
+
+5. Prevent insight text clipping
+
+Review the narrative insight cards and analysis cards.
+
+If review questions, limitation notes, or suggested next steps are being cut off, update the card layout so the user can read the complete text.
+
+Acceptable solutions:
+
+- Allow text wrapping
+- Increase card height
+- Add expandable details
+- Add a “View full insight” area
+- Use a readable details panel
+
+Do not cut off the recommended review question.
+
+The review question is one of the core values of Build 7.3.
+
+
+6. Make every 7.3 card clearly narrative
+
+Each Build 7.3 card should include:
+
+- Category label
+- Confidence/support badge
+- Headline
+- Plain-language summary
+- Why it matters
+- Recommended review question
+- Suggested next step
+- Supporting record count
+- Click-to-review supporting records action
+- Limitation note when partial data is used
+
+If a card is only showing metrics, it belongs to 7.2.
+
+If a card explains meaning, review question, limitation, and next step, it belongs to 7.3.
+
+
+7. Preserve existing drill-through
+
+Do not create a new supporting-record endpoint unless necessary.
+
+Continue using the existing supporting-records sheet/panel if it already works.
+
+Every 7.3 card must still follow:
+
+SIGNAL → CLICK → SUPPORTING RECORDS → DECISION
+
+If an insight says 75 supporting records, clicking must open those 75 matching records.
+
+
+8. Add a compact readiness summary for 7.3
+
+Inside the Narrative Insights section, show a small readiness line such as:
+
+Narrative readiness:
+- Fully supported insights: X
+- Partially supported insights: X
+- Directional insights: X
+- Insights blocked by missing data: X
+
+This should be derived from the existing insight confidence/dataSupportLevel logic.
+
+No fake values.
+
+
+9. Do not break existing reports
+
+After this cleanup, confirm:
+
+- Reports page still loads
+- Build 7.1 readiness cards still work
+- Build 7.2 analysis cards still work
+- Build 7.3 narrative insights render separately
+- Clickable supporting records still open
+- Turn/work order reporting mode still displays
+- No fake narrative cards appear with no data
+
+
+SUCCESS STATE
+
+This correction is successful when:
+
+1. The Reports page visibly acknowledges Build 7.3.
+2. Narrative Insights have their own clear section.
+3. Turn/work order language is operationally clean.
+4. “Insufficient data” is not overused when “Directional only” or “Partially supported” is more accurate.
+5. Narrative text is not cut off.
+6. Review questions are readable.
+7. Suggested next steps are readable.
+8. Every insight remains clickable.
+9. Supporting records still match the insight count.
+10. No existing 7.1 or 7.2 logic is broken.
+
+
+FINAL RESPONSE REQUIRED
+
+When finished, report:
+
+1. Files changed
+2. Header/badge updates made
+3. How the Build 7.3 section is displayed
+4. What language was changed for turn/work order insights
+5. What confidence badge logic was updated
+6. Whether text clipping was fixed
+7. Whether clickable supporting records still work
+8. Any tests run
+9. Any remaining limitations

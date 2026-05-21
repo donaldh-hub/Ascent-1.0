@@ -332,24 +332,61 @@ export function NarrativeInsightsSection({
 
   return (
     <section data-testid="narrative-insights-section">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Narrative insights — Build 7.3
-          </h2>
+      <div className="rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4 mb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-bold uppercase tracking-wider">
+                Narrative insights — Build 7.3
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-3xl leading-snug">
+              Plain-language operational insights generated from the report
+              analysis above, the underlying data confidence, and the supporting
+              records — every card links back to the exact records that
+              produced it.
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={load}
+            disabled={loading}
+            className="h-7 text-xs shrink-0"
+            data-testid="narrative-insights-refresh"
+          >
+            <RotateCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={load}
-          disabled={loading}
-          className="h-7 text-xs"
-          data-testid="narrative-insights-refresh"
-        >
-          <RotateCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
+        {bundle && !bundle.emptyState.isEmpty && (
+          <div
+            className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] mt-3"
+            data-testid="narrative-readiness-summary"
+          >
+            <ReadinessStat
+              label="Fully supported"
+              value={bundle.insights.filter((i) => i.dataSupportLevel === "fully_supported").length}
+              tone="text-status-green"
+            />
+            <ReadinessStat
+              label="Partially supported"
+              value={bundle.insights.filter((i) => i.dataSupportLevel === "partially_supported").length}
+              tone="text-amber-500"
+            />
+            <ReadinessStat
+              label="Directional only"
+              value={bundle.insights.filter((i) => i.dataSupportLevel === "directional_only").length}
+              tone="text-sky-500"
+            />
+            <ReadinessStat
+              label="Blocked by missing data"
+              value={bundle.insights.filter((i) => i.dataSupportLevel === "not_enough_data").length}
+              tone="text-muted-foreground"
+            />
+          </div>
+        )}
       </div>
 
       {error && (
