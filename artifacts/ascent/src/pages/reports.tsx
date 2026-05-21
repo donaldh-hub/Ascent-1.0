@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/sheet";
 import { ReportingAnalysisSections, AnalysisSupportingRecordsSheet } from "@/components/reports/reporting-analysis-sections";
 import type { AnalysisDrillContext } from "@/components/reports/reporting-analysis-sections";
+import { ReportingModeAssessment } from "@/components/reports/reporting-mode-assessment";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -445,6 +446,9 @@ export default function ReportsPage() {
           <SummaryTile label="Not reportable" value={summary.notReportableCount} accent="text-status-red" />
         </div>
       )}
+
+      {/* Build 7.2.1 — Turn / Work Order reporting mode assessment */}
+      <ReportingModeAssessment />
 
       {/* Build 7.2 — Reporting analysis sections */}
       <ReportingAnalysisSections onDrill={setAnalysisDrill} />

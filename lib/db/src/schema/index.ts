@@ -7,3 +7,4 @@ export * from "./assignments";
 export * from "./work_orders";
 export * from "./turns";
 export * from "./import_runs";
+export * from "./reporting_config";

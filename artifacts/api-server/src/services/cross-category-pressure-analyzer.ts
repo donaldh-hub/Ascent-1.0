@@ -146,6 +146,9 @@ export function analyseCrossCategoryPressure(inputs: CrossCategoryInputs): Analy
       recommendedReviewQuestion:
         "Which category should be addressed first given the current pressure mix, and what supporting records confirm it?",
       compatibleSurfaces: [...SURFACES],
+      reportingModeUsed: "hybrid_or_unknown",
+      turnRelatedBreakdown: null,
+      recordInclusionMetadata: {},
       createdAt: now,
       updatedAt: now,
     },

@@ -173,6 +173,9 @@ function finalise(input: {
     supportingRecordCount: input.supportingRecordIds.length,
     recommendedReviewQuestion: input.recommendedReviewQuestion,
     compatibleSurfaces: [...SURFACES],
+    reportingModeUsed: "hybrid_or_unknown",
+    turnRelatedBreakdown: null,
+    recordInclusionMetadata: {},
     createdAt: now,
     updatedAt: now,
   };

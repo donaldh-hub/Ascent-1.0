@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSignalDrill, type SignalType, type DrillRow } from "@/hooks/use-signal-drill";
 import { isAssetWarrantyExpired } from "@/lib/operational-predicates";
+import { useReportingMode } from "@/components/reports/use-reporting-mode";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -555,6 +556,7 @@ export default function ControlTower() {
   const wo = useWoStats();
   const turn = useTurnStats();
   const asset = useAssets();
+  const reportingMode = useReportingMode();
   const [, navigate] = useLocation();
 
   const [openTiles, setOpenTiles] = useState<Set<TileId>>(new Set());
@@ -770,11 +772,33 @@ export default function ControlTower() {
       });
     }
     if (turn.data?.blockedTurns) {
+      // Ascent 7.2.1 — adapt copy to the active Turn/WO reporting mode
+      // so the operator sees the language that matches how their org
+      // tracks turn progress.
+      const blockedCount = turn.data.blockedTurns;
+      const stage = turn.data.primaryBottleneckStage ?? "a stage";
+      const mode = reportingMode.record?.mode ?? "hybrid_or_unknown";
+      // HYBRID — always use conservative copy regardless of source. The
+      // mode itself signals ambiguity; whether it was explicitly chosen
+      // or left at default does not change that the system is not
+      // permitted to assert these are definitively turns.
+      const label =
+        mode === "work_orders_measure_turn_progress"
+          ? `${blockedCount} turn-related work orders blocked at ${stage}`
+          : mode === "hybrid_or_unknown"
+          ? `${blockedCount} possible turn-related records need confirmation at ${stage}`
+          : `${blockedCount} turns blocked at ${stage}`;
+      const context =
+        mode === "work_orders_measure_turn_progress"
+          ? "Work orders measuring turn progress · Stuck more than 7 days in stage"
+          : mode === "hybrid_or_unknown"
+          ? "Turns / WOs · Reporting mode not yet confirmed"
+          : "Turns · Stuck more than 7 days in stage";
       list.push({
         id: "pa-blocked-turns",
-        label: `${turn.data.blockedTurns} turns blocked at ${turn.data.primaryBottleneckStage ?? "a stage"}`,
-        context: "Turns · Stuck more than 7 days in stage",
-        count: turn.data.blockedTurns,
+        label,
+        context,
+        count: blockedCount,
         signal: "blocked_turns",
         severity: "critical",
       });
@@ -820,7 +844,7 @@ export default function ControlTower() {
       });
     }
     return list;
-  }, [wo.data, turn.data, assetBreakdown.expired, pmInfo.missingSchedule, pmInfo.coveragePct]);
+  }, [wo.data, turn.data, assetBreakdown.expired, pmInfo.missingSchedule, pmInfo.coveragePct, reportingMode.record]);
 
   const [activePriority, setActivePriority] = useState<string | null>(null);
 

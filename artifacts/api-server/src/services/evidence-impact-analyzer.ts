@@ -140,6 +140,9 @@ export function analyseEvidence(input: {
       recommendedReviewQuestion:
         "Which records should have supporting documentation attached before being relied on in reports?",
       compatibleSurfaces: [...SURFACES],
+      reportingModeUsed: "hybrid_or_unknown",
+      turnRelatedBreakdown: null,
+      recordInclusionMetadata: {},
       createdAt: now,
       updatedAt: now,
     },

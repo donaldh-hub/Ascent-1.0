@@ -20,7 +20,10 @@ import {
   normalizeTurns,
   normalizeWorkOrders,
 } from "./report-source-normalizer.js";
-import type { AnalysisOutput } from "./analysis-output-contract.js";
+import type {
+  AnalysisOutput,
+  TurnWorkOrderReportingModeValue,
+} from "./analysis-output-contract.js";
 import { analyseWorkOrders } from "./work-order-analysis-engine.js";
 import { analyseTurns } from "./turn-analysis-engine.js";
 import { analysePm } from "./pm-analysis-engine.js";
@@ -28,8 +31,25 @@ import { analyseAssetRisk } from "./asset-risk-analysis-engine.js";
 import { analyseEvidence } from "./evidence-impact-analyzer.js";
 import { analyseAssignmentCoverage } from "./assignment-coverage-analyzer.js";
 import { analyseCrossCategoryPressure } from "./cross-category-pressure-analyzer.js";
+import { getActiveReportingConfig } from "./reporting-config-service.js";
+import { partitionWorkOrdersByTurnRelation } from "./turn-related-work-order-detector.js";
+import { partitionByEligibility } from "./supporting-record-mapper.js";
 
 import type { NormalizedReportingRecord } from "./reporting-record-contract.js";
+
+/**
+ * Ascent 7.2.1 — Mode-aware bundle summary. Exposed on every bundle so the
+ * UI can show "Reporting mode: …" without a second round trip and can
+ * adapt copy (Reports page, Control Tower Priority Actions) accordingly.
+ */
+export interface ReportingModeSummary {
+  mode: TurnWorkOrderReportingModeValue;
+  source: string;
+  isDefault: boolean;
+  nativeTurnCount: number;
+  turnRelatedWorkOrderCount: number;
+  needsConfirmationCount: number;
+}
 
 export interface ReportingAnalysisBundle {
   workOrders: AnalysisOutput[];
@@ -39,6 +59,7 @@ export interface ReportingAnalysisBundle {
   evidence: AnalysisOutput[];
   assignments: AnalysisOutput[];
   crossCategory: AnalysisOutput[];
+  reportingMode: ReportingModeSummary;
   generatedAt: string;
 }
 
@@ -53,16 +74,20 @@ export interface ReportingAnalysisBundleWithRecords extends ReportingAnalysisBun
 }
 
 export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBundleWithRecords> {
-  const [workOrderRecords, turnRecords, assetRecords, documentRecords, assignmentRecords] = await Promise.all([
+  const [active, workOrderRecords, turnRecords, assetRecords, documentRecords, assignmentRecords] = await Promise.all([
+    getActiveReportingConfig(),
     normalizeWorkOrders(),
     normalizeTurns(),
     normalizeAssets(),
     normalizeDocuments(),
     normalizeAssignments(),
   ]);
+  const mode = active.mode;
 
-  const workOrders = analyseWorkOrders(workOrderRecords);
-  const turns = analyseTurns(turnRecords);
+  // Build 7.2.1 — turn engine needs the WO admissible set to compute
+  // mode-specific evidence analyses.
+  const workOrders = analyseWorkOrders(workOrderRecords, { mode });
+  const turns = analyseTurns(turnRecords, { mode, workOrderRecords });
   // PM source is not yet wired in Build 7.1; the engine handles the
   // insufficient-data case correctly when passed an empty array.
   const pm = analysePm([]);
@@ -92,6 +117,19 @@ export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBund
     ...assignmentRecords,
   ];
 
+  const woAdmissible = partitionByEligibility(workOrderRecords).admissible;
+  const turnAdmissible = partitionByEligibility(turnRecords).admissible;
+  const woBreakdown = partitionWorkOrdersByTurnRelation(woAdmissible);
+  const reportingMode: ReportingModeSummary = {
+    mode,
+    source: active.config.source,
+    isDefault: active.isDefault,
+    nativeTurnCount: turnAdmissible.length,
+    turnRelatedWorkOrderCount:
+      woBreakdown.confirmed.length + woBreakdown.likely.length,
+    needsConfirmationCount: woBreakdown.possible.length,
+  };
+
   return {
     workOrders,
     turns,
@@ -100,6 +138,7 @@ export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBund
     evidence,
     assignments,
     crossCategory,
+    reportingMode,
     generatedAt: new Date().toISOString(),
     recordPool,
   };

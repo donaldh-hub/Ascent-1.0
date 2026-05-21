@@ -78,6 +78,9 @@ export function analysePm(records: NormalizedReportingRecord[]): AnalysisOutput[
       recommendedReviewQuestion:
         "Review whether reactive work patterns may be contributing to PM coverage gaps.",
       compatibleSurfaces: [...SURFACES],
+      reportingModeUsed: "hybrid_or_unknown",
+      turnRelatedBreakdown: null,
+      recordInclusionMetadata: {},
       createdAt: now,
       updatedAt: now,
     },

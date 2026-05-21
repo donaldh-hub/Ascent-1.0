@@ -62,6 +62,49 @@ export type CompatibleSurface =
 export type TrendDirection = "improving" | "worsening" | "flat" | null;
 
 /**
+ * Ascent 7.2.1 — Turn / Work Order Reporting Mode (mirrors the value stored
+ * in `reporting_config.turn_work_order_reporting_mode`). Surfaced on every
+ * analysis output so the UI can render mode-aware labels and the audit
+ * trail can be reconstructed from a single analysis payload alone.
+ */
+export type TurnWorkOrderReportingModeValue =
+  | "separate_turns_and_work_orders"
+  | "work_orders_measure_turn_progress"
+  | "hybrid_or_unknown";
+
+/**
+ * Per-analysis breakdown of which kinds of records contributed when the
+ * Build 7.2.1 mode logic is in play. Only populated by engines that mix
+ * native turn records with turn-related work orders. Null on analyses
+ * where the distinction does not apply (e.g. assets, evidence).
+ */
+export interface TurnRelatedBreakdown {
+  /** How many native records (turns table) contributed. */
+  nativeTurnCount: number;
+  /** Turn-related work orders (confirmed + likely) included. */
+  turnRelatedWorkOrderCount: number;
+  /** Possible turn-related work orders awaiting confirmation. */
+  needsConfirmationCount: number;
+  /** Work orders explicitly excluded from the analysis under this mode. */
+  excludedByModeCount: number;
+}
+
+/**
+ * Inclusion metadata for a supporting record. Keyed by NormalizedReportingRecord.id
+ * on the analysis. Surfaced in /supporting-records so each row carries an
+ * explicit "why am I here" string that matches the active reporting mode.
+ */
+export interface RecordInclusionEntry {
+  recordType: "turn" | "work_order" | "asset" | "document" | "assignment" | "other";
+  inclusionReason: string;
+  turnRelationConfidence?:
+    | "confirmed_turn_related"
+    | "likely_turn_related"
+    | "possible_turn_related"
+    | "not_turn_related";
+}
+
+/**
  * Reportability basis — short audit string explaining which Build 7.1
  * eligibility buckets the analysis drew from. Surfaced verbatim on
  * drill-downs so the user can see how confidence was earned.
@@ -152,6 +195,20 @@ export interface AnalysisOutput {
 
   // Surfaces that should consume this analysis (informational)
   compatibleSurfaces: CompatibleSurface[];
+
+  // Ascent 7.2.1 — Mode awareness. Every analysis records the mode that was
+  // active when it was computed so the UI can explain "why does WO category
+  // 'Turn' show under turns now?" without re-querying the config service.
+  reportingModeUsed: TurnWorkOrderReportingModeValue;
+  /** Null on analyses where the WO ↔ turn distinction does not apply. */
+  turnRelatedBreakdown: TurnRelatedBreakdown | null;
+  /**
+   * Per-record inclusion explanations. Map keys are
+   * NormalizedReportingRecord.id strings (e.g. "work_orders:42"). May be
+   * empty on legacy analyses; consumers should treat absence as "default
+   * inclusion (admissible per Build 7.1 gate)".
+   */
+  recordInclusionMetadata: Record<string, RecordInclusionEntry>;
 
   // Timestamps
   createdAt: string;
@@ -253,6 +310,7 @@ export function emptyAnalysis(input: {
   excludedRecordCount: number;
   compatibleSurfaces: CompatibleSurface[];
   recommendedReviewQuestion: string;
+  reportingModeUsed?: TurnWorkOrderReportingModeValue;
 }): AnalysisOutput {
   const now = new Date().toISOString();
   return {
@@ -288,6 +346,9 @@ export function emptyAnalysis(input: {
     supportingRecordCount: 0,
     recommendedReviewQuestion: input.recommendedReviewQuestion,
     compatibleSurfaces: input.compatibleSurfaces,
+    reportingModeUsed: input.reportingModeUsed ?? "hybrid_or_unknown",
+    turnRelatedBreakdown: null,
+    recordInclusionMetadata: {},
     createdAt: now,
     updatedAt: now,
   };

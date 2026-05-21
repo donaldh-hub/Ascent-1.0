@@ -126,6 +126,9 @@ export function analyseAssignmentCoverage(records: NormalizedReportingRecord[]):
       recommendedReviewQuestion:
         "Which review-queue assignments can be resolved to lift confidence across downstream analyses?",
       compatibleSurfaces: [...SURFACES],
+      reportingModeUsed: "hybrid_or_unknown",
+      turnRelatedBreakdown: null,
+      recordInclusionMetadata: {},
       createdAt: now,
       updatedAt: now,
     },

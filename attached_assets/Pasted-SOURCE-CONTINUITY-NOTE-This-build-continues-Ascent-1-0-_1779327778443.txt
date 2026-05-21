@@ -1,0 +1,626 @@
+SOURCE CONTINUITY NOTE
+
+This build continues Ascent 1.0 from the Master Source Index + Build Continuity Spine.
+
+The system already includes:
+
+- authentication and role-based access
+- app shell / navigation shell
+- organization, property, and unit structure
+- assignment engine logic
+- dual-mode import governance
+- workflow engine
+- work order logic
+- turn logic
+- scoring + stoplight engine
+- alert and warning engine
+- dashboard intelligence layer
+- document + evidence engine
+- system integration + reaction layer
+- Build 7 reporting spine
+- Build 7.1 reporting ingestion layer
+- Build 7.2 reporting analysis + time allocation layer
+- Control Tower dashboard pre-wiring
+- clickable signal verification logic
+
+Do NOT rebuild prior systems.
+
+Do NOT redesign the application.
+
+Do NOT duplicate work order, turn, reporting, scoring, alert, dashboard, assignment, document, or Control Tower logic.
+
+Do NOT create fake metrics.
+
+Do NOT treat partial data as complete truth.
+
+Do NOT assume all organizations track turns the same way.
+
+Extend the existing reporting analysis layer.
+
+BUILD NAME
+
+Build 7.2.1 — Turn / Work Order Reporting Mode Assessment
+
+BUILD PURPOSE
+
+Build 7.2.1 adds organization-level reporting configuration that tells Ascent how to interpret the relationship between turns and work orders before running reporting analysis.
+
+This is necessary because organizations track turns differently.
+
+Some organizations keep turns and work orders separate.
+
+Other organizations use unit-level work orders as the operational proof of turn progress.
+
+Ascent must ask the organization how it tracks turns and then adjust reporting language, analysis grouping, Control Tower interpretation, and supporting record logic accordingly.
+
+This build prevents Ascent from misclassifying turn-related work orders or mixing turn and work order language incorrectly.
+
+CORE PRINCIPLE
+
+Do not force one operational model onto every organization.
+
+Ask the organization how they track turn progress.
+
+Then report accordingly.
+
+NEW ORGANIZATION SETTING REQUIRED
+
+Add an organization-level setting called:
+
+Turn / Work Order Reporting Mode
+
+The setting should support these values:
+
+1. Separate Turn and Work Order Tracking
+
+Meaning:
+
+The organization tracks turns as their own workflow or turn board.
+
+Work orders are treated as normal service/maintenance demand unless explicitly linked to a turn.
+
+Reporting behavior:
+
+- Turn reports should use turn records.
+- Work order reports should use work order records.
+- Work order categories should not be treated as turn stages.
+- Turn bottlenecks should come from turn stages.
+- Work order backlog should not automatically become turn delay.
+- If a work order is linked to a turn, show it as supporting context, not the main turn progress model.
+
+2. Work Orders Measure Turn Progress
+
+Meaning:
+
+The organization uses unit-level work orders to track what is being completed during a turn.
+
+Work order completion may be used as evidence of turn progress.
+
+Reporting behavior:
+
+- Work orders associated with vacant units, make-ready categories, turn labels, or turn-linked units may be interpreted as turn progress records.
+- Unit-level work order closure can contribute to turn completion analysis.
+- Delayed turn-related work orders can contribute to turn bottleneck analysis.
+- Work order categories may support turn stage interpretation if mapped properly.
+- Reports must clearly label these as “Turn-Related Work Orders” instead of ordinary reactive maintenance.
+- Work order counts used for turn progress must remain traceable to supporting records.
+
+3. Hybrid / Not Sure Yet
+
+Meaning:
+
+The organization may use both methods, or the user does not know yet.
+
+Reporting behavior:
+
+- Keep turn and work order analysis separate by default.
+- Flag possible turn-related work orders as “Potential Turn-Related Work Orders.”
+- Do not merge them into turn progress until confirmed.
+- Surface a recommendation asking the user to confirm their tracking method.
+- Use Qualified Analysis or Insufficient Data where appropriate.
+- Do not create confident turn conclusions from ambiguous records.
+
+WHEN TO ASK THE QUESTION
+
+Add this assessment in the reporting workflow before Build 7.2 analysis is run or displayed for the first time.
+
+Possible locations:
+
+1. Reports page setup panel
+2. Reporting readiness panel
+3. First-time reporting configuration step
+4. Organization settings under reporting configuration
+5. Governance / data quality setup area
+
+Use the location that best fits the existing architecture.
+
+Do not disrupt existing navigation.
+
+Do not redesign the app.
+
+QUESTION COPY
+
+Use clear operational language.
+
+Primary question:
+
+“How does your organization usually track unit turns?”
+
+Answer options:
+
+1. “We track turns separately from work orders.”
+
+Helper text:
+
+“Use this if your team has a turn board, make-ready tracker, or separate turn workflow. Work orders will stay in work order reporting unless directly linked to a turn.”
+
+2. “We use work orders to measure turn progress.”
+
+Helper text:
+
+“Use this if your team opens work orders for a vacant unit and uses those work orders to confirm what has been completed during the turn.”
+
+3. “We use both / I’m not sure yet.”
+
+Helper text:
+
+“Use this if your process varies by property or you want Ascent to keep the data separate until you confirm how turn-related work orders should be handled.”
+
+SAVE BEHAVIOR
+
+When the user answers, save the setting at the organization level.
+
+Also allow property-level override if the current architecture supports property-level reporting configuration.
+
+If property-level override does not exist, do not force it in this build.
+
+If easy to support safely, add:
+
+- organization default
+- optional property override
+
+Do not create a complicated settings system if one already exists.
+
+Use the existing settings/governance architecture where possible.
+
+REQUIRED DATA MODEL / CONFIGURATION
+
+Create or extend a reporting configuration object/table/state that stores:
+
+- organizationId
+- propertyId when property override is supported
+- turnWorkOrderReportingMode
+- configuredByUserId
+- configuredAt
+- updatedAt
+- notes optional
+- source: user_selected / default / inferred_candidate
+
+Allowed turnWorkOrderReportingMode values:
+
+- separate_turns_and_work_orders
+- work_orders_measure_turn_progress
+- hybrid_or_unknown
+
+DEFAULT BEHAVIOR
+
+If the organization has not answered the assessment yet:
+
+Use:
+
+hybrid_or_unknown
+
+The system must not assume.
+
+Reports should show a small setup prompt or data quality note:
+
+“Turn/work order reporting mode has not been confirmed yet. Ascent is keeping turn and work order analysis separate until your organization confirms how turn progress is tracked.”
+
+IMPACT ON BUILD 7.2 ANALYSIS
+
+Update Build 7.2 analysis behavior based on this setting.
+
+MODE 1: Separate Turn and Work Order Tracking
+
+Work Order Analysis:
+
+- Treat work orders as maintenance/service demand.
+- Do not interpret work order category “Turn” as a turn stage unless the record is explicitly linked to a turn.
+- If “Turn” appears as a work order category, label it as an imported work order category.
+- Do not mix those records into turn progress automatically.
+
+Turn Analysis:
+
+- Use turn records, make-ready records, turn stages, vacant dates, and turn status.
+- Linked work orders may appear as supporting records only if there is a clear relationship.
+
+Reports Language:
+
+Use:
+
+- Work Order Performance
+- Work Order Time Allocation
+- Turn Performance
+- Turn / Make-Ready Time
+- Linked Work Orders where applicable
+
+Do not call ordinary work orders “turn progress.”
+
+MODE 2: Work Orders Measure Turn Progress
+
+Work Order Analysis:
+
+- Identify turn-related work orders using available indicators, such as:
+  - vacant unit status
+  - make-ready labels
+  - category equals Turn
+  - description includes turn/make-ready context
+  - linked turnId
+  - unit currently in turn
+  - status/stage mapped to turn process
+  - organization-defined turn mapping if available
+
+Turn Analysis:
+
+- Allow turn-related work orders to contribute to turn progress.
+- Use completed turn-related work orders as completion evidence.
+- Use open/late turn-related work orders as turn delay evidence.
+- Group turn-related work orders by unit/property.
+- If stage mapping is available, map work order category/status to turn stage.
+- If stage mapping is not available, label as “Turn-Related Work Orders — Unmapped Stage.”
+
+Reports Language:
+
+Use:
+
+- Turn-Related Work Orders
+- Work Orders Measuring Turn Progress
+- Unit Turn Progress
+- Turn Completion Evidence
+- Turn Delay Evidence
+- Unmapped Turn Work Orders
+
+Do not count these only as ordinary reactive maintenance if the mode says work orders measure turn progress.
+
+MODE 3: Hybrid / Not Sure Yet
+
+Work Order Analysis:
+
+- Keep work orders in work order reporting.
+- Detect possible turn-related work orders but do not fully merge them.
+- Label them as “Potential Turn-Related Work Orders.”
+
+Turn Analysis:
+
+- Use confirmed turn records for turn conclusions.
+- Show potential turn-related work orders as a qualified insight only.
+- Require user confirmation before treating them as turn progress.
+
+Reports Language:
+
+Use:
+
+- Potential Turn-Related Work Orders
+- Needs Confirmation
+- Qualified Analysis
+- Reporting Mode Not Confirmed
+
+Do not generate confirmed turn progress from ambiguous work order records.
+
+TURN-RELATED WORK ORDER DETECTION
+
+Add reusable logic that identifies candidate turn-related work orders.
+
+Candidate signals may include:
+
+1. Work order category equals Turn, Make Ready, Make-Ready, Unit Turn, Turnover, Vacant, Prep, Punch, Paint, Flooring, Cleaning, Inspection, Rework
+
+2. Work order description includes turn-related language
+
+3. Unit status is vacant, notice, down, make-ready, or turning where available
+
+4. Work order is attached to a turnId or workflowId representing a turn
+
+5. Work order open date falls inside the unit’s turn/vacancy window
+
+6. Work order status/stage aligns with known turn workflow stages
+
+7. Property has organization configuration saying work orders measure turn progress
+
+Detection output must include:
+
+- isTurnRelatedCandidate
+- turnRelationConfidence
+- turnRelationReason
+- linkedTurnId when available
+- linkedUnitId
+- linkedPropertyId
+- stageMapping when available
+- needsConfirmation boolean
+
+Confidence states:
+
+- Confirmed Turn-Related
+- Likely Turn-Related
+- Possible Turn-Related
+- Not Turn-Related
+
+Only Confirmed or Likely records may influence turn analysis in Work Orders Measure Turn Progress mode.
+
+Possible records should remain qualified.
+
+SUPPORTING RECORD REQUIREMENTS
+
+Every turn/work-order mode decision must be traceable.
+
+If Ascent says:
+
+“30 turns blocked at Maintenance”
+
+Then clicking must show whether the records came from:
+
+1. Native turn records
+2. Turn-linked work orders
+3. Work orders measuring turn progress
+4. Hybrid possible turn records
+5. Qualified records awaiting confirmation
+
+Every supporting record should show:
+
+- record type
+- property
+- unit
+- category
+- status
+- stage where available
+- linked turn where available
+- reason it was included
+- confidence state
+- reporting mode used
+
+CONTROL TOWER REQUIREMENTS
+
+Update Control Tower analysis behavior without redesigning the Control Tower.
+
+The existing tiles remain:
+
+1. Operational Health
+2. Work Order Performance
+3. Turn Performance
+4. PM Performance
+5. Asset Performance
+
+In Separate Turn and Work Order Tracking mode:
+
+- Work Order Performance should show work order pressure.
+- Turn Performance should show turn/make-ready pressure.
+- Turn-related work orders should only affect Turn Performance if explicitly linked.
+
+In Work Orders Measure Turn Progress mode:
+
+- Work Order Performance should still show general maintenance demand.
+- Turn Performance may use turn-related work orders as turn progress evidence.
+- Priority Actions may show turn-related work order bottlenecks.
+- Labels must make this clear.
+
+Example:
+
+“30 turn-related work orders blocked at Maintenance”
+
+or
+
+“30 unit-turn work orders blocked at Maintenance”
+
+Do not simply say “30 turns blocked” if the underlying records are work orders.
+
+In Hybrid / Not Sure Yet mode:
+
+- Keep the Control Tower conservative.
+- Use labels like “Possible turn-related work orders need confirmation.”
+- Do not let ambiguous records drive confirmed Turn Performance scoring.
+
+REPORTS PAGE REQUIREMENTS
+
+Update Reports page language and analysis grouping based on reporting mode.
+
+Add a small visible configuration indicator near the Reporting Analysis section:
+
+“Turn / Work Order Reporting Mode: [Selected Mode]”
+
+Include an option to change it.
+
+For each affected report section, show:
+
+- mode used
+- whether turn-related work orders were included
+- how many records were native turns
+- how many records were turn-related work orders
+- how many records were excluded
+- how many records need confirmation
+
+The Reports page must not hide the interpretation method.
+
+PRIORITY ACTIONS REQUIREMENTS
+
+Priority Actions should adapt labels based on the selected mode.
+
+Examples:
+
+Separate Mode:
+
+- “30 turns blocked at Maintenance”
+- “45 work orders aging beyond 7 days”
+
+Work Orders Measure Turn Progress Mode:
+
+- “30 turn-related work orders blocked at Maintenance”
+- “45 unit-turn work orders aging beyond 7 days”
+- “12 vacant units have incomplete turn work orders”
+
+Hybrid Mode:
+
+- “30 possible turn-related records need confirmation”
+- “45 work orders may be tied to active turns”
+
+Do not use the same label for all modes.
+
+LANGUAGE SEPARATION RULE
+
+This build must strengthen the language separation rule.
+
+The system should never accidentally mix terms.
+
+If the data model says work order, call it a work order.
+
+If the data model says turn, call it a turn.
+
+If the organization uses work orders to measure turns, call them:
+
+Turn-Related Work Orders
+
+or
+
+Unit-Turn Work Orders
+
+Do not hide the record type.
+
+This avoids false clarity.
+
+REPORTING CONFIDENCE RULES
+
+The selected mode must influence confidence.
+
+Separate Mode:
+
+- Native turn records can support Confirmed Turn Analysis.
+- Work orders only support turn analysis if explicitly linked.
+- Unlinked work orders cannot create confirmed turn conclusions.
+
+Work Orders Measure Turn Progress Mode:
+
+- Confirmed turn-related work orders may support Confirmed or Qualified Turn Analysis depending on completeness.
+- Likely turn-related work orders may support Qualified Analysis.
+- Possible turn-related work orders require confirmation.
+
+Hybrid Mode:
+
+- Native turn records may support confirmed turn analysis.
+- Possible turn-related work orders stay qualified or separate.
+- Ambiguous work orders must not create confirmed turn conclusions.
+
+AUDIT LOG REQUIREMENTS
+
+Log changes to the reporting mode.
+
+Audit entry should include:
+
+- organizationId
+- propertyId if applicable
+- old mode
+- new mode
+- userId
+- changedAt
+- reason optional
+- affected analysis categories
+
+Do not silently change reporting interpretation.
+
+REQUIRED VALIDATION TESTS
+
+After implementation, validate:
+
+1. Organization can select Separate Turn and Work Order Tracking.
+
+2. Organization can select Work Orders Measure Turn Progress.
+
+3. Organization can select Hybrid / Not Sure Yet.
+
+4. Default mode is Hybrid / Not Sure Yet when no answer exists.
+
+5. Reports page displays the selected mode.
+
+6. Control Tower adapts labels based on selected mode.
+
+7. Priority Actions adapt labels based on selected mode.
+
+8. Work order records are not silently converted into turns.
+
+9. Native turn records remain native turn records.
+
+10. Turn-related work orders are labeled clearly.
+
+11. Supporting records show record type and inclusion reason.
+
+12. Counts match supporting records.
+
+13. Separate Mode does not merge work orders into turns unless explicitly linked.
+
+14. Work Orders Measure Turn Progress mode allows turn-related work orders to contribute to turn analysis.
+
+15. Hybrid Mode keeps ambiguous records qualified.
+
+16. Changing the mode updates reporting interpretation without corrupting source records.
+
+17. Audit log records the mode change.
+
+18. Existing Build 7.2 analysis remains intact.
+
+19. No fake data is created.
+
+20. No previous system is rebuilt.
+
+BUILD SUMMARY REQUIRED
+
+When complete, provide a summary showing:
+
+1. Files created
+2. Files modified
+3. Where the organization setting is stored
+4. Where the assessment appears
+5. How the selected mode changes Work Order analysis
+6. How the selected mode changes Turn analysis
+7. How the selected mode changes Control Tower labels
+8. How the selected mode changes Reports page labels
+9. How supporting records show record type and inclusion reason
+10. What validation tests were run
+11. Any issues remaining
+
+SUCCESS STATE
+
+Build 7.2.1 is successful when:
+
+1. Ascent asks how the organization tracks turns.
+
+2. The answer is saved as a reporting configuration.
+
+3. Reports and Control Tower analysis adapt to that answer.
+
+4. Work orders and turns are not incorrectly merged.
+
+5. Turn-related work orders are clearly labeled.
+
+6. Hybrid/unknown mode stays conservative.
+
+7. Supporting records explain why each record was included.
+
+8. Counts still match drill-downs.
+
+9. Confidence states remain honest.
+
+10. The system becomes more operationally accurate without becoming more confusing.
+
+FINAL INSTRUCTION
+
+Implement this as a focused Build 7.2.1 update.
+
+Do not redesign the app.
+
+Do not rebuild the reporting engine.
+
+Do not restart the Control Tower.
+
+Do not create placeholder-only logic.
+
+Add the Turn / Work Order Reporting Mode assessment, save the configuration, and wire it into Build 7.2 analysis, Reports, Control Tower labels, Priority Actions, and supporting records.
+
+This update exists to make Ascent more honest about how each organization actually operates.
