@@ -1,0 +1,736 @@
+SOURCE CONTINUITY NOTE
+
+Continue Ascent 1.0 from the Master Source Index + Build Continuity Spine.
+
+The system already includes auth, roles, app shell, properties, units, assignment, workflow, work orders, turns, scoring, alerts, dashboard intelligence, documents/evidence, reaction layer, import governance, Build 7 reporting spine, Build 7.1 reporting ingestion, Build 7.2 analysis/time-allocation logic, and Control Tower pre-wiring.
+
+Do NOT rebuild prior systems.
+
+Do NOT duplicate existing logic.
+
+Do NOT invent fake data, fake metrics, fake narratives, fake conclusions, or fake wiring.
+
+Do NOT treat partial data as complete truth.
+
+All new work must connect to the shared source of truth and preserve:
+
+SIGNAL → CLICK → SUPPORTING RECORDS → DECISION
+
+This build is Build 7.3.
+
+Internal build label:
+
+BUILD 7.3 — NARRATIVE INSIGHTS ENGINE
+
+
+PRIMARY GOAL
+
+Build the Narrative Insights Engine for Ascent 1.0.
+
+This layer must convert confirmed reporting analysis from Build 7.2 into clear, operational, evidence-backed narrative insights.
+
+The system should not only show numbers.
+
+It should explain:
+
+1. What the data suggests
+2. Why it matters operationally
+3. What records support the finding
+4. What category the issue belongs to
+5. Whether the insight is fully supported or partially supported
+6. What question the manager should review next
+7. What action should be considered next without overprescribing
+
+The output should feel like a practical maintenance operations analyst, not a generic chatbot.
+
+
+WHAT BUILD 7.3 MUST EXTEND
+
+Extend the existing:
+
+1. Build 7 reporting spine
+2. Build 7.1 reporting ingestion layer
+3. Build 7.2 analysis and time-allocation layer
+4. Work order reporting logic
+5. Turn reporting logic
+6. PM reporting readiness logic
+7. Asset/warranty reporting readiness logic
+8. Assignment/data quality reporting logic
+9. Control Tower compatibility layer
+10. Reaction layer / clickable signal proof layer
+11. Evidence/document logic
+12. Scoring and stoplight engine
+13. Alert/warning engine where appropriate
+
+Do not create a separate narrative database or disconnected insight model.
+
+Narratives must be generated from existing normalized reporting records, existing analysis outputs, and existing supporting records.
+
+
+BUILD 7.3 CORE REQUIREMENTS
+
+Create a reusable Narrative Insights Engine that can generate structured insight objects from reporting analysis.
+
+Each generated insight must include:
+
+1. insightId
+2. organizationId
+3. propertyId where applicable
+4. reportType
+5. insightCategory
+6. insightSeverity
+7. confidenceLevel
+8. dataSupportLevel
+9. headline
+10. plainLanguageSummary
+11. operationalWhyItMatters
+12. supportingRecordCount
+13. supportingRecordIds
+14. sourceMetricsUsed
+15. reportabilityBreakdown
+16. limitationText if data is partial
+17. recommendedReviewQuestion
+18. suggestedNextStep
+19. createdAt
+20. generatedFromBuildVersion
+
+Do not store unsupported narrative claims.
+
+If an insight cannot identify supporting records, it must either not render or must render as a limited/low-confidence observation with clear limitation language.
+
+
+INSIGHT CATEGORIES
+
+Support these insight categories:
+
+1. Work Order Performance
+2. Turn Performance
+3. Preventative Maintenance Readiness
+4. Asset / Warranty Readiness
+5. Assignment Coverage
+6. Evidence / Documentation Gaps
+7. Time Allocation
+8. Bottleneck Detection
+9. Risk Pattern
+10. Data Quality / Reporting Readiness
+
+Each category must use the correct language.
+
+Do NOT mix work order language with turn language.
+
+Do NOT call work order completion a turn completion unless the organization has explicitly selected that their process uses work orders as turn progress markers.
+
+This matters.
+
+Some organizations keep turns and work orders separate.
+
+Some organizations measure turn progress by confirming work orders inside the vacant unit.
+
+Build 7.3 must respect the organization’s selected reporting interpretation from Build 7.2 / 7.2.1 if it exists.
+
+
+TURN + WORK ORDER INTERPRETATION RULE
+
+Before generating turn-related narrative insights, check the organization’s turn/work order reporting configuration.
+
+Support at least these modes:
+
+1. Separate Mode
+
+Meaning:
+Turns and work orders are treated as separate operational categories.
+
+Narrative rule:
+Do not imply work order closure equals turn completion.
+
+Example language:
+“Work order activity may be contributing to turn progress, but the turn record itself must be reviewed separately.”
+
+2. Work Orders as Turn Progress Mode
+
+Meaning:
+The organization uses work order completion inside vacant units as one way to measure turn progress.
+
+Narrative rule:
+Narrative insights may explain how open, delayed, or completed work orders are affecting turn progress.
+
+Example language:
+“Because this organization tracks turn progress through related work orders, the open work orders in these units are being included as part of turn progress analysis.”
+
+3. Unknown / Not Configured Mode
+
+Meaning:
+The organization has not answered the turn/work order interpretation question.
+
+Narrative rule:
+Do not make strong turn-progress conclusions from work order data.
+
+Render a setup warning:
+
+“Turn reporting interpretation has not been configured yet. Ascent can show related work order activity, but it will not treat work order closure as turn completion until this setting is confirmed.”
+
+
+NARRATIVE INSIGHT TYPES
+
+Build the engine so it can generate these practical insight types:
+
+1. Bottleneck Insight
+
+Explains where operational movement appears slowed.
+
+Must include:
+- Category
+- Affected property
+- Affected units or records
+- Aging/time evidence
+- Count of supporting records
+- Whether the bottleneck is confirmed or suggested
+
+Example:
+“Maintenance-stage work is creating the clearest turn delay at North Ridge. 8 active turns have remained in maintenance longer than the expected range. Review the related unit records first to confirm whether staffing, parts, or contractor scheduling is driving the delay.”
+
+2. Time Allocation Insight
+
+Explains where labor/time appears concentrated.
+
+Must include:
+- Category
+- Time pattern
+- Comparison point where available
+- Supporting records
+- Limitation if time data is incomplete
+
+Example:
+“Work order time appears concentrated in repeat plumbing repairs. This may be reducing available maintenance capacity for turns and PM work. Review the supporting records to determine whether the issue is isolated to specific units, recurring fixtures, or vendor-dependent repairs.”
+
+3. Risk Insight
+
+Explains where current conditions may create operational risk.
+
+Must include:
+- Risk driver
+- Evidence
+- Operational consequence
+- Supporting records
+- Review question
+
+Example:
+“Open work orders older than the response target are creating service-risk exposure. The issue is concentrated in 12 records across 3 properties. Review whether these delays are caused by parts, staffing, vendor scheduling, or assignment gaps.”
+
+4. Data Quality Insight
+
+Explains when reporting is limited.
+
+Must include:
+- Missing fields
+- Affected report area
+- What can still be reported
+- What cannot be trusted yet
+- Suggested upload or review step
+
+Example:
+“Turn reporting is partially available, but several records are missing vacant-date or stage information. Ascent can show active turn counts, but cycle-time conclusions should remain limited until those fields are completed.”
+
+5. Evidence Gap Insight
+
+Explains missing documentation that weakens proof.
+
+Must include:
+- Missing documentation type
+- Affected records
+- Why documentation matters
+- Supporting record list
+
+Example:
+“Several high-priority records have no attached documentation. This limits proof for decision-making, especially where delays, contractor work, or resident-facing issues are involved.”
+
+6. Assignment Coverage Insight
+
+Explains where records are unresolved or partially assigned.
+
+Must include:
+- Assignment issue
+- Count
+- Affected records
+- Impact on reporting
+- Next review question
+
+Example:
+“14 uploaded records are only partially assigned. They can support limited trend review, but they should not feed executive certainty until property, unit, or category assignment is confirmed.”
+
+
+CONFIDENCE AND DATA SUPPORT RULES
+
+Each insight must include a confidence level.
+
+Use:
+
+1. High Confidence
+
+Requirements:
+- Based mostly on Fully Reportable records
+- Supporting records exist
+- Required fields are present
+- Counts and filters align
+
+2. Medium Confidence
+
+Requirements:
+- Based on mixed Fully Reportable and Partially Reportable records
+- Supporting records exist
+- Some fields are missing but the pattern is still useful
+
+3. Low Confidence
+
+Requirements:
+- Based mainly on partial data
+- Insight is directional only
+- Must include limitation language
+
+Do not generate strong conclusions from low-confidence data.
+
+Each insight must also include dataSupportLevel:
+
+1. Fully Supported
+2. Partially Supported
+3. Directional Only
+4. Not Enough Data
+
+If dataSupportLevel is “Not Enough Data,” the system should not generate a normal operational insight.
+
+It should generate a reporting readiness message instead.
+
+
+REPORTABILITY BREAKDOWN
+
+Every narrative insight must show or store its reportability breakdown.
+
+Include:
+
+1. fullyReportableCount
+2. partiallyReportableCount
+3. notReportableYetCount
+4. totalRecordsReviewed
+5. percentFullyReportable
+6. limitationText
+
+Example limitation language:
+
+“Because 31% of the related records are only partially reportable, this insight should be treated as directional until missing fields are resolved.”
+
+No insight should silently mix full and partial records as if they are equal.
+
+
+NARRATIVE TONE RULES
+
+Narrative language must be:
+
+1. Plain
+2. Operational
+3. Specific
+4. Evidence-backed
+5. Manager-facing
+6. Calm
+7. Action-oriented
+8. Not dramatic
+9. Not generic
+10. Not fake-consultant language
+
+Avoid phrases like:
+
+- “Unlock powerful insights”
+- “Revolutionize your operations”
+- “AI has discovered”
+- “This proves”
+- “Guaranteed”
+- “Always”
+- “Never” unless it is a system rule
+
+Use language like:
+
+- “The records suggest...”
+- “This may indicate...”
+- “The strongest signal is...”
+- “Review these records first...”
+- “This appears concentrated in...”
+- “The data is limited because...”
+- “Before treating this as confirmed, review...”
+- “The next operational question is...”
+
+
+RECOMMENDED REVIEW QUESTION REQUIREMENT
+
+Every insight must include a recommendedReviewQuestion.
+
+This is one of the most important parts of 7.3.
+
+The insight should not just say what happened.
+
+It should sharpen what the manager should ask next.
+
+Examples:
+
+Work Orders:
+“Are these delayed work orders waiting on parts, staffing, vendor scheduling, or assignment correction?”
+
+Turns:
+“Are these turn delays being caused by maintenance scope, contractor timing, inspection failure, or unresolved work orders?”
+
+PM:
+“Are emergency repairs increasing in categories where PM records are missing or outdated?”
+
+Assets:
+“Are repeat repairs happening on assets that are outside warranty or near replacement age?”
+
+Evidence:
+“Are high-priority records missing photos, invoices, or completion documentation?”
+
+Assignment:
+“Which partially assigned records need property, unit, or category confirmation before they can support reporting?”
+
+
+SUGGESTED NEXT STEP REQUIREMENT
+
+Every insight must include a suggestedNextStep.
+
+This should not be too bossy.
+
+Do not say:
+“Fix this immediately.”
+
+Use:
+“Review these records first.”
+“Confirm whether parts or vendor delays are the cause.”
+“Update missing stage dates before relying on cycle-time reporting.”
+“Open the supporting records and confirm whether the pattern is isolated or repeating.”
+“Use this record group as the starting point for the next maintenance conversation.”
+
+This is core to Ascent 1.0.
+
+The report brings both sides together.
+
+The Intelligence Engine sharpens the question.
+
+
+CLICKABLE SUPPORTING RECORDS REQUIREMENT
+
+Every narrative insight rendered in the UI must be clickable.
+
+Clicking an insight must open the supporting records used to generate it.
+
+The supporting records panel must show:
+
+1. Record ID
+2. Property
+3. Unit where applicable
+4. Category
+5. Status
+6. Stage where applicable
+7. Age/time value where applicable
+8. Reportability state
+9. Assignment state
+10. Evidence/document count
+11. Why this record was included
+
+If the insight says 12 records are involved, clicking must show those 12 matching records.
+
+No dead insight cards.
+
+No unsupported insight claims.
+
+No generic click panels.
+
+
+UI REQUIREMENTS
+
+Add Narrative Insights wherever appropriate inside the existing Reports experience.
+
+Do not redesign the entire app.
+
+Add a clean Narrative Insights section to report outputs.
+
+This section should appear after summary metrics and analysis blocks, not before the report has enough context.
+
+Each insight card should include:
+
+1. Category label
+2. Severity indicator
+3. Confidence label
+4. Headline
+5. Plain-language summary
+6. Why it matters
+7. Recommended review question
+8. Suggested next step
+9. Supporting record count
+10. Click-to-review supporting records interaction
+11. Limitation note if partial data was used
+
+Use simple manager-facing language.
+
+The UI should be easy to scan.
+
+A user should understand the insight in under 10 seconds.
+
+
+SEVERITY RULES
+
+Use severity levels:
+
+1. Informational
+2. Watch
+3. Needs Review
+4. Priority
+5. Critical
+
+Severity must be calculated from existing scoring/risk/time/bottleneck logic where available.
+
+Do not invent a separate severity system if existing scoring and alert logic can support it.
+
+Map severity carefully:
+
+Informational:
+Useful observation, low operational pressure.
+
+Watch:
+Pattern is forming but not urgent yet.
+
+Needs Review:
+Records suggest a meaningful issue that requires manager review.
+
+Priority:
+Issue is affecting performance, timing, risk, or capacity.
+
+Critical:
+Issue is severe, aging, high-risk, or tied to multiple urgent records.
+
+
+EMPTY AND LOW-DATA STATES
+
+Build honest empty states.
+
+If there is not enough data to generate narrative insights, show:
+
+“No narrative insights are available yet because Ascent does not have enough reportable records for this report.”
+
+Then show:
+
+1. Records uploaded
+2. Fully reportable records
+3. Partially reportable records
+4. Not reportable yet records
+5. Missing fields blocking insight generation
+6. Suggested next upload or correction
+
+Do not show fake sample insights unless the app is in an explicitly tagged demo/mock-data mode.
+
+
+ROLE-AWARE BEHAVIOR
+
+Narrative insights should respect user role.
+
+At minimum:
+
+Admin / Owner:
+Can see organization-wide and property-level narrative insights.
+
+Regional / Portfolio Role:
+Can see assigned property groups and rollups.
+
+Property Manager / Site Leader:
+Can see assigned property insights.
+
+Maintenance Supervisor:
+Can see operational insights tied to assigned properties, units, work orders, turns, PM, and assets.
+
+Read-only / Viewer:
+Can view insights but not modify records.
+
+
+DATABASE / SERVER REQUIREMENTS
+
+Create or extend the needed server-side logic to support narrative insight generation.
+
+Prefer reusable services/utilities over UI-only calculations.
+
+The engine should be callable by report type.
+
+Suggested structure:
+
+1. narrativeInsightEngine
+2. insightGeneratorByReportType
+3. insightConfidenceCalculator
+4. insightSeverityMapper
+5. insightSupportRecordResolver
+6. insightLanguageBuilder
+7. insightLimitationsBuilder
+8. insightReviewQuestionBuilder
+9. insightNextStepBuilder
+
+Use existing database/schema patterns.
+
+If persistent storage is appropriate, create a narrative insights table/model that stores generated insight records and links to supporting records.
+
+If the existing architecture favors computed outputs, compute insights server-side and return structured objects.
+
+Either way, avoid UI-only fake narrative logic.
+
+
+REPORT TYPES TO SUPPORT FIRST
+
+Support narrative insight generation for:
+
+1. Work Order Performance reports
+2. Turn Performance reports
+3. Time Allocation analysis outputs from Build 7.2
+4. Data Quality / Reporting Readiness outputs
+5. Assignment Coverage reporting
+6. Evidence / Documentation gap reporting
+
+Create architecture that can later support PM, asset, and warranty insights without rebuilding the engine.
+
+
+SPECIFIC WORK ORDER INSIGHTS
+
+For work order reports, generate insights around:
+
+1. Aging work orders
+2. Category concentration
+3. Repeat issue categories
+4. Status bottlenecks
+5. Assignment gaps
+6. Documentation gaps
+7. Response-time concerns if fields exist
+8. Completion-time concerns if fields exist
+9. Time allocation pressure if time/labor data exists
+
+Do not say something is delayed unless the dates support it.
+
+Do not say a category is dominant unless counts support it.
+
+Do not say labor is overloaded unless time/capacity data supports it.
+
+
+SPECIFIC TURN INSIGHTS
+
+For turn reports, generate insights around:
+
+1. Aging turns
+2. Stage bottlenecks
+3. Units stuck in maintenance
+4. Units stuck in paint/flooring/cleaning/inspection where stage data exists
+5. Vacancy exposure where vacant-date data exists
+6. Work-order-related turn impact only when configuration allows it
+7. Missing stage/date data
+8. Contractor vs staff bottleneck patterns where responsible-party data exists
+
+Respect the turn/work order interpretation setting.
+
+This is non-negotiable.
+
+
+SPECIFIC DATA QUALITY INSIGHTS
+
+Generate insights that explain what the system can and cannot trust.
+
+Examples:
+
+1. Missing property
+2. Missing unit
+3. Missing category
+4. Missing status
+5. Missing created/open date
+6. Missing completed/closed date
+7. Missing stage
+8. Missing responsible party
+9. Missing evidence
+10. Unresolved assignment
+
+These insights should help the user improve future uploads.
+
+
+CONTROL TOWER COMPATIBILITY
+
+Build 7.3 should not force Control Tower UI changes unless needed.
+
+However, the insight engine must be compatible with future Control Tower use.
+
+Prepare the structured output so future tiles can show:
+
+1. Top narrative insight
+2. Priority narrative insight
+3. Data limitation note
+4. Clickable supporting records
+5. Recommended review question
+
+The Control Tower remains the customer-facing validation source, so narrative insights must be designed to eventually support it cleanly.
+
+
+PERFORMANCE REQUIREMENTS
+
+Do not create slow report pages.
+
+Narrative generation should be efficient.
+
+Avoid repeatedly recalculating the same heavy logic in the browser.
+
+Use server-side helpers, memoization, caching, or query optimization where appropriate.
+
+Avoid loading unnecessary records beyond the report scope.
+
+Large reports should remain usable.
+
+
+TESTING REQUIREMENTS
+
+After implementation, test the following:
+
+1. Upload or use existing work order report data with enough records to generate insights.
+2. Confirm the system generates work order narrative insights.
+3. Click each insight and confirm supporting records match the insight count.
+4. Confirm the insight includes confidence level and reportability breakdown.
+5. Confirm partially reportable records produce limitation language.
+6. Confirm insufficient data produces an honest empty/low-data state.
+7. Confirm turn insights do not treat work orders as turn completion unless the organization setting allows it.
+8. Confirm work order language stays work-order specific.
+9. Confirm turn language stays turn-specific.
+10. Confirm evidence gap insights link to records with missing documentation.
+11. Confirm assignment coverage insights link to partially/unresolved records.
+12. Confirm no fake narrative appears when there is no data.
+13. Confirm report pages still load properly.
+14. Confirm no existing reports, ingestion flows, dashboard routes, or Control Tower tiles are broken.
+
+
+SUCCESS STATE
+
+Build 7.3 is successful when:
+
+1. Reports now include clear narrative insights.
+2. Insights are generated from real reporting analysis.
+3. Every insight is tied to supporting records.
+4. Every insight distinguishes fully supported findings from partial findings.
+5. Every insight includes a practical review question.
+6. Every insight includes a suggested next step.
+7. Partial data creates limitation language.
+8. Low data creates honest empty states.
+9. Work order, turn, PM, asset, assignment, and evidence language remain separated.
+10. No fake summaries, dead cards, or unsupported conclusions exist.
+11. The system continues the existing architecture instead of rebuilding it.
+
+
+FINAL BUILD RESPONSE REQUIRED
+
+When finished, provide:
+
+1. What files were created or changed
+2. What Narrative Insights Engine logic was added
+3. What report types now support narrative insights
+4. How supporting records are linked
+5. How confidence/reportability is calculated
+6. How low-data states work
+7. How turn/work order interpretation is handled
+8. Any limitations or follow-up work needed for Build 7.4
+9. Any tests run and results
+
+Do not give a vague summary.
+
+Give a practical build report.

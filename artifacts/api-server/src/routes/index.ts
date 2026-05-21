@@ -17,6 +17,7 @@ import governanceRouter from "./governance";
 import reportingIngestionRouter from "./reporting-ingestion";
 import reportingAnalysisRouter from "./reporting-analysis";
 import reportingConfigRouter from "./reporting-config";
+import narrativeInsightsRouter from "./narrative-insights";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(governanceRouter);
 router.use(reportingIngestionRouter);
 router.use(reportingAnalysisRouter);
 router.use(reportingConfigRouter);
+router.use(narrativeInsightsRouter);
 
 export default router;

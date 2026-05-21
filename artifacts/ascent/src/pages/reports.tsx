@@ -36,6 +36,7 @@ import {
 import { ReportingAnalysisSections, AnalysisSupportingRecordsSheet } from "@/components/reports/reporting-analysis-sections";
 import type { AnalysisDrillContext } from "@/components/reports/reporting-analysis-sections";
 import { ReportingModeAssessment } from "@/components/reports/reporting-mode-assessment";
+import { NarrativeInsightsSection } from "@/components/reports/narrative-insights-section";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -452,6 +453,9 @@ export default function ReportsPage() {
 
       {/* Build 7.2 — Reporting analysis sections */}
       <ReportingAnalysisSections onDrill={setAnalysisDrill} />
+
+      {/* Build 7.3 — Narrative Insights (placed after summary + analysis blocks per spec) */}
+      <NarrativeInsightsSection onDrill={setAnalysisDrill} />
 
       {/* Wired sources */}
       {readiness && (
