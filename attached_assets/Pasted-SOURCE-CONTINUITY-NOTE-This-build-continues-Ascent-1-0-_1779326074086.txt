@@ -1,0 +1,786 @@
+SOURCE CONTINUITY NOTE
+
+This build continues Ascent 1.0 from the Master Source Index + Build Continuity Spine.
+
+The current system already includes:
+
+- authentication and role-based access
+- app shell / navigation shell
+- organization, property, and unit structure
+- guided system activation and unit intake
+- unit profile and immediate history visibility
+- assignment engine logic
+- dual-mode import governance
+- workflow engine
+- work order logic
+- turn logic
+- timing and bottleneck foundation
+- scoring + stoplight engine
+- alert and warning engine
+- dashboard intelligence layer
+- document + evidence engine
+- evidence visibility layer
+- signal strength + language layer
+- system integration + reaction layer
+- Build 7 reporting spine
+- Build 7.1 reporting ingestion layer
+- Control Tower dashboard pre-wiring
+- universal wiring audit logic
+- clickable signal verification logic
+
+Do NOT rebuild prior systems.
+
+Do NOT redesign the application unless specifically instructed.
+
+Do NOT duplicate scoring, alert, dashboard, assignment, document, work order, turn, reporting, or Control Tower logic.
+
+Do NOT create fake dashboard or reporting results.
+
+Do NOT treat partial data as complete truth.
+
+Do NOT create dead-end counts, fake signals, or unclickable proof claims.
+
+All new work must connect to the shared source of truth.
+
+All surfaced metrics must be explainable.
+
+All clickable signals must return supporting records.
+
+All reporting outputs must distinguish confirmed truth from partial or unresolved data.
+
+Continue from the existing architecture.
+
+Extend the system.
+
+Do not restart it.
+
+BUILD NAME
+
+Build 7.2 — Reporting Analysis + Time Allocation Layer
+
+BUILD PURPOSE
+
+Build 7.2 adds the analysis layer that sits after Build 7.1 reporting ingestion.
+
+Build 7 created the reporting and analytics backbone.
+
+Build 7.1 created the trusted reporting intake gate and classified normalized reporting records as:
+
+1. Fully Reportable
+2. Partially Reportable
+3. Not Reportable Yet
+
+Build 7.2 must now analyze only eligible reporting records and produce operational intelligence around:
+
+1. Where time is going
+2. Where labor capacity is being consumed
+3. Where delays are forming
+4. Which categories are creating operational drag
+5. Which properties, units, workflows, turns, work orders, PM items, assets, or evidence gaps are contributing to that drag
+6. Which supporting records prove the analysis
+7. Which Control Tower, Reports, and future Snapshot surfaces should be able to consume this analysis
+
+This build is not the final narrative report layer.
+
+This build is the analytical engine underneath future narrative insights.
+
+CORE BUILD PRINCIPLE
+
+Build 7.2 must follow this chain:
+
+REPORTABLE RECORDS
+→ ANALYSIS LOGIC
+→ TIME ALLOCATION
+→ BOTTLENECK DETECTION
+→ SUPPORTING RECORDS
+→ CONTROL TOWER / REPORTS COMPATIBILITY
+
+The system must not jump straight from uploaded records to polished conclusions.
+
+The analysis must be traceable.
+
+The user should be able to ask:
+
+“Why is Ascent saying this?”
+
+And the system should be able to answer with supporting records.
+
+SYSTEMS THIS BUILD EXTENDS
+
+Extend the existing:
+
+1. Build 7 reporting spine
+2. Build 7.1 reporting ingestion layer
+3. Reporting source registry
+4. Normalized reporting record contract
+5. Reporting eligibility classifications
+6. Dual-mode import governance
+7. Assignment engine
+8. Workflow engine
+9. Work order logic
+10. Turn logic
+11. PM reporting readiness
+12. Asset/warranty reporting readiness
+13. Evidence/document reporting ingestion
+14. Assignment coverage reporting ingestion
+15. Scoring + stoplight engine
+16. Alert and warning engine
+17. Dashboard intelligence layer
+18. Control Tower dashboard pre-wiring
+19. Reports page foundation
+20. Reaction layer
+21. Clickable signal verification logic
+
+Do not replace these systems.
+
+Connect into them.
+
+BUILD 7.2 OBJECTIVE
+
+Create a reusable reporting analysis service/module that takes Build 7.1 normalized reporting records and generates analysis outputs for:
+
+1. Work Order Time Allocation
+2. Turn Time Allocation
+3. PM Time Allocation
+4. Asset/Warranty Risk-Time Analysis
+5. Evidence/Data Quality Impact Analysis
+6. Assignment Coverage Impact Analysis
+7. Cross-Category Operational Pressure Analysis
+8. Supporting Record Mapping
+9. Control Tower compatibility outputs
+10. Reports page compatibility outputs
+
+REQUIRED DATA HANDLING RULES
+
+1. Fully Reportable records may be used in confirmed analysis.
+
+2. Partially Reportable records may be used only in qualified analysis.
+
+3. Not Reportable Yet records must not be used in final metrics, trends, bottleneck conclusions, or Control Tower scores.
+
+4. Every analysis result must carry a confidence/truth classification.
+
+Use these analysis confidence states:
+
+- Confirmed Analysis
+- Qualified Analysis
+- Insufficient Data
+
+5. Confirmed Analysis may only be generated from Fully Reportable records.
+
+6. Qualified Analysis may include Partially Reportable records but must clearly label what is missing.
+
+7. Insufficient Data must be used when the system does not have enough reportable information to support a conclusion.
+
+8. Do not silently mix Fully Reportable and Partially Reportable records.
+
+9. Do not create averages, percentages, or time allocation claims if the underlying fields are missing.
+
+10. If date fields are missing, do not calculate cycle time.
+
+11. If category fields are missing, do not calculate category share.
+
+12. If property/unit assignment is missing, do not attribute the record to a property/unit as fact.
+
+13. If responsible party data is missing, do not calculate staff/contractor split as fact.
+
+14. If supporting records are unavailable, do not surface the analysis as clickable proof.
+
+REQUIRED ANALYSIS OUTPUT CONTRACT
+
+Create a shared output contract for Build 7.2 analysis results.
+
+Each analysis output should include:
+
+- analysisId
+- organizationId
+- propertyId when available
+- unitId when available
+- analysisType
+- sourceCategory
+- dateRange
+- title
+- summary
+- metricValue
+- metricUnit
+- comparisonValue when available
+- trendDirection when available
+- timeAllocationShare when available
+- estimatedTimeImpact when available
+- bottleneckStage when available
+- primaryCategory when available
+- contributingFactors
+- confidenceState
+- reportabilityBasis
+- fullyReportableRecordCount
+- partiallyReportableRecordCount
+- excludedRecordCount
+- missingFields
+- supportingRecordIds
+- supportingRecordCount
+- recommendedReviewQuestion
+- compatibleSurfaces
+- createdAt
+- updatedAt
+
+Compatible surfaces may include:
+
+- Reports Page
+- Control Tower
+- Priority Actions Panel
+- Work Order Performance Tile
+- Turn Performance Tile
+- PM Performance Tile
+- Asset Performance Tile
+- Operational Health Tile
+- Future Snapshot Layer
+
+WORK ORDER TIME ALLOCATION REQUIREMENTS
+
+Build 7.2 must analyze reportable work order records for:
+
+1. Total work orders analyzed
+2. Open vs closed distribution
+3. Average days open where dates are available
+4. Average cycle time where open and close dates are available
+5. Category share
+6. Property-level share
+7. Unit-level repeat demand
+8. Aging buckets
+9. Status bottlenecks
+10. Repeated category patterns
+11. Emergency/reactive pressure where category/status supports it
+12. Records missing key fields
+13. Excluded records due to reportability limits
+14. Supporting records behind every surfaced result
+
+Work order analysis should answer:
+
+1. What categories are consuming the most maintenance attention?
+2. Which work orders are aging?
+3. Which properties are carrying heavier work order pressure?
+4. Which units show repeat demand?
+5. Which work orders are reportable enough to trust?
+6. Which records are missing fields that weaken the report?
+
+Do not use turn language for work order analysis.
+
+Do not call work order backlog a turn delay.
+
+Do not call a work order category a PM category unless the data supports that classification.
+
+TURN TIME ALLOCATION REQUIREMENTS
+
+Build 7.2 must analyze reportable turn/make-ready records for:
+
+1. Total active turns analyzed
+2. Completed turns where available
+3. Average vacant days where vacant start date exists
+4. Stage aging
+5. Current bottleneck stage
+6. Property-level turn pressure
+7. Unit-level turn status
+8. Responsible party split where available
+9. Staff vs contractor indicators where available
+10. Turn stage completion indicators
+11. Projected delay flags where date/stage data supports it
+12. Records missing key fields
+13. Excluded records due to reportability limits
+14. Supporting records behind every surfaced result
+
+Turn analysis should answer:
+
+1. Which turns are taking the longest?
+2. Which stage is slowing release?
+3. Which property is carrying the most turn pressure?
+4. Which units are at risk of extended vacancy?
+5. Which records prove the delay?
+6. What data is missing before a stronger conclusion can be made?
+
+Use actual turn language:
+
+- Turn
+- Make-ready
+- Vacant days
+- Stage
+- Bottleneck stage
+- Rent-ready
+- Inspection/rework
+- Contractor delay where applicable
+
+Do not use generic workflow language where turn language exists.
+
+PM TIME ALLOCATION REQUIREMENTS
+
+Build 7.2 must analyze reportable preventative maintenance records for:
+
+1. Total PM records analyzed
+2. PM completion status
+3. PM category distribution
+4. Last PM date where available
+5. Missed PM windows where rules/data exist
+6. Property-level PM coverage
+7. Unit-level PM gaps
+8. Asset/system PM gaps where linked
+9. Relationship between PM gaps and reactive work orders where record links or category patterns support it
+10. Records missing key fields
+11. Excluded records due to reportability limits
+12. Supporting records behind every surfaced result
+
+PM analysis should answer:
+
+1. What PM work is being completed?
+2. What PM work is missing or overdue?
+3. Which properties or units show PM coverage gaps?
+4. Are reactive work orders appearing in areas with weak PM coverage?
+5. Which records prove the PM gap?
+6. What data is missing before a stronger conclusion can be made?
+
+Do not overstate causation.
+
+Use careful language:
+
+- “May be contributing”
+- “Suggests a possible relationship”
+- “Review this pattern”
+- “Data supports further investigation”
+
+Do not say PM gaps caused emergencies unless the records directly prove that relationship.
+
+ASSET / WARRANTY RISK-TIME ANALYSIS REQUIREMENTS
+
+Build 7.2 must analyze reportable asset and warranty-ready records for:
+
+1. Total assets analyzed
+2. Asset type distribution
+3. Install date coverage
+4. Warranty status where available
+5. Out-of-warranty exposure where warranty data exists
+6. Asset age bands where install dates exist
+7. Repeated work order activity tied to assets where links exist
+8. Unit-level asset risk
+9. Property-level asset exposure
+10. Missing asset fields
+11. Excluded records due to reportability limits
+12. Supporting records behind every surfaced result
+
+Asset analysis should answer:
+
+1. Which assets may be creating repeat maintenance pressure?
+2. Which units have asset risk signals?
+3. Which assets are outside warranty where warranty data exists?
+4. Which properties may have heavier asset exposure?
+5. What records prove the asset signal?
+6. What is still missing before this can become full Build 9 warranty intelligence?
+
+Do not fully build Build 9.
+
+Prepare the analytical foundation for Build 9.
+
+EVIDENCE / DOCUMENTATION IMPACT ANALYSIS REQUIREMENTS
+
+Build 7.2 must analyze evidence and documentation records for:
+
+1. Records with supporting documents
+2. Records missing supporting documents
+3. Work orders missing evidence
+4. Turns missing evidence
+5. PM records missing evidence
+6. Asset records missing evidence
+7. Property-level documentation gaps
+8. Unit-level documentation gaps
+9. Analysis confidence reduction due to missing evidence
+10. Supporting records behind every surfaced evidence gap
+
+Evidence analysis should answer:
+
+1. Which operational claims are well-supported?
+2. Which claims are weakened by missing documentation?
+3. Which records should be reviewed before being trusted?
+4. Where does missing evidence reduce confidence?
+
+Use existing evidence language rules.
+
+Do not hardcode new evidence badge language if shared evidence components already exist.
+
+ASSIGNMENT COVERAGE IMPACT ANALYSIS REQUIREMENTS
+
+Build 7.2 must analyze assignment coverage for:
+
+1. Fully assigned records
+2. Partially assigned records
+3. Unassigned records
+4. Property assignment gaps
+5. Unit assignment gaps
+6. Asset assignment gaps
+7. Workflow/turn/work order assignment gaps
+8. How assignment gaps affect reporting confidence
+9. Supporting records for assignment gaps
+
+Assignment coverage analysis should answer:
+
+1. How much of the data is connected to the right operational context?
+2. Which records cannot be confidently attributed?
+3. Which properties or units have unresolved assignment gaps?
+4. Which analysis outputs are weakened by assignment problems?
+
+Never invent links.
+
+Only high-confidence assignments may feed confirmed analysis.
+
+Medium/low-confidence records must be qualified or excluded according to existing governance rules.
+
+CROSS-CATEGORY OPERATIONAL PRESSURE ANALYSIS REQUIREMENTS
+
+Build 7.2 must create cross-category analysis that compares:
+
+1. Work order pressure
+2. Turn pressure
+3. PM coverage
+4. Asset/warranty risk signals
+5. Evidence gaps
+6. Assignment gaps
+
+This analysis should answer:
+
+1. Is reactive work consuming capacity?
+2. Are turns being delayed while work order pressure is high?
+3. Are PM gaps visible alongside repeat work categories?
+4. Are asset risks contributing to repeat demand?
+5. Are missing documents weakening the confidence of the report?
+6. Are assignment gaps preventing clear property/unit accountability?
+
+Cross-category analysis must use careful language.
+
+Allowed phrasing examples:
+
+- “The data suggests operational pressure may be concentrated in…”
+- “Review this pattern before making a final decision…”
+- “This appears to be a capacity pressure point based on reportable records…”
+- “Confidence is limited because some records are partially reportable…”
+- “This signal should be reviewed with the supporting records before action is taken…”
+
+Not allowed:
+
+- Unsupported causation
+- Fake certainty
+- Generic business advice
+- Claims without supporting records
+- Cross-category conclusions based on unreportable data
+
+CONTROL TOWER CONNECTION REQUIREMENTS
+
+Build 7.2 must expose analysis outputs so the Control Tower can consume them without duplicating logic.
+
+Connect Build 7.2 outputs to:
+
+1. Operational Health tile
+2. Work Order Performance tile
+3. Turn Performance tile
+4. PM Performance tile
+5. Asset Performance tile
+6. Priority Actions Panel
+7. Drill-down panels below the tiles
+
+The Control Tower must be able to show analysis summaries such as:
+
+- Top work order time pressure
+- Top turn bottleneck
+- PM coverage concern
+- Asset/warranty exposure signal
+- Evidence weakness
+- Assignment/data quality weakness
+- Cross-category pressure pattern
+
+Each Control Tower analysis signal must include:
+
+1. Summary
+2. Confidence state
+3. Supporting record count
+4. Click interaction
+5. Drill-down panel
+6. Filtered supporting records
+7. Property/unit context where available
+8. Reportability distinction
+9. No dead-end counts
+
+Do not redesign the Control Tower.
+
+Do not replace existing tiles.
+
+Wire Build 7.2 analysis outputs into the existing Control Tower direction.
+
+REPORTS PAGE CONNECTION REQUIREMENTS
+
+Build 7.2 must expose analysis outputs to the Reports page foundation.
+
+Reports page should be able to consume:
+
+1. Work Order Analysis
+2. Turn Analysis
+3. PM Analysis
+4. Asset/Warranty Readiness Analysis
+5. Evidence Analysis
+6. Assignment Coverage Analysis
+7. Cross-Category Operational Pressure Analysis
+
+Each report section should include:
+
+1. Summary metric
+2. Analysis explanation
+3. Confidence state
+4. Date range
+5. Fully reportable count
+6. Partially reportable count
+7. Excluded count
+8. Missing fields
+9. Supporting record list
+10. Drill-down filter compatibility
+
+Do not build final narrative reporting yet unless needed only as brief explainability text.
+
+Build 7.3 will handle the deeper narrative insights layer.
+
+REACTION LAYER REQUIREMENTS
+
+Every analysis result must preserve:
+
+SIGNAL → CLICK → SUPPORTING RECORDS → DECISION
+
+If an analysis says:
+
+“Painting is the current turn bottleneck”
+
+Then clicking that signal must show:
+
+1. The turn records included
+2. Property
+3. Unit
+4. Current stage
+5. Stage aging
+6. Status
+7. Date logic
+8. Why each record was included
+
+If an analysis says:
+
+“Plumbing is the top work order category”
+
+Then clicking that signal must show:
+
+1. The work order records included
+2. Property
+3. Unit
+4. Category
+5. Status
+6. Open/close dates where available
+7. Time/cycle fields where available
+8. Why each record was included
+
+If an analysis says:
+
+“PM confidence is limited”
+
+Then clicking that signal must show:
+
+1. PM records analyzed
+2. Missing fields
+3. Partially reportable records
+4. Not reportable records excluded
+5. What data is needed next
+
+No signal may be considered complete unless the click proves the records behind it.
+
+EMPTY / LOW-DATA STATE REQUIREMENTS
+
+If data is missing, incomplete, or insufficient, the system must say so clearly.
+
+Use practical language such as:
+
+- “Not enough reportable records to calculate this analysis yet.”
+- “Some records were excluded because they are not reportable yet.”
+- “This analysis is qualified because some records are missing dates, categories, or assignment context.”
+- “Upload more complete work order, turn, PM, or asset records to strengthen this report.”
+- “This signal is not available until supporting records can be verified.”
+
+Do not show empty cards that look broken.
+
+Do not show fake sample analysis as if it is live.
+
+ROLE-AWARE ACCESS REQUIREMENTS
+
+Respect existing authentication, organization, role, and property access.
+
+Users may only see analysis for records they are allowed to access.
+
+Organization-level users may see organization-wide analysis.
+
+Property-level users may see property-level analysis.
+
+Do not expose records across organizations.
+
+Do not expose unauthorized property records.
+
+PERFORMANCE REQUIREMENTS
+
+Build this in a way that can scale across:
+
+1. Multiple properties
+2. Multiple units
+3. Large work order exports
+4. Turn boards
+5. PM logs
+6. Asset records
+7. Evidence records
+8. Repeated weekly uploads
+
+Avoid expensive calculations directly inside UI components.
+
+Use reusable services, helpers, API endpoints, cached summaries, database views, or server-side aggregation where appropriate for the existing architecture.
+
+Do not create duplicate calculations in multiple components.
+
+SHARED LOGIC REQUIREMENTS
+
+Create centralized analysis logic.
+
+Do not scatter analysis formulas across UI files.
+
+Preferred structure should match the existing codebase conventions, but the build should include centralized equivalents of:
+
+1. reportingAnalysisService
+2. timeAllocationAnalyzer
+3. workOrderAnalysisEngine
+4. turnAnalysisEngine
+5. pmAnalysisEngine
+6. assetRiskAnalysisEngine
+7. evidenceImpactAnalyzer
+8. assignmentCoverageAnalyzer
+9. crossCategoryPressureAnalyzer
+10. supportingRecordMapper
+
+Use existing naming conventions if similar structures already exist.
+
+Do not force these exact filenames if the project uses a different pattern.
+
+Follow the current architecture.
+
+REQUIRED UI SURFACES
+
+Add or extend UI only where appropriate.
+
+Do not redesign the app.
+
+Required visible additions:
+
+1. Reports page analysis sections
+2. Reporting analysis summaries
+3. Analysis confidence labels
+4. Supporting record count
+5. Clickable drill-down records
+6. Missing data / excluded records explanation
+7. Control Tower-compatible analysis output
+
+If there is already a Reports page, extend it.
+
+If there is already a Control Tower drill-down panel, connect analysis outputs to it.
+
+If a surface does not exist yet, create the minimum needed structure without redesigning the entire application.
+
+DATA QUALITY VISIBILITY REQUIREMENTS
+
+Every analysis view must make data quality visible.
+
+Show:
+
+1. Fully Reportable records used
+2. Partially Reportable records used or qualified
+3. Not Reportable Yet records excluded
+4. Missing field patterns
+5. Assignment gaps
+6. Evidence gaps
+7. Confidence state
+
+The goal is not to embarrass the user.
+
+The goal is to keep Ascent honest.
+
+TESTING / VALIDATION REQUIREMENTS
+
+After implementation, run or create validation checks proving:
+
+1. Fully Reportable records feed Confirmed Analysis.
+2. Partially Reportable records feed only Qualified Analysis.
+3. Not Reportable Yet records are excluded from confirmed metrics.
+4. Work order analysis does not use turn language.
+5. Turn analysis does not use work order language incorrectly.
+6. PM analysis does not overstate causation.
+7. Asset/warranty analysis prepares for Build 9 without pretending Build 9 is complete.
+8. Evidence gaps reduce confidence where appropriate.
+9. Assignment gaps reduce confidence where appropriate.
+10. Control Tower tiles can consume Build 7.2 outputs.
+11. Reports page can display Build 7.2 outputs.
+12. Every surfaced signal has supporting records.
+13. Clicking an analysis signal returns the correct filtered records.
+14. Record counts match the signal count.
+15. Empty/low-data states are honest and readable.
+16. No fake metrics are created.
+17. No duplicate scoring or dashboard logic is created.
+18. No prior system is rebuilt.
+
+REQUIRED BUILD SUMMARY
+
+When complete, provide a build summary with:
+
+1. What files were created
+2. What files were modified
+3. What existing systems were extended
+4. What new analysis logic was added
+5. How Build 7.2 connects to Build 7 and Build 7.1
+6. How Build 7.2 connects to Control Tower
+7. How Build 7.2 connects to Reports
+8. How supporting records are mapped
+9. How confidence states are calculated
+10. How partial and unresolved records are handled
+11. What tests or validations were run
+12. Any remaining issues
+13. Any recommended next build steps
+
+SUCCESS STATE
+
+Build 7.2 is successful only when:
+
+1. The system analyzes reportable records from Build 7.1.
+2. It separates confirmed, qualified, and insufficient analysis.
+3. It produces work order, turn, PM, asset, evidence, assignment, and cross-category analysis.
+4. It shows where time, labor, bottlenecks, and operational drag are forming.
+5. It connects analysis to the Reports page.
+6. It connects analysis to the Control Tower without redesigning it.
+7. Every signal can open supporting records.
+8. Counts match records.
+9. Missing data is visible.
+10. The system remains honest about partial data.
+11. No fake conclusions are created.
+12. Prior systems remain intact.
+
+INTERNAL LABEL
+
+Build 7.2 — Reporting Analysis + Time Allocation Layer
+
+FINAL INSTRUCTION
+
+Implement this as a real production-ready extension of the existing Ascent 1.0 architecture.
+
+Do not create placeholder-only logic.
+
+Do not create fake demo metrics.
+
+Do not create disconnected UI.
+
+Do not rebuild the app.
+
+Wire the analysis layer into the existing reporting spine, reporting ingestion layer, Control Tower, Reports page, reaction layer, and supporting record system.
+
+Extend the machine.
+
+Do not restart it.

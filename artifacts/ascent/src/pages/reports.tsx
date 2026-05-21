@@ -33,6 +33,8 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { ReportingAnalysisSections, AnalysisSupportingRecordsSheet } from "@/components/reports/reporting-analysis-sections";
+import type { AnalysisDrillContext } from "@/components/reports/reporting-analysis-sections";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -374,6 +376,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [drill, setDrill] = useState<DrillContext | null>(null);
+  const [analysisDrill, setAnalysisDrill] = useState<AnalysisDrillContext | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -403,7 +406,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs">Build 7.1 — Ingestion Layer</Badge>
+            <Badge variant="outline" className="text-xs">Build 7.1 + 7.2</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -442,6 +445,9 @@ export default function ReportsPage() {
           <SummaryTile label="Not reportable" value={summary.notReportableCount} accent="text-status-red" />
         </div>
       )}
+
+      {/* Build 7.2 — Reporting analysis sections */}
+      <ReportingAnalysisSections onDrill={setAnalysisDrill} />
 
       {/* Wired sources */}
       {readiness && (
@@ -505,6 +511,7 @@ export default function ReportsPage() {
       )}
 
       <DrillSheet ctx={drill} onClose={() => setDrill(null)} />
+      <AnalysisSupportingRecordsSheet ctx={analysisDrill} onClose={() => setAnalysisDrill(null)} />
     </div>
   );
 }
