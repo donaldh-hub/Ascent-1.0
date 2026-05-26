@@ -1,0 +1,117 @@
+MANDATORY 7.3.1 CONTINUITY ADDENDUM — ACTIVE REPORTING MODE + TURN CATEGORY CLARITY
+
+The current verified build state includes:
+
+- Build 7.1 reporting ingestion: PASS
+- Build 7.2 analysis cards confidenceState: PASS
+- Build 7.2.1 active reporting mode: PASS
+- Build 7.3 narrative insights output: PASS
+- Build 7.3.1 turn category clarified by mode: PASS
+- Reports visual proof: PASS
+- Narrative visual proof: PASS
+- Auditor state: 24 pass / 0 partial / 0 fail
+- Remaining manual items visually confirmed
+- SAFE TO PROMOTE
+
+Build 7.4 must preserve and extend this verified state.
+
+Do NOT regress any verified Build 7.1, 7.2, 7.2.1, 7.3, or 7.3.1 behavior.
+
+ACTIVE REPORTING MODE REQUIREMENT
+
+The system must preserve the active reporting mode logic created in Build 7.2.1.
+
+Before reporting turn performance, turn visuals, turn narrative insights, or turn-related dashboard signals, the system must recognize the organization’s selected reporting mode:
+
+1. Separate Turn Mode
+
+Used when the organization tracks turns/make-ready work separately from work orders.
+
+In this mode:
+- Turn reports must use turn records.
+- Turn visuals must use turn stages.
+- Turn bottlenecks must reference make-ready/turn stages.
+- Work orders may be shown as related supporting context only when linked.
+- Work orders must not be treated as the primary measurement of turn progress.
+
+2. Work-Order-Measured Turn Mode
+
+Used when the organization uses work orders as the practical measurement of turn progress.
+
+In this mode:
+- Turn performance may be derived from linked work orders.
+- Turn progress visuals must clearly explain that work orders are being used as the progress signal.
+- The system must distinguish between general work orders and work orders connected to a turn/make-ready process.
+- Turn reports must not silently mix all work orders into turn reporting.
+- Supporting records must show why each work order was included in the turn report.
+
+3. Unknown / Not Configured Mode
+
+Used when the organization has not selected or provided enough information to determine how turns are tracked.
+
+In this mode:
+- Do not show confident turn performance conclusions.
+- Show an honest configuration-needed state.
+- Explain that turn reporting depends on whether the organization separates turn records or uses work orders to measure turn progress.
+- Prompt the user to confirm their turn reporting mode before relying on turn metrics.
+
+TURN VISUAL REQUIREMENTS
+
+Every turn-related visual must display or respect the active reporting mode.
+
+Required user-facing clarity:
+
+- If Separate Turn Mode is active, show language such as:
+  “Turn performance is based on dedicated turn/make-ready records.”
+
+- If Work-Order-Measured Turn Mode is active, show language such as:
+  “Turn performance is being measured through work orders linked to the turn process.”
+
+- If Unknown / Not Configured Mode is active, show language such as:
+  “Turn reporting mode has not been confirmed yet. Confirm whether your organization tracks turns separately or uses work orders to measure turn progress.”
+
+TURN SUPPORTING RECORD REQUIREMENTS
+
+Every turn signal must open supporting records that match the active mode.
+
+If Separate Turn Mode:
+- Supporting records must be turn records or turn-stage records.
+
+If Work-Order-Measured Turn Mode:
+- Supporting records must be only the work orders linked to turn progress.
+- Each record must show the reason it was included.
+- General unrelated work orders must not appear in turn supporting records.
+
+If Unknown / Not Configured Mode:
+- Do not create clickable turn certainty signals.
+- Show configuration guidance instead.
+
+LANGUAGE SEPARATION REQUIREMENT
+
+Build 7.4 must not confuse work order reporting and turn reporting.
+
+Failure examples:
+
+- A turn visual using all open work orders without proving they are turn-related.
+- A work order report describing “turn drag” without linked turn context.
+- A turn report showing completion rate from unrelated work orders.
+- A dashboard signal that says “turn delay” but opens general work order records.
+- Any visual where the user cannot tell which mode is being used.
+
+This is a wiring failure and must be corrected before the build is considered complete.
+
+REPORTING MODE VISUAL PROOF REQUIREMENT
+
+Build 7.4 must include visual proof that reporting mode is respected.
+
+The agent must verify:
+
+1. Separate Turn Mode shows turn-record-based visuals.
+2. Work-Order-Measured Turn Mode shows linked-work-order-based turn visuals.
+3. Unknown Mode blocks confident turn conclusions and shows configuration guidance.
+4. Supporting records match the active mode.
+5. Narrative insights match the active mode.
+6. Recommendations match the active mode.
+7. Control Tower-compatible outputs do not override the active reporting mode.
+
+DO NOT PROMOTE Build 7.4 if active reporting mode is ignored.
