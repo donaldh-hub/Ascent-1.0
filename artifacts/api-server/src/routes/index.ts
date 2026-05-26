@@ -18,6 +18,7 @@ import reportingIngestionRouter from "./reporting-ingestion";
 import reportingAnalysisRouter from "./reporting-analysis";
 import reportingConfigRouter from "./reporting-config";
 import narrativeInsightsRouter from "./narrative-insights";
+import buildAuditorRouter from "./build-auditor";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(reportingIngestionRouter);
 router.use(reportingAnalysisRouter);
 router.use(reportingConfigRouter);
 router.use(narrativeInsightsRouter);
+router.use(buildAuditorRouter);
 
 export default router;

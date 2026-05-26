@@ -28,6 +28,7 @@ import Setup from "@/pages/setup";
 import ControlTower from "@/pages/control-tower";
 import Governance from "@/pages/governance";
 import Reports from "@/pages/reports";
+import BuildAuditor from "@/pages/build-auditor";
 
 const queryClient = new QueryClient();
 
@@ -49,12 +50,25 @@ function SetupCheckLoader() {
 function Router() {
   const [location, navigate] = useLocation();
   const isSetupRoute = location === "/setup" || location.startsWith("/setup?");
+  // Internal /dev/* routes (e.g. Build Auditor) must work regardless of setup
+  // status — they are diagnostic tools, not customer flows.
+  const isDevRoute = location.startsWith("/dev/");
 
   const { isComplete, isLoading } = useSetupStatus();
 
   // /setup is always accessible
   if (isSetupRoute) {
     return <Setup />;
+  }
+
+  // Internal dev tooling is always accessible — never gated by setup.
+  if (isDevRoute) {
+    return (
+      <Switch>
+        <Route path="/dev/build-auditor" component={BuildAuditor} />
+        <Route component={NotFound} />
+      </Switch>
+    );
   }
 
   // Hold rendering while we check real data
