@@ -190,16 +190,67 @@ export default function BuildAuditorPage() {
   const loadHistory = useCallback(async () => {
     try {
       const res = await fetch("/api/build-auditor/history");
-      if (!res.ok) return;
+      if (!res.ok) return [] as HistoryItem[];
       const data = (await res.json()) as { audits: HistoryItem[] };
       setHistory(data.audits);
+      return data.audits;
     } catch {
-      /* non-fatal */
+      return [] as HistoryItem[];
     }
   }, []);
 
+  // On mount, auto-load the most recent persisted audit so the screen
+  // always reflects the newest known result rather than a stale bundle
+  // the user previously opened. Prevents the truth-mismatch where the
+  // backend has been repaired but the UI is still showing an older run.
   useEffect(() => {
-    void loadHistory();
+    let cancelled = false;
+    void (async () => {
+      const audits = await loadHistory();
+      if (cancelled || audits.length === 0 || bundle) return;
+      try {
+        const latest = audits[0];
+        const res = await fetch(`/api/build-auditor/${latest.id}`);
+        if (!res.ok) return;
+        const row = await res.json();
+        if (cancelled) return;
+        const extras = (row.bundleExtras ?? {}) as Partial<{
+          executive: ExecutiveFeedback;
+          goNoGo: GoNoGo;
+          topIssues: TopIssue[];
+          visualProofs: VisualProof[];
+          manualTests: ManualTest[];
+        }>;
+        setBundle({
+          id: row.id,
+          createdAt: row.createdAt,
+          buildLabel: row.buildLabel,
+          generatedAt: row.createdAt,
+          status: row.status,
+          summary: row.summary,
+          counts: {
+            pass: row.passCount,
+            partial: row.partialCount,
+            fail: row.failCount,
+            manual: row.manualCount,
+          },
+          checks: row.checkResults,
+          manualTests: extras.manualTests ?? [],
+          visualProofs: extras.visualProofs ?? [],
+          executive: extras.executive ?? null,
+          goNoGo: extras.goNoGo ?? null,
+          topIssues: extras.topIssues ?? [],
+          reportMarkdown: row.reportMarkdown,
+          nextPromptMarkdown: row.nextPromptMarkdown,
+        });
+      } catch {
+        /* non-fatal — user can still click Run audit */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadHistory]);
 
   const runAudit = useCallback(async () => {
