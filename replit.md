@@ -40,6 +40,23 @@ The frontend leverages shadcn/ui and Tailwind CSS for a modern, consistent desig
 -   **Governance / Architecture Lock:** Establishes a shared selector layer for consistent signal logic across the API and client, ensuring signal integrity and routing.
 -   **System Enforcement Layer:** Adds runtime and static enforcement mechanisms, including service contracts, a confidence filter for reportable data, and a symmetry validator to ensure consistency between SQL selectors and JavaScript predicates for critical operational signals.
 
+# Build Promotion History
+
+## Build 7.4 — Visuals + Dashboard Reporting Layer — PROMOTED (baseline for Build 7.5)
+
+- Build 7.4 Visuals + Dashboard Reporting Layer: **PASS**
+- Reports visual layer rendered: **PASS**
+- Active reporting mode visible on Reports page: **PASS**
+- Work-order-measured turn progress language preserved: **PASS**
+- Turn-related work order language preserved: **PASS**
+- Supporting-record links visible: **PASS**
+- Readiness / data-quality states visible: **PASS**
+- PM, asset, evidence, assignment, and wired-source reporting sections visible: **PASS**
+- Agent-reported auditor state: **26 pass / 0 partial / 0 fail**
+- Build 7.4 safe to ship
+
+This state is the locked baseline for Build 7.5. Do not rerun Build 7.4, duplicate the completed visual reporting layer, or alter the active reporting mode / turn-vs-work-order gating logic without an explicit Build 7.5+ task that supersedes it.
+
 # External Dependencies
 
 -   **Google Cloud Storage (GCS):** For document storage within the Document Engine.
