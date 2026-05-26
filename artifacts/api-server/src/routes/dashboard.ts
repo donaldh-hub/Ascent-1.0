@@ -6,6 +6,7 @@ import { loadAllWorkflowInputs, loadAlerts } from "../engine/loader";
 import { calcOperationalHealth, calcStoplight } from "../engine/scoring";
 import { buildDashboardIntelligence } from "../engine/intelligence";
 import { buildPortfolioControlTower } from "../services/portfolio_control_tower";
+import { getActiveReportingConfig, deriveTurnSignalSource } from "../services/reporting-config-service.js";
 
 const router: IRouter = Router();
 
@@ -34,6 +35,10 @@ router.get("/dashboard/summary", async (req, res) => {
     }
 
     const operational = calcOperationalHealth(workflowInputs, alerts);
+    // Ascent 7.4 — echo the active turn/WO reporting mode so dashboard
+    // consumers can label and gate turn-related visuals without a second
+    // round-trip to /api/reporting-config.
+    const activeConfig = await getActiveReportingConfig();
 
     // Count open items across all workflows
     const allOpenItems = workflowInputs.flatMap((w) =>
@@ -90,6 +95,11 @@ router.get("/dashboard/summary", async (req, res) => {
       totalAssets: allAssets.length,
       atRiskAssets,
       expiringSoonAssets,
+      // ── Ascent 7.4 — Active reporting mode echo ──────────────────────────
+      reportingMode: activeConfig.mode,
+      reportingModeSource: activeConfig.config.source,
+      reportingModeIsDefault: activeConfig.isDefault,
+      turnSignalSource: deriveTurnSignalSource(activeConfig.mode),
     });
   } catch (err) {
     req.log.error({ err }, "Failed to get dashboard summary");

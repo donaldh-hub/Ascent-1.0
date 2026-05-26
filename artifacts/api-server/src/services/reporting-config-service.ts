@@ -25,6 +25,23 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 const DEFAULT_MODE: TurnWorkOrderReportingMode = "hybrid_or_unknown";
 
 /**
+ * Ascent 7.4 — Single source of truth for "what record set is driving turn
+ * signals right now?". Used by /api/dashboard/summary and /api/turns/stats so
+ * the client banner + gate logic never disagree about provenance. Keep this
+ * here (not duplicated in routes) so future mode additions update both
+ * endpoints atomically.
+ */
+export type TurnSignalSource = "turn_records" | "linked_work_orders" | "unknown";
+
+export function deriveTurnSignalSource(
+  mode: TurnWorkOrderReportingMode | string,
+): TurnSignalSource {
+  if (mode === "separate_turns_and_work_orders") return "turn_records";
+  if (mode === "work_orders_measure_turn_progress") return "linked_work_orders";
+  return "unknown";
+}
+
+/**
  * The analysis categories whose interpretation is affected when the
  * mode changes. Persisted on every audit row so the change is traceable
  * to what the user is about to see differently.

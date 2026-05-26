@@ -1,0 +1,943 @@
+SOURCE CONTINUITY NOTE
+
+Continue Ascent 1.0 from the Master Source Index + Build Continuity Spine.
+
+The system already includes:
+
+- authentication and role-based access
+- app shell / navigation shell
+- organization, property, and unit structure
+- guided system activation and unit intake
+- unit profile and immediate history visibility
+- assignment engine logic
+- dual-mode import governance
+- workflow engine
+- work order logic
+- turn logic
+- timing and bottleneck foundation
+- scoring + stoplight engine
+- alert and warning engine
+- dashboard intelligence layer
+- document + evidence engine
+- evidence visibility layer
+- signal strength + language layer
+- system integration + reaction layer
+- Build 7 reporting spine
+- Build 7.1 reporting ingestion layer
+- Build 7.2 analysis + time allocation layer
+- Build 7.2.1 active reporting mode
+- Build 7.3 narrative insights layer
+- Build 7.3.1 turn category clarified by mode
+- Control Tower dashboard pre-wiring
+- universal wiring audit logic
+- clickable signal verification logic
+
+Do NOT rebuild prior systems.
+
+Do NOT redesign the application unless specifically instructed.
+
+Do NOT duplicate scoring, alert, dashboard, assignment, document, work order, turn, reporting, or Control Tower logic.
+
+Do NOT create fake dashboard or reporting results.
+
+Do NOT treat partial data as complete truth.
+
+Do NOT create dead-end counts, fake signals, or unclickable proof claims.
+
+All new work must connect to the shared source of truth.
+
+All surfaced metrics must be explainable.
+
+All clickable signals must return supporting records.
+
+All reporting outputs must distinguish confirmed truth from partial or unresolved data.
+
+Continue from the existing architecture.
+
+Extend the system.
+
+Do not restart it.
+
+
+BUILD LABEL
+
+Build 7.4 — Visuals + Dashboard Reporting Layer
+
+
+CURRENT VERIFIED BUILD STATE
+
+Preserve the current verified state:
+
+- Build 7.1 reporting ingestion: PASS
+- Build 7.2 analysis cards confidenceState: PASS
+- Build 7.2.1 active reporting mode: PASS
+- Build 7.3 narrative insights output: PASS
+- Build 7.3.1 turn category clarified by mode: PASS
+- Reports visual proof: PASS
+- Narrative visual proof: PASS
+- Auditor state: 24 pass / 0 partial / 0 fail
+- Remaining manual items visually confirmed
+- SAFE TO PROMOTE
+
+Do not regress any verified behavior.
+
+Do not pause for another task plan.
+
+Proceed directly with Build 7.4 implementation.
+
+
+BUILD PURPOSE
+
+Build 7.4 converts the verified reporting, analysis, active reporting mode, and narrative insight layers into clear visual reporting surfaces.
+
+The goal is to make the intelligence from Builds 7.1, 7.2, 7.2.1, 7.3, and 7.3.1 visible, clickable, understandable, and dashboard-ready.
+
+This build should help a property manager, maintenance supervisor, or regional leader quickly understand:
+
+1. What is happening
+2. Where time is being spent
+3. Where performance is slowing down
+4. Which category is creating drag
+5. Which records prove the issue
+6. What recommendation or next review step follows from the data
+
+This build is not just about making the app look better.
+
+This build is about making the reporting engine visually useful and operationally trustworthy.
+
+
+SYSTEMS THIS BUILD EXTENDS
+
+Extend the existing:
+
+1. Build 7 Reporting + Analytics Backbone
+2. Build 7.1 Reporting Ingestion Layer
+3. Build 7.2 Analysis + Time Allocation Layer
+4. Build 7.2.1 Active Reporting Mode Layer
+5. Build 7.3 Narrative Insights Layer
+6. Build 7.3.1 Turn Category Clarified By Mode Layer
+7. Dashboard Intelligence Layer
+8. Control Tower Pre-Wiring
+9. Scoring + Stoplight Engine
+10. Alert + Warning Engine where applicable
+11. Assignment Engine
+12. Document + Evidence Engine
+13. Reaction Layer
+14. Clickable Supporting Records Layer
+15. Dual-Mode Import Governance Layer
+
+Do not create a separate reporting database.
+
+Do not create a separate dashboard truth layer.
+
+Do not create isolated report widgets that calculate from their own hardcoded logic.
+
+
+CORE BUILD REQUIREMENTS
+
+Create or extend the Visual Reporting Layer so it renders report results from existing shared reporting logic.
+
+This layer must support:
+
+1. Work Order reporting visuals
+2. Turn reporting visuals
+3. Preventative Maintenance reporting visuals, if PM data exists
+4. Asset reporting visuals, if asset/warranty data exists
+5. Assignment/data-quality reporting visuals
+6. Evidence/documentation reporting visuals
+7. Time allocation visuals from Build 7.2
+8. Active reporting mode visuals from Build 7.2.1
+9. Narrative insight cards from Build 7.3
+10. Turn category clarification from Build 7.3.1
+11. Recommendation cards based on analysis-led logic
+12. Clickable supporting-record drilldowns for every meaningful visual signal
+
+
+MANDATORY ACTIVE REPORTING MODE REQUIREMENT
+
+Build 7.4 must preserve and visually respect the active reporting mode logic created in Build 7.2.1 and clarified in Build 7.3.1.
+
+Before reporting turn performance, turn visuals, turn narrative insights, or turn-related dashboard signals, the system must recognize the organization’s selected reporting mode:
+
+1. Separate Turn Mode
+
+Used when the organization tracks turns/make-ready work separately from work orders.
+
+In this mode:
+
+- Turn reports must use turn records.
+- Turn visuals must use turn stages.
+- Turn bottlenecks must reference make-ready/turn stages.
+- Work orders may be shown as related supporting context only when linked.
+- Work orders must not be treated as the primary measurement of turn progress.
+
+2. Work-Order-Measured Turn Mode
+
+Used when the organization uses work orders as the practical measurement of turn progress.
+
+In this mode:
+
+- Turn performance may be derived from linked work orders.
+- Turn progress visuals must clearly explain that work orders are being used as the progress signal.
+- The system must distinguish between general work orders and work orders connected to a turn/make-ready process.
+- Turn reports must not silently mix all work orders into turn reporting.
+- Supporting records must show why each work order was included in the turn report.
+
+3. Unknown / Not Configured Mode
+
+Used when the organization has not selected or provided enough information to determine how turns are tracked.
+
+In this mode:
+
+- Do not show confident turn performance conclusions.
+- Show an honest configuration-needed state.
+- Explain that turn reporting depends on whether the organization separates turn records or uses work orders to measure turn progress.
+- Prompt the user to confirm their turn reporting mode before relying on turn metrics.
+
+
+TURN VISUAL REQUIREMENTS
+
+Every turn-related visual must display or respect the active reporting mode.
+
+Required user-facing clarity:
+
+If Separate Turn Mode is active, show language such as:
+
+“Turn performance is based on dedicated turn/make-ready records.”
+
+If Work-Order-Measured Turn Mode is active, show language such as:
+
+“Turn performance is being measured through work orders linked to the turn process.”
+
+If Unknown / Not Configured Mode is active, show language such as:
+
+“Turn reporting mode has not been confirmed yet. Confirm whether your organization tracks turns separately or uses work orders to measure turn progress.”
+
+No turn visual may hide the active mode.
+
+No turn visual may silently blend general work orders into turn performance.
+
+
+TURN SUPPORTING RECORD REQUIREMENTS
+
+Every turn signal must open supporting records that match the active mode.
+
+If Separate Turn Mode is active:
+
+- Supporting records must be turn records or turn-stage records.
+- Linked work orders may appear only as related context, not as the primary turn measurement.
+
+If Work-Order-Measured Turn Mode is active:
+
+- Supporting records must be only the work orders linked to turn progress.
+- Each record must show the reason it was included.
+- General unrelated work orders must not appear in turn supporting records.
+
+If Unknown / Not Configured Mode is active:
+
+- Do not create clickable turn certainty signals.
+- Show configuration guidance instead.
+
+
+REPORTING MODE VISUAL PROOF REQUIREMENT
+
+Build 7.4 must include visual proof that reporting mode is respected.
+
+Verify:
+
+1. Separate Turn Mode shows turn-record-based visuals.
+2. Work-Order-Measured Turn Mode shows linked-work-order-based turn visuals.
+3. Unknown Mode blocks confident turn conclusions and shows configuration guidance.
+4. Supporting records match the active mode.
+5. Narrative insights match the active mode.
+6. Recommendations match the active mode.
+7. Control Tower-compatible outputs do not override the active reporting mode.
+
+Do not promote Build 7.4 if active reporting mode is ignored.
+
+
+REPORTS AREA REQUIREMENTS
+
+Create or update the Reports page so it includes a clean reporting dashboard layout.
+
+The Reports page should include:
+
+1. Report header
+2. Date range filter
+3. Property filter
+4. Report type selector
+5. Active reporting mode indicator where turn reporting is involved
+6. Reporting readiness summary
+7. Summary metric cards
+8. Visual analysis section
+9. Narrative insight section
+10. Recommendations / next review section
+11. Supporting records section
+12. Export/share-ready report preview structure, if existing export/share logic already exists
+
+Do not create fake export behavior if export/share logic does not already exist.
+
+If export/share is not wired, show the report preview structure only and mark export/share as unavailable until connected.
+
+
+REPORT TYPE SELECTOR
+
+Add or extend a report type selector with these categories:
+
+1. Operational Summary
+2. Work Order Performance
+3. Turn Performance
+4. Preventative Maintenance Performance
+5. Asset + Warranty Performance
+6. Assignment + Data Quality
+7. Evidence + Documentation
+
+Each report type must load only the visuals that match its category.
+
+Do not mix language across categories.
+
+
+LANGUAGE SEPARATION REQUIREMENT
+
+Work order reports should use work order language:
+
+- work orders
+- open work orders
+- completed work orders
+- response time
+- completion time
+- category
+- priority
+- technician
+- parts delay
+- aging
+
+Turn reports should use turn language:
+
+- turns
+- make-ready
+- vacant days
+- stage aging
+- percent complete
+- vacancy exposure
+- trade/stage bottleneck
+- ready date risk
+- active reporting mode
+
+PM reports should use PM language:
+
+- preventative maintenance
+- PM completion
+- PM gap
+- overdue PM
+- PM coverage
+- recurring issue risk
+
+Asset reports should use asset language:
+
+- asset
+- install date
+- age
+- warranty
+- expired warranty
+- replacement exposure
+- service history
+
+Failure examples:
+
+- A turn visual using all open work orders without proving they are turn-related.
+- A work order report describing “turn drag” without linked turn context.
+- A turn report showing completion rate from unrelated work orders.
+- A dashboard signal that says “turn delay” but opens general work order records.
+- Any visual where the user cannot tell which reporting mode is being used.
+
+These are wiring failures and must be corrected before Build 7.4 is considered complete.
+
+
+VISUAL COMPONENT REQUIREMENTS
+
+Create or extend reusable visual report components.
+
+Use existing project design patterns where possible.
+
+Required components:
+
+1. ReportSummaryCard
+
+Displays:
+
+- title
+- value
+- supporting subtext
+- stoplight state where applicable
+- data confidence label
+- click action if supporting records exist
+
+2. ReportReadinessBanner
+
+Displays:
+
+- fully reportable count
+- partially reportable count
+- not reportable yet count
+- data-quality warning if partial/unresolved records exist
+- plain-language explanation of what the report can and cannot prove
+
+3. ReportTrendBlock
+
+Displays trend-style information only when enough dated records exist.
+
+If enough dated records do not exist, show an honest low-data state.
+
+Do not fabricate trend lines.
+
+4. ReportCategoryBreakdown
+
+Displays category distribution using real records.
+
+Examples:
+
+- work order categories
+- turn stages
+- PM types
+- asset types
+- evidence/documentation status
+
+5. ReportTimeAllocationBlock
+
+Uses Build 7.2 analysis/time allocation outputs.
+
+Displays:
+
+- total known time
+- estimated time where applicable
+- time by category
+- time by property
+- time by technician or responsible party where available
+- unclassified time warning where data is incomplete
+
+6. ReportInsightCard
+
+Uses Build 7.3 narrative insight outputs.
+
+Displays:
+
+- insight title
+- plain-language explanation
+- records behind the insight
+- confidence/data-quality status
+- active reporting mode where turn-related
+- recommended next review question
+
+7. ReportRecommendationCard
+
+Displays analysis-led recommendations.
+
+Each recommendation must explain:
+
+- what the analytics suggest
+- what to review first
+- why it matters
+- which records support it
+- what operational question the manager should answer next
+- active reporting mode where turn-related
+
+The recommendation must not sound like a command.
+
+Use recommendation language like:
+
+- “Review this first because...”
+- “The data suggests...”
+- “This may indicate...”
+- “Before taking action, confirm...”
+- “The next operational question is...”
+
+Avoid overly prescriptive language like:
+
+- “Fix this now”
+- “Immediately discipline staff”
+- “Replace this process”
+- “This proves negligence”
+
+8. SupportingRecordsDrawer or SupportingRecordsPanel
+
+Every clickable visual signal must open supporting records.
+
+Supporting records must show:
+
+- record ID or source identifier
+- property
+- unit where available
+- category
+- status
+- date
+- stage where applicable
+- responsible party where available
+- source/report origin
+- reporting eligibility state
+- active reporting mode where applicable
+- reason the record was included
+
+
+CONTROL TOWER COMPATIBILITY
+
+Build 7.4 must prepare reporting visuals to feed or align with the existing Control Tower tiles:
+
+1. Operational Health
+2. Work Order Performance
+3. Turn Performance
+4. PM Performance
+5. Asset Performance
+6. Priority Actions Panel
+
+Do not fully rebuild the Control Tower unless necessary.
+
+Instead:
+
+1. Create shared visual/reporting components that the Control Tower can reuse.
+2. Ensure report signals and Control Tower signals pull from the same reporting logic.
+3. Ensure dashboard visuals and report visuals do not disagree unless filters/date ranges differ.
+4. If filters differ, clearly show the filter context.
+5. Ensure turn-related Control Tower outputs respect active reporting mode.
+
+The Control Tower remains the customer-facing validation source.
+
+Reports provide deeper explanation.
+
+
+VISUALS TO IMPLEMENT BY REPORT CATEGORY
+
+A. Operational Summary
+
+Include:
+
+1. Overall reporting readiness
+2. Operational health summary
+3. Top 3 performance drag areas
+4. Top 3 priority report signals
+5. Cross-category narrative insight summary
+6. Supporting records drilldown for each top signal
+7. Turn reporting mode status if turn signals are included
+
+B. Work Order Performance
+
+Include:
+
+1. Total work orders in selected range
+2. Open work orders
+3. Completed work orders
+4. Average completion time where calculable
+5. Aging work orders
+6. Category breakdown
+7. Technician/responsible party breakdown where available
+8. Parts-delay or blocked-status signal where available
+9. Time allocation block from Build 7.2
+10. Narrative insight cards from Build 7.3
+11. Recommendations / next review questions
+12. Supporting records panel
+
+C. Turn Performance
+
+Include:
+
+1. Active reporting mode indicator
+2. Total active turns or linked turn-measurement records based on mode
+3. Completed turns or completed linked turn-measurement records based on mode
+4. Average turn duration where calculable
+5. Aging turns or aging linked turn-measurement records based on mode
+6. Stage bottleneck breakdown where turn-stage data exists
+7. Vacant days exposure where available
+8. Percent-complete visibility where stage data exists
+9. Staff vs contractor stage visibility where available
+10. Linked-work-order explanation when Work-Order-Measured Turn Mode is active
+11. Configuration-needed state when Unknown Mode is active
+12. Narrative insight cards
+13. Recommendations / next review questions
+14. Supporting records panel
+
+D. Preventative Maintenance Performance
+
+Include only if PM records exist.
+
+Include:
+
+1. Total PM records
+2. Completed PM records
+3. Overdue PM records
+4. PM coverage by property/unit/category
+5. PM gap signals
+6. PM-related recurring issue risk where supported by existing logic
+7. Narrative insight cards
+8. Recommendations / next review questions
+9. Supporting records panel
+
+If no PM data exists, show:
+
+“Preventative maintenance reporting is not available yet because no PM records have been uploaded or resolved.”
+
+Include what the user should upload next:
+
+- PM schedule
+- PM completion log
+- unit or asset PM history
+- related work order records
+
+E. Asset + Warranty Performance
+
+Include only if asset/warranty records exist.
+
+Include:
+
+1. Total assets
+2. Assets with expired warranties
+3. Assets approaching warranty expiration where calculable
+4. Asset age distribution
+5. Asset service concentration where work order links exist
+6. Replacement exposure where cost logic exists
+7. Narrative insight cards
+8. Recommendations / next review questions
+9. Supporting records panel
+
+If cost logic or replacement exposure is not wired yet, do not fake it.
+
+Show:
+
+“Cost exposure requires asset cost or replacement estimate data before this can be calculated.”
+
+F. Assignment + Data Quality
+
+Include:
+
+1. Fully resolved records
+2. Partially resolved records
+3. Unresolved records
+4. Fully reportable records
+5. Partially reportable records
+6. Not reportable yet records
+7. Records needing review
+8. Fields most commonly missing
+9. Assignment confidence summary
+10. Recommended cleanup actions
+11. Supporting records panel
+
+This report is essential.
+
+It tells users why a report may be limited.
+
+G. Evidence + Documentation
+
+Include:
+
+1. Records with documents
+2. Records missing documentation
+3. Critical records missing documentation
+4. Documentation by property
+5. Documentation by workflow/report category
+6. Evidence badges using existing centralized language rules
+7. Supporting records panel
+
+Use existing evidence language and do not hardcode new inconsistent labels.
+
+
+DATA CONFIDENCE REQUIREMENTS
+
+Every visual block must carry one of these data confidence states:
+
+1. Confirmed
+2. Partial
+3. Limited
+4. Not available
+
+Use these rules:
+
+Confirmed:
+
+Only fully reportable / fully resolved records are used.
+
+Partial:
+
+Some records are reportable, but partial records are included with clear labeling.
+
+Limited:
+
+The system has too little complete data to make a strong conclusion.
+
+Not available:
+
+The required source records do not exist or are not resolved enough to report.
+
+Do not show strong conclusions for limited data.
+
+Do not display partial metrics as executive certainty.
+
+
+EMPTY / LOW-DATA STATE REQUIREMENTS
+
+Every report and visual block must have honest empty states.
+
+Examples:
+
+1. “No fully reportable work order records are available for this date range.”
+2. “Some records were uploaded, but they are not reportable yet because property or unit assignment is missing.”
+3. “Trend analysis requires dated records across more than one reporting period.”
+4. “Time allocation cannot be calculated because duration, start date, completion date, or labor fields are missing.”
+5. “This report is limited because unresolved records were excluded from confirmed metrics.”
+6. “Turn reporting mode has not been confirmed yet. Confirm whether your organization tracks turns separately or uses work orders to measure turn progress.”
+
+Do not show blank panels.
+
+Do not show fake charts.
+
+Do not show placeholder numbers.
+
+
+CLICKABLE SIGNAL REQUIREMENTS
+
+Every number, chart segment, insight, recommendation, or warning that represents a record group must be clickable only if supporting records can be shown.
+
+When clicked, it must open the correct supporting records.
+
+The supporting records must match:
+
+1. selected report type
+2. selected property
+3. selected date range
+4. selected category/status/stage
+5. selected data confidence state
+6. selected visual segment
+7. active reporting mode where turn-related
+
+If a visual says “14 aging work orders,” the click must return those same 14 aging work orders.
+
+If a visual says “8 linked work orders are affecting turn progress,” the click must return only those 8 linked turn-related work orders.
+
+If a visual says “5 turn stages are aging,” the click must return only those 5 turn-stage records.
+
+If the system cannot return supporting records, the signal must not be clickable and must explain why.
+
+
+DATE RANGE + FILTER REQUIREMENTS
+
+Add or preserve shared report filtering.
+
+Required filters:
+
+1. Date range
+2. Property
+3. Report type
+4. Record status where relevant
+5. Reporting eligibility where relevant
+6. Active reporting mode where turn reporting is involved
+
+Filters must affect:
+
+1. summary cards
+2. visual blocks
+3. insight cards
+4. recommendation cards
+5. supporting records
+6. readiness banner
+
+Do not allow filters to update one section while leaving other sections stale.
+
+
+ROLE-AWARE REQUIREMENTS
+
+Respect existing role-based access.
+
+Users should only see reports for organizations/properties they are allowed to access.
+
+Do not expose cross-organization data.
+
+Do not expose restricted records through supporting-record clicks.
+
+
+DESIGN REQUIREMENTS
+
+Use a clean, professional operations dashboard design.
+
+The Reports page should be easy to understand in under five seconds.
+
+Preferred structure:
+
+1. Top header
+2. Filter bar
+3. Reporting readiness banner
+4. Summary cards
+5. Visual section
+6. Narrative insights
+7. Recommendations
+8. Supporting records
+
+Keep language simple and industry-facing.
+
+Avoid internal engineering terms in the user-facing UI.
+
+Do not overload the page.
+
+The goal is clarity.
+
+Health → Priority → Bottleneck → Context → Action.
+
+
+PERFORMANCE REQUIREMENTS
+
+Use efficient queries.
+
+Avoid recalculating the same report result repeatedly across components.
+
+Where appropriate, create shared selectors/services/hooks for report results.
+
+Do not create frontend-only calculations that disagree with backend/shared reporting logic.
+
+Do not load all organization records into the browser unnecessarily.
+
+Maintain responsive behavior for desktop, tablet, and mobile.
+
+
+TECHNICAL IMPLEMENTATION REQUIREMENTS
+
+Agent must inspect the existing codebase before making changes.
+
+Find and extend existing files for:
+
+1. Reports page
+2. Dashboard/Control Tower components
+3. Reporting services
+4. Reporting types
+5. Report definitions registry
+6. Narrative insight logic
+7. Time allocation logic
+8. Active reporting mode logic
+9. Turn category clarification logic
+10. Supporting-record drilldown logic
+11. Evidence badge components
+12. Data-quality/readiness logic
+
+Prefer extending existing architecture over creating new parallel files.
+
+If new files are necessary, name them clearly and connect them to the existing reporting stack.
+
+Create or update shared types only where necessary for:
+
+1. ReportVisualBlock
+2. ReportSummaryMetric
+3. ReportInsight
+4. ReportRecommendation
+5. ReportSupportingRecord
+6. ReportReadinessSummary
+7. ReportDataConfidenceState
+8. ReportFilterState
+9. ActiveReportingMode
+10. TurnReportingModeVisualState
+
+Use existing database models where possible.
+
+Do not create duplicate tables unless absolutely necessary and clearly justified.
+
+
+TESTING REQUIREMENTS
+
+After implementation, test the following:
+
+1. Reports page loads without errors.
+2. Report type selector changes visible reporting sections.
+3. Date range filter updates all visible report outputs.
+4. Property filter updates all visible report outputs.
+5. Readiness banner correctly shows fully reportable, partially reportable, and not reportable yet counts.
+6. Work Order report shows only work order language and work order records.
+7. Turn report shows active reporting mode clearly.
+8. Separate Turn Mode shows turn-record-based visuals.
+9. Work-Order-Measured Turn Mode shows linked-work-order-based turn visuals.
+10. Unknown Mode blocks confident turn conclusions and shows configuration guidance.
+11. Turn supporting records match the active mode.
+12. PM report shows PM data only if PM records exist.
+13. Asset report shows asset/warranty data only if asset records exist.
+14. Time allocation visuals only appear when Build 7.2 data supports them.
+15. Narrative insights only appear when Build 7.3 logic supports them.
+16. Recommendations include analytics suggestion, review focus, why it matters, supporting records, and next operational question.
+17. Every clickable metric opens the correct supporting records.
+18. Supporting record counts match the visual signal count.
+19. Partial/unresolved records are labeled honestly.
+20. Empty/low-data states appear instead of fake visuals.
+21. Role-based access prevents unauthorized report visibility.
+22. Control Tower-compatible outputs do not conflict with Reports outputs.
+23. Active reporting mode is not weakened or bypassed.
+24. No fake demo data is introduced.
+25. App builds and runs successfully.
+26. Auditor still shows PASS or clearly explains any issue that must be corrected.
+
+
+SUCCESS STATE
+
+Build 7.4 is successful when:
+
+1. The Reports page becomes a clear visual reporting dashboard.
+2. Work order, turn, PM, asset, assignment, and evidence reports have category-specific visual structures.
+3. Turn reporting visibly respects active reporting mode.
+4. Separate Turn Mode, Work-Order-Measured Turn Mode, and Unknown Mode behave differently and correctly.
+5. Summary cards, charts/visual blocks, insights, recommendations, and supporting records all pull from shared reporting logic.
+6. Partial and unresolved data are clearly labeled.
+7. Empty states are honest and useful.
+8. Every clickable signal proves itself through supporting records.
+9. The visual layer supports the Control Tower without duplicating or contradicting it.
+10. The system feels like a real maintenance intelligence reporting engine, not a static dashboard.
+
+
+IMPORTANT LIMITS
+
+Do not rebuild authentication.
+
+Do not rebuild the app shell.
+
+Do not rebuild the assignment engine.
+
+Do not rebuild the workflow engine.
+
+Do not rebuild scoring.
+
+Do not rebuild alerts.
+
+Do not rebuild evidence/document logic.
+
+Do not create a second reporting system.
+
+Do not create fake visuals.
+
+Do not add mock data unless it is clearly tagged as mock test data and isolated from production logic.
+
+Do not hide incomplete-data problems.
+
+Do not create dead-end counts.
+
+Do not create charts that cannot be explained.
+
+Do not create insights that cannot be supported by records.
+
+Do not mix general work orders with turn-related work orders.
+
+Do not weaken active reporting mode.
+
+Do not flatten the 7.3.1 turn category clarification.
+
+
+FINAL AGENT RESPONSE REQUIRED
+
+When finished, provide:
+
+1. What was built
+2. What files were changed
+3. What existing systems were extended
+4. How Build 7.4 connects to Builds 7.1, 7.2, 7.2.1, 7.3, and 7.3.1
+5. How report visuals handle partial/unresolved data
+6. How active reporting mode is preserved
+7. How turn visuals remain mode-specific
+8. How clickable supporting records were wired
+9. What was tested
+10. Whether the auditor still shows PASS
+11. Any limitations or follow-up needed
+12. Whether the build is ready for wiring audit
+
+Internal build label:
+
+BUILD 7.4 — VISUALS + DASHBOARD REPORTING LAYER

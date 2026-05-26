@@ -433,6 +433,16 @@ interface SupportingRecord {
   status: string | null;
   reportingEligibility: "fully_reportable" | "partially_reportable" | "not_reportable";
   reportingLimitations: { code: string; message: string }[];
+  // Ascent 7.4 — per-record inclusion explanation supplied by the engine
+  // when the active reporting mode requires explaining why each record
+  // was admitted into the analysis (e.g. WO linked to a turn).
+  inclusionReason?: string | null;
+  turnRelationConfidence?:
+    | "confirmed_turn_related"
+    | "likely_turn_related"
+    | "possible_turn_related"
+    | "not_turn_related"
+    | null;
 }
 
 export function AnalysisSupportingRecordsSheet({
@@ -530,6 +540,14 @@ export function AnalysisSupportingRecordsSheet({
                                 <li key={l.code}>• {l.message}</li>
                               ))}
                             </ul>
+                          )}
+                          {r.inclusionReason && (
+                            <p
+                              className="mt-2 text-xs text-muted-foreground italic"
+                              data-testid="analysis-drill-record-inclusion-reason"
+                            >
+                              Why included: {r.inclusionReason}
+                            </p>
                           )}
                         </div>
                         <Badge variant="outline" className="shrink-0 text-xs">

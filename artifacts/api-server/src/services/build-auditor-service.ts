@@ -669,6 +669,102 @@ export async function runAudit(buildLabel: string): Promise<AuditBundle> {
       notes: "See Visual Proof Checklist: proof.reports_cards + proof.reports_drill.",
     });
   }
+  // ── Ascent 7.4 — Turn visuals must carry the active reporting mode ────────
+  // Both the dashboard summary and the turn stats endpoint must echo the
+  // active reporting mode so the client banner + gating logic can label
+  // and gate turn-related visuals consistently across surfaces.
+  const turnStatsProbe = await probe("/api/turns/stats");
+  const dashboardSummaryProbe = probes.get("/api/dashboard/summary");
+  {
+    const dashHasMode =
+      dashboardSummaryProbe?.ok &&
+      isObject(dashboardSummaryProbe.rawJson) &&
+      typeof dashboardSummaryProbe.rawJson["reportingMode"] === "string" &&
+      typeof dashboardSummaryProbe.rawJson["turnSignalSource"] === "string";
+    const turnsHasMode =
+      turnStatsProbe.ok &&
+      isObject(turnStatsProbe.rawJson) &&
+      typeof turnStatsProbe.rawJson["reportingMode"] === "string" &&
+      typeof turnStatsProbe.rawJson["turnSignalSource"] === "string";
+    const bothEcho = dashHasMode && turnsHasMode;
+    wiringChecks.push({
+      id: "wiring.turn_visuals_carry_mode_language",
+      category: "wiring",
+      title: "Turn visuals carry the active reporting mode (backend wiring)",
+      status: bothEcho ? "pass" : "fail",
+      severity: "high",
+      expected:
+        "/api/dashboard/summary and /api/turns/stats both return reportingMode + turnSignalSource so client banners can label turn visuals.",
+      observed: bothEcho
+        ? `dashboard.reportingMode=${(dashboardSummaryProbe!.rawJson as Record<string, unknown>)["reportingMode"]}; turns.reportingMode=${(turnStatsProbe.rawJson as Record<string, unknown>)["reportingMode"]}`
+        : `dashboard echo=${dashHasMode}; turns echo=${turnsHasMode}`,
+      notes:
+        "Renders the addendum phrasing on /control-tower and /turns. Visual proof checklist confirms the banner appears in the DOM.",
+    });
+  }
+
+  // ── Ascent 7.4 — Supporting records must surface inclusionReason ──────────
+  // Drill from /api/reporting-analysis/all to find a turn analysis that
+  // carries recordInclusionMetadata, then call /supporting-records and
+  // verify the per-record inclusionReason field is plumbed through.
+  {
+    let observed = "no turn analysis with recordInclusionMetadata found";
+    let status: CheckStatus = "manual";
+    if (analysis?.ok && isObject(analysis.rawJson)) {
+      const turns = (analysis.rawJson["turns"] as unknown[]) ?? [];
+      const candidate = turns.find(
+        (a) =>
+          isObject(a) &&
+          isObject(a["recordInclusionMetadata"]) &&
+          Object.keys(a["recordInclusionMetadata"] as object).length > 0,
+      );
+      if (isObject(candidate) && typeof candidate["analysisId"] === "string") {
+        const drill = await probe(
+          `/api/reporting-analysis/supporting-records?analysisId=${encodeURIComponent(
+            candidate["analysisId"],
+          )}`,
+        );
+        if (drill.ok && isObject(drill.rawJson)) {
+          const records = (drill.rawJson["records"] as unknown[]) ?? [];
+          const withReason = records.filter(
+            (r) => isObject(r) && typeof r["inclusionReason"] === "string" && r["inclusionReason"].length > 0,
+          );
+          observed = `${withReason.length}/${records.length} supporting record(s) carry inclusionReason on analysisId=${candidate["analysisId"]}`;
+          status =
+            records.length > 0 && withReason.length === records.length
+              ? "pass"
+              : records.length > 0 && withReason.length > 0
+              ? "partial"
+              : "fail";
+        } else {
+          observed = `supporting-records probe failed (status=${drill.status})`;
+          status = "fail";
+        }
+      } else {
+        // No turn analysis advertises inclusion metadata yet — likely a
+        // legacy or non-turn dataset. Surface as manual rather than fail.
+        observed =
+          "No turn analysis advertised recordInclusionMetadata in /reporting-analysis/all (legacy or non-turn dataset). Check manually after a turn analysis runs under MEASURE mode.";
+        status = "manual";
+      }
+    } else {
+      observed = "reporting-analysis/all unreachable";
+      status = "fail";
+    }
+    wiringChecks.push({
+      id: "wiring.supporting_records_inclusion_reason_rendered",
+      category: "wiring",
+      title: "Supporting records carry per-record inclusionReason (backend wiring)",
+      status,
+      severity: "high",
+      expected:
+        "For a turn analysis with recordInclusionMetadata, /supporting-records returns inclusionReason on each record so the drill sheet can explain why each record was included.",
+      observed,
+      notes:
+        "The Reports drill-down sheet renders the inclusion reason under each record. Visual proof checklist confirms the row text appears.",
+    });
+  }
+
   const narrative = probes.get("/api/narrative-insights");
   if (narrative?.ok && isObject(narrative.rawJson)) {
     const insights = (narrative.rawJson.insights as unknown[]) ?? [];

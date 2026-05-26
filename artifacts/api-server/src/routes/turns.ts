@@ -28,6 +28,7 @@ import {
   TURN_SIGNAL_PREDICATE,
   isTurnSignal,
 } from "../services/operational-selectors";
+import { getActiveReportingConfig, deriveTurnSignalSource } from "../services/reporting-config-service.js";
 
 const router = Router();
 
@@ -175,7 +176,17 @@ router.get("/turns/stats", async (req, res) => {
     const stats = propertyId && !isNaN(propertyId)
       ? await getTurnStatsByProperty(propertyId)
       : await getTurnStats();
-    res.json(stats);
+    // Ascent 7.4 — echo the active reporting mode + derived turn signal
+    // source so /turns visuals can label and gate themselves consistently
+    // with /reports and /control-tower.
+    const activeConfig = await getActiveReportingConfig();
+    res.json({
+      ...stats,
+      reportingMode: activeConfig.mode,
+      reportingModeSource: activeConfig.config.source,
+      reportingModeIsDefault: activeConfig.isDefault,
+      turnSignalSource: deriveTurnSignalSource(activeConfig.mode),
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: "Failed to fetch turn stats", detail: msg });

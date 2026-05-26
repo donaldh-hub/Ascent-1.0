@@ -23,6 +23,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSignalDrill, type SignalType, type DrillRow } from "@/hooks/use-signal-drill";
 import { isAssetWarrantyExpired } from "@/lib/operational-predicates";
 import { useReportingMode } from "@/components/reports/use-reporting-mode";
+import { TurnReportingModeBanner } from "@/components/reports/turn-reporting-mode-banner";
+import {
+  TURN_PERFORMANCE_LABEL,
+  gateTurnConfidentSignals,
+} from "@/components/reports/turn-language";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -585,13 +590,19 @@ export default function ControlTower() {
   const pmInfo = calcPmInfo(asset.data);
   const pmScore = pmInfo.score;
 
+  // Ascent 7.4 — when reporting mode is Unknown, exclude turnScore from the
+  // OHS composite. Folding an unconfirmed turn signal into the master score
+  // would re-introduce the confident conclusion we just gated out of the
+  // dedicated Turn tile.
+  const ohsTurnGated = gateTurnConfidentSignals(reportingMode.record?.mode);
   const ohsScore = useMemo(() => {
-    const parts = [woScore, turnScore, pmScore, assetScore].filter(
-      (n): n is number => n != null,
-    );
+    const candidates = ohsTurnGated
+      ? [woScore, pmScore, assetScore]
+      : [woScore, turnScore, pmScore, assetScore];
+    const parts = candidates.filter((n): n is number => n != null);
     if (parts.length === 0) return null;
     return Math.round(parts.reduce((a, b) => a + b, 0) / parts.length);
-  }, [woScore, turnScore, pmScore, assetScore]);
+  }, [woScore, turnScore, pmScore, assetScore, ohsTurnGated]);
 
   // ── Asset breakdown for tile metrics ──
   const assetBreakdown = useMemo(() => {
@@ -630,7 +641,12 @@ export default function ControlTower() {
       icon: Activity,
       metrics: [
         { label: "Work Order score", value: woScore ?? "—", tone: woScore != null && woScore < 60 ? "bad" : woScore != null && woScore < 80 ? "warn" : "default" },
-        { label: "Turn score", value: turnScore ?? "—", tone: turnScore != null && turnScore < 60 ? "bad" : turnScore != null && turnScore < 80 ? "warn" : "default" },
+        // Ascent 7.4 — Turn score is hidden inside OHS when mode is Unknown so
+        // the composite tile never surfaces a confident turn number under a
+        // different label than the Turn tile itself.
+        ohsTurnGated
+          ? { label: "Turn score", value: "— (mode not confirmed)", tone: "warn" as const }
+          : { label: "Turn score", value: turnScore ?? "—", tone: turnScore != null && turnScore < 60 ? "bad" : turnScore != null && turnScore < 80 ? "warn" : "default" },
         { label: "PM score", value: pmScore ?? "—", tone: "warn" },
         { label: "Asset score", value: assetScore ?? "—", tone: assetScore != null && assetScore < 60 ? "bad" : assetScore != null && assetScore < 80 ? "warn" : "default" },
       ],
@@ -666,31 +682,62 @@ export default function ControlTower() {
       ],
       recordsHref: "/work-orders",
     },
-    {
-      id: "turn",
-      title: "Turn Performance",
-      subtitle: "Unit turnover velocity",
-      score: turnScore,
-      scoreLabel: "/100",
-      stoplight: computeStoplight(turnScore),
-      icon: Layers,
-      metrics: [
-        { label: "Active turns", value: turn.data?.activeTurns ?? 0 },
-        { label: "Blocked turns", value: turn.data?.blockedTurns ?? 0, tone: (turn.data?.blockedTurns ?? 0) > 0 ? "bad" : "default" },
-        { label: "In rework", value: turn.data?.reworkTurns ?? 0, tone: (turn.data?.reworkTurns ?? 0) > 0 ? "warn" : "default" },
-        {
-          label: "Avg completion",
-          value: turn.data ? `${turn.data.avgCompletionPct}%` : "—",
-        },
-      ],
-      drillSignals: [
-        { label: "Blocked Turns", signal: "blocked_turns", count: turn.data?.blockedTurns },
-        { label: "Stage Congestion", signal: "stage_congestion" },
-        { label: "Rework Loop", signal: "rework_loop", count: turn.data?.reworkTurns },
-        { label: "Not Rent Ready", signal: "not_rent_ready", count: turn.data?.notRentReadyCount },
-      ],
-      recordsHref: "/turns",
-    },
+    // Ascent 7.4 — Turn tile must respect the active reporting mode.
+    // In Unknown mode the spec forbids confident turn signals, so score
+    // and drill signals are suppressed and the tile shows a configure CTA.
+    (() => {
+      const mode = reportingMode.record?.mode;
+      const turnGated = gateTurnConfidentSignals(mode);
+      const subtitle =
+        mode === "work_orders_measure_turn_progress"
+          ? "Turn progress via linked work orders"
+          : mode === "separate_turns_and_work_orders"
+          ? "Unit turnover velocity"
+          : "Reporting mode not yet confirmed";
+      return {
+        id: "turn" as const,
+        title: mode ? TURN_PERFORMANCE_LABEL[mode] : "Turn Performance",
+        subtitle,
+        score: turnGated ? null : turnScore,
+        scoreLabel: turnGated ? "—" : "/100",
+        stoplight: turnGated ? ("yellow" as const) : computeStoplight(turnScore),
+        icon: Layers,
+        metrics: turnGated
+          ? [
+              { label: "Active turns", value: "—" as const },
+              { label: "Blocked turns", value: "—" as const },
+              { label: "In rework", value: "—" as const },
+              { label: "Avg completion", value: "—" as const },
+            ]
+          : [
+              { label: "Active turns", value: turn.data?.activeTurns ?? 0 },
+              { label: "Blocked turns", value: turn.data?.blockedTurns ?? 0, tone: (turn.data?.blockedTurns ?? 0) > 0 ? "bad" as const : "default" as const },
+              { label: "In rework", value: turn.data?.reworkTurns ?? 0, tone: (turn.data?.reworkTurns ?? 0) > 0 ? "warn" as const : "default" as const },
+              {
+                label: "Avg completion",
+                value: turn.data ? `${turn.data.avgCompletionPct}%` : "—",
+              },
+            ],
+        drillSignals: turnGated
+          ? []
+          : [
+              { label: "Blocked Turns", signal: "blocked_turns" as const, count: turn.data?.blockedTurns },
+              { label: "Stage Congestion", signal: "stage_congestion" as const },
+              { label: "Rework Loop", signal: "rework_loop" as const, count: turn.data?.reworkTurns },
+              { label: "Not Rent Ready", signal: "not_rent_ready" as const, count: turn.data?.notRentReadyCount },
+            ],
+        ...(turnGated
+          ? {
+              emptyDrill: {
+                title: "Confirm your turn reporting mode",
+                body:
+                  "Turn reporting depends on whether your organization tracks turns separately or uses work orders to measure turn progress. Confirm your reporting mode to unlock turn metrics, drill-downs, and priority actions.",
+                cta: { label: "Configure on Reports", href: "/reports" },
+              },
+            }
+          : { recordsHref: "/turns" }),
+      };
+    })(),
     {
       id: "pm",
       title: "PM Performance",
@@ -771,7 +818,20 @@ export default function ControlTower() {
         severity: "critical",
       });
     }
-    if (turn.data?.blockedTurns) {
+    // Ascent 7.4 — suppress confident turn priority actions when the
+    // active reporting mode is Unknown; the operator must confirm the
+    // mode before we surface turn-related call-to-actions.
+    const turnGated = gateTurnConfidentSignals(reportingMode.record?.mode);
+    if (turnGated) {
+      list.push({
+        id: "pa-turn-mode-unconfirmed",
+        label: "Confirm turn reporting mode to unlock turn intelligence",
+        context: "Turns · Reporting mode not yet confirmed",
+        href: "/reports",
+        severity: "warning",
+      });
+    }
+    if (!turnGated && turn.data?.blockedTurns) {
       // Ascent 7.2.1 — adapt copy to the active Turn/WO reporting mode
       // so the operator sees the language that matches how their org
       // tracks turn progress.
@@ -813,7 +873,7 @@ export default function ControlTower() {
         severity: "warning",
       });
     }
-    if (turn.data?.reworkTurns) {
+    if (!turnGated && turn.data?.reworkTurns) {
       list.push({
         id: "pa-rework",
         label: `${turn.data.reworkTurns} turns in rework after failed inspection`,
@@ -878,6 +938,12 @@ export default function ControlTower() {
           may be incomplete.
         </div>
       )}
+
+      {/* Ascent 7.4 — Active reporting mode banner: visible above every
+          turn-related visual on this surface. */}
+      <div className="mb-4">
+        <TurnReportingModeBanner surface="control-tower" />
+      </div>
 
       {/* Tile row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

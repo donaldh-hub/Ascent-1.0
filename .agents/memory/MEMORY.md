@@ -1,0 +1,1 @@
+- [Ascent turn reporting-mode gating](ascent-turn-mode-gating.md) — Unknown mode must gate ALL confident turn surfaces (tile + aggregates + composite scores), not just headline KPIs.

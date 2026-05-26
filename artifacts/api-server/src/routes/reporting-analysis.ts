@@ -89,13 +89,26 @@ router.get("/reporting-analysis/supporting-records", async (req, res) => {
       analysis.supportingRecordIds,
       bundle.recordPool,
     );
+    // Ascent 7.4 — merge per-record inclusion metadata onto the hydrated
+    // record rows so the drill sheet can render "why am I here" for each
+    // supporting record, matching the active reporting mode.
+    const metaMap = analysis.recordInclusionMetadata ?? {};
+    const recordsWithReason = records.map((r) => {
+      const meta = metaMap[r.id];
+      return {
+        ...r,
+        inclusionReason: meta?.inclusionReason ?? null,
+        turnRelationConfidence: meta?.turnRelationConfidence ?? null,
+      };
+    });
     res.json({
       analysisId,
       analysisTitle: analysis.title,
       confidenceState: analysis.confidenceState,
+      reportingModeUsed: analysis.reportingModeUsed,
       supportingRecordCount: analysis.supportingRecordCount,
-      returnedCount: records.length,
-      records,
+      returnedCount: recordsWithReason.length,
+      records: recordsWithReason,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to load supporting records", details: String(err) });

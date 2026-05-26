@@ -41,6 +41,12 @@ import {
 } from "@/hooks/use-turns";
 import { cn } from "@/lib/utils";
 import Papa from "papaparse";
+import { useReportingMode } from "@/components/reports/use-reporting-mode";
+import { TurnReportingModeBanner } from "@/components/reports/turn-reporting-mode-banner";
+import {
+  TURN_PERFORMANCE_LABEL,
+  gateTurnConfidentSignals,
+} from "@/components/reports/turn-language";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -241,6 +247,9 @@ export default function Turns() {
   const signalLabel =
     signal && TURN_SIGNAL_LABELS[signal] ? TURN_SIGNAL_LABELS[signal] : null;
 
+  // Ascent 7.4 — gate confident turn metrics when reporting mode is Unknown.
+  const reportingMode = useReportingMode();
+  const turnGated = gateTurnConfidentSignals(reportingMode.record?.mode);
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useTurnStats();
   const { data: matrix, isLoading: matrixLoading, refetch: refetchMatrix } = useTurnMatrix();
   const { data: turnList, isLoading: listLoading, refetch: refetchList } = useTurns({
@@ -306,7 +315,11 @@ export default function Turns() {
         <div className="flex items-center gap-3">
           <Layers className="h-6 w-6 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Turn Matrix</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {reportingMode.record?.mode
+                ? TURN_PERFORMANCE_LABEL[reportingMode.record.mode]
+                : "Turn Matrix"}
+            </h1>
             <p className="text-[11px] text-muted-foreground">
               Make-ready intelligence · stage tracking · bottleneck detection · rent-ready status
             </p>
@@ -337,6 +350,9 @@ export default function Turns() {
         </div>
       )}
 
+      {/* ── Ascent 7.4 — Active reporting mode banner ── */}
+      <TurnReportingModeBanner surface="turns" />
+
       {/* ── CSV Upload ── */}
       <CsvUploadPanel onImportDone={refresh} />
 
@@ -353,8 +369,25 @@ export default function Turns() {
         </div>
       )}
 
+      {/* ── Ascent 7.4 — Unknown mode gate: confident turn metrics suppressed ── */}
+      {turnGated && hasData && (
+        <div
+          className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-4 py-3 text-sm"
+          data-testid="turns-mode-gate"
+        >
+          <p className="font-semibold text-amber-700 dark:text-amber-400">
+            Confirm your turn reporting mode to see turn performance metrics.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Turn reporting depends on whether your organization tracks turns separately
+            or uses work orders to measure turn progress. Until that's confirmed, this
+            page does not present aggregate turn performance conclusions.
+          </p>
+        </div>
+      )}
+
       {/* ── Stats Strip ── */}
-      {(statsLoading || hasData) && (
+      {!turnGated && (statsLoading || hasData) && (
         <div className="grid grid-cols-5 gap-3">
           {statCards.map((card) => (
             <div key={card.label} className="rounded-xl border border-border/60 bg-card/60 px-4 py-3">
@@ -371,7 +404,8 @@ export default function Turns() {
       )}
 
       {/* ── Bottleneck Intelligence ── */}
-      {(matrixLoading || (hasData && matrix)) && (
+      {/* Ascent 7.4 — confident turn aggregates suppressed when reporting mode is Unknown */}
+      {!turnGated && (matrixLoading || (hasData && matrix)) && (
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">Bottleneck Intelligence</p>
           <div className="grid grid-cols-3 gap-3 mb-3">
@@ -482,7 +516,8 @@ export default function Turns() {
       )}
 
       {/* ── Property Breakdown ── */}
-      {(matrixLoading || (hasData && matrix?.propertySummaries && matrix.propertySummaries.length > 0)) && (
+      {/* Ascent 7.4 — per-property turn performance scores suppressed when mode is Unknown */}
+      {!turnGated && (matrixLoading || (hasData && matrix?.propertySummaries && matrix.propertySummaries.length > 0)) && (
         <div>
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-3">Property Breakdown</p>
           <div className="rounded-xl border border-border/60 bg-card/40 overflow-hidden">
@@ -532,7 +567,8 @@ export default function Turns() {
       )}
 
       {/* ── Turn List ── */}
-      {(listLoading || hasData) && (
+      {/* Ascent 7.4 — per-record turn list (with computed completion/blocking) suppressed when mode is Unknown */}
+      {!turnGated && (listLoading || hasData) && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Turn Records</p>
