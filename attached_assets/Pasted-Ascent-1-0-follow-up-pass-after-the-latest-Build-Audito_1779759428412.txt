@@ -1,0 +1,83 @@
+Ascent 1.0 follow-up pass after the latest Build Auditor run.
+
+Audit decision: NO — repair required before next build.
+
+Do not build a new feature layer yet.
+
+First, fix the two partial findings reported by /dev/build-auditor.
+
+Priority #1: Build 7.1 — Reporting ingestion classifies records
+
+Problem:
+The reporting ingestion layer is not fully exposing reportingMode at the top level of the analysis/reporting payload.
+
+Required fix:
+Inspect the reporting ingestion, reporting configuration, report analysis, and report payload generation logic.
+
+Ensure reportingMode is exposed clearly at the top level wherever the Reports page, report cards, analysis payload, and auditor expect it.
+
+The system must clearly support the customer’s selected reporting mode:
+
+1. Separate turns and work orders
+2. Work orders measure turn progress
+
+Expected behavior:
+The reporting mode should be available in the top-level reporting/analysis payload and should not only exist buried inside a nested configuration object.
+
+Verification:
+Re-run /dev/build-auditor and confirm the Build 7.1 reporting ingestion partial changes to PASS.
+
+Priority #2: Narrative insight links back to supporting records
+
+Problem:
+At least one narrative insight is not carrying supportingRecordIds correctly.
+
+Required fix:
+Inspect narrative insight generation, insight payload structure, supporting record mapping, drill-through logic, and report cards.
+
+Every narrative insight that makes an operational claim must either:
+
+1. Carry supportingRecordIds, or
+2. Be clearly labeled as an empty-state/readiness insight that does not require supporting records
+
+Do not allow operational recommendations to appear without evidence.
+
+Expected behavior:
+Narrative insights should link back to supporting records where applicable.
+
+Verification:
+Re-run /dev/build-auditor and confirm the product-promise/supporting-record partial changes to PASS.
+
+What NOT to break:
+Do not rebuild the app.
+Do not replace working dashboards.
+Do not remove existing routes.
+Do not change customer-facing language unnecessarily.
+Do not break:
+
+/control-tower
+/reports
+/work-orders
+/turns
+/assets
+/properties
+/analytics
+/alerts
+/governance
+/documents
+/assignments
+/workflows
+/setup
+/dev/build-auditor
+
+Preserve the current Build Auditor, audit history, Executive Build Feedback, Can We Move Forward decision logic, Visual Proof Checklist, Manual Test Plan, Full Markdown Report, and Next Prompt generator.
+
+After completing the repair, provide a final report listing:
+
+1. Files changed
+2. reportingMode wiring fixed
+3. Narrative supporting-record logic fixed
+4. Routes preserved
+5. Tests performed
+6. Auditor result after re-running /dev/build-auditor
+7. Anything still needing manual verification
