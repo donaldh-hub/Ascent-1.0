@@ -46,6 +46,50 @@ export interface ManualTest {
   failCriteria: string;
 }
 
+export interface VisualProof {
+  id: string;
+  screenshotNeeded: string;
+  pageOrRoute: string;
+  mustBeVisible: string;
+  whyItMatters: string;
+  passCriteria: string;
+  failCriteria: string;
+}
+
+export interface ExecutiveFeedback {
+  status: BuildAuditStatus;
+  judgement: string;
+  criticalCount: number;
+  highRiskCount: number;
+  manualVerificationCount: number;
+  recommendedNextAction: string;
+  safeToContinue: boolean;
+}
+
+export type GoNoGoDecision =
+  | "yes_safe"
+  | "yes_with_caution"
+  | "no_repair_required"
+  | "needs_manual_verification";
+
+export interface GoNoGo {
+  decision: GoNoGoDecision;
+  rationale: string;
+  blockingChecks: string[]; // check IDs that drove the decision
+}
+
+export interface TopIssue {
+  rank: 1 | 2 | 3;
+  checkId: string;
+  title: string;
+  location: string;
+  whyItMatters: string;
+  requiredFix: string;
+  verificationMethod: string;
+  severity: CheckSeverity;
+  status: CheckStatus;
+}
+
 export interface AuditBundle {
   buildLabel: string;
   generatedAt: string;
@@ -54,6 +98,10 @@ export interface AuditBundle {
   counts: { pass: number; partial: number; fail: number; manual: number };
   checks: CheckResult[];
   manualTests: ManualTest[];
+  visualProofs: VisualProof[];
+  executive: ExecutiveFeedback;
+  goNoGo: GoNoGo;
+  topIssues: TopIssue[];
   reportMarkdown: string;
   nextPromptMarkdown: string;
 }
@@ -435,6 +483,82 @@ const MANUAL_TESTS: ManualTest[] = [
     evidence: "Note observed behaviour + screenshot",
     passCriteria: "Behaviour matches setup status",
     failCriteria: "Blank screen, loop, or wrong redirect",
+  },
+];
+
+// ─── Visual proof checklist (always emitted) ──────────────────────────────────
+
+const VISUAL_PROOFS: VisualProof[] = [
+  {
+    id: "proof.control_tower",
+    screenshotNeeded: "Full /control-tower page",
+    pageOrRoute: "/control-tower",
+    mustBeVisible:
+      "Priority Actions list, Operational Focus layer, and stoplight (R/Y/G) scores — none blank.",
+    whyItMatters:
+      "Control Tower is the single entry point; if it renders empty the customer sees nothing operational.",
+    passCriteria: "All three regions render with data; no error toast or empty placeholder",
+    failCriteria: "Any region blank, console errors, or stoplight not rendered",
+  },
+  {
+    id: "proof.reports_cards",
+    screenshotNeeded: "/reports analysis cards above the fold",
+    pageOrRoute: "/reports",
+    mustBeVisible:
+      "Confidence badge (Fully supported / Partially supported / Directional only / Not enough data), supporting record counts, and the 'View N supporting records' button.",
+    whyItMatters:
+      "Reports is where ingestion → intelligence is verified; missing badges or counts means the analysis layer isn't visible to the user.",
+    passCriteria: "Every visible card shows a badge, a record count, and a working drill button",
+    failCriteria: "Any card missing badge, missing count, or button does nothing",
+  },
+  {
+    id: "proof.reports_drill",
+    screenshotNeeded: "Drill-through sheet after clicking 'View N supporting records'",
+    pageOrRoute: "/reports → side sheet",
+    mustBeVisible: "Side sheet opens, lists records, and the count matches the card",
+    whyItMatters:
+      "Drill-through is the proof every insight links back to records — core to the Ascent promise.",
+    passCriteria: "Sheet opens with ≥1 record and the count matches the originating card",
+    failCriteria: "Sheet empty, errors out, or count mismatch",
+  },
+  {
+    id: "proof.narrative_section",
+    screenshotNeeded: "Narrative Insights section with readiness summary",
+    pageOrRoute: "/reports (bottom section)",
+    mustBeVisible:
+      "Bordered Build 7.3 header card, subtitle, and 4-stat readiness summary (Fully / Partially / Directional / Blocked).",
+    whyItMatters:
+      "The narrative layer is the operator-friendly translation; if hidden, the build is visually incomplete.",
+    passCriteria: "Header card visible, readiness counts equal the sum of insight cards below",
+    failCriteria: "Missing header, mismatched counts, or section absent",
+  },
+  {
+    id: "proof.reporting_mode_toggle",
+    screenshotNeeded: "Before/after of one Turn-affected card across a mode change",
+    pageOrRoute: "/reports → Change → save",
+    mustBeVisible: "Card copy and badges visibly change after the mode is saved",
+    whyItMatters:
+      "Proves the mode is wired through to analysis output, not just a stored setting.",
+    passCriteria: "Card copy changes (e.g. 'Turn (turn-progress…)' ↔ 'Turn (imported…)')",
+    failCriteria: "Identical copy after save",
+  },
+  {
+    id: "proof.work_orders_list",
+    screenshotNeeded: "/work-orders list page",
+    pageOrRoute: "/work-orders",
+    mustBeVisible: "At least one row with status, property, and an action affordance",
+    whyItMatters: "Confirms WO data flows from ingestion to operator views",
+    passCriteria: "Rows render; clicking a row opens detail or sheet",
+    failCriteria: "Empty list with no empty-state message, or rows missing required columns",
+  },
+  {
+    id: "proof.turns_list",
+    screenshotNeeded: "/turns list page",
+    pageOrRoute: "/turns",
+    mustBeVisible: "Turn rows with stage and unit context",
+    whyItMatters: "Confirms turn data flows from ingestion to operator views",
+    passCriteria: "Rows render with stage column populated",
+    failCriteria: "No data, no empty-state copy, or stage column blank",
   },
 ];
 

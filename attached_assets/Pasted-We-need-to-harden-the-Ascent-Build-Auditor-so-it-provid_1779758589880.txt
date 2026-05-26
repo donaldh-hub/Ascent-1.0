@@ -1,0 +1,122 @@
+We need to harden the Ascent Build Auditor so it provides stronger top-level feedback and clearer action guidance after every audit.
+
+The internal route /dev/build-auditor already exists. Do not rebuild it from scratch. Inspect the current implementation first and preserve the working audit service, routes, database table, audit history, report generation, and next-prompt generation.
+
+Improve the auditor page and audit output with the following upgrades:
+
+1. Add a top-level “Executive Build Feedback” section at the top of /dev/build-auditor.
+
+This section must clearly show:
+
+- Overall audit status: PASS, PARTIAL, FAIL, or NEEDS MANUAL VERIFICATION
+- One-sentence build judgment
+- Critical issues count
+- High-risk issues count
+- Manual verification count
+- Recommended next action
+- Whether the build is safe to continue from or needs repair first
+
+2. Add a “Can We Move Forward?” decision box.
+
+The decision must be one of:
+
+- YES — safe to move forward
+- YES, WITH CAUTION — minor issues remain
+- NO — repair required before next build
+- NEEDS MANUAL VERIFICATION — cannot decide until user confirms behavior
+
+This decision must be based on the actual audit findings.
+
+Do not allow the system to say YES if there are critical routing, reporting, upload, dashboard, or data-flow issues.
+
+3. Add a “Top 3 Issues To Fix First” section.
+
+This must rank issues by severity and product risk.
+
+Each issue must include:
+
+- Issue title
+- Location
+- Why it matters
+- Required fix
+- Verification method
+
+4. Improve the generated next Replit prompt.
+
+The next prompt must be based only on actual audit findings.
+
+It must prioritize the highest-risk issue first.
+
+It must include:
+
+- What to fix
+- What not to break
+- Specific files/routes/components to inspect
+- Expected behavior
+- Validation requirements
+- Required final report
+
+5. Strengthen front-end validation language.
+
+Where automatic validation cannot confirm click behavior, visual rendering, or user interaction, the auditor must clearly label the item as:
+
+NEEDS MANUAL VERIFICATION
+
+Do not let backend route existence count as full feature completion.
+
+Separate:
+
+- Route exists
+- Page renders
+- Button exists
+- Button works
+- Data flows correctly
+- User can complete the intended workflow
+
+6. Add a visual proof checklist.
+
+The checklist should tell the user exactly what screenshots are needed.
+
+Use this format:
+
+- Screenshot needed
+- Page/route
+- What must be visible
+- Why it matters
+- Pass/fail criteria
+
+7. Preserve all existing Ascent 1.0 customer-facing routes and functionality.
+
+Do not modify:
+
+- /control-tower
+- /reports
+- /work-orders
+- /turns
+- /assets
+- /properties
+- /analytics
+- /alerts
+- /governance
+- /documents
+- /assignments
+- /workflows
+- /setup
+
+8. Keep the auditor internal only.
+
+The auditor must remain at:
+
+/dev/build-auditor
+
+It must not appear in normal customer navigation.
+
+9. After completion, provide a final report listing:
+
+- Files changed
+- UI improvements added
+- Audit logic improvements added
+- Decision logic added
+- Manual verification improvements added
+- Tests performed
+- Anything still needing manual verification
