@@ -319,6 +319,12 @@ export function NarrativeInsightsSection({
 
   useEffect(load, []);
 
+  useEffect(() => {
+    if (bundle && typeof window !== "undefined" && window.location.hash === "#narrative-insights") {
+      document.getElementById("narrative-insights")?.scrollIntoView({ block: "start" });
+    }
+  }, [bundle]);
+
   // Hide readiness-only insights when there are real operational insights
   // — the bundle-level empty state covers low-data explanation; we don't
   // want to crowd the section with one readiness card per analysis.
@@ -332,7 +338,7 @@ export function NarrativeInsightsSection({
     ) ?? [];
 
   return (
-    <section data-testid="narrative-insights-section">
+    <section id="narrative-insights" data-testid="narrative-insights-section">
       <div className="rounded-lg border-2 border-primary/30 bg-primary/[0.03] p-4 mb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
