@@ -59,7 +59,15 @@ export interface ReportingAnalysisBundle {
   evidence: AnalysisOutput[];
   assignments: AnalysisOutput[];
   crossCategory: AnalysisOutput[];
-  reportingMode: ReportingModeSummary;
+  /**
+   * Top-level scalar mode value. Surfaced as a string at the root of the
+   * payload so the Reports page, Control Tower, narrative engine, and Build
+   * Auditor can read it without descending into a nested config object.
+   * Mirrors `reportingModeSummary.mode`.
+   */
+  reportingMode: TurnWorkOrderReportingModeValue;
+  /** Rich mode metadata (counts, source, isDefault). */
+  reportingModeSummary: ReportingModeSummary;
   generatedAt: string;
 }
 
@@ -120,7 +128,7 @@ export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBund
   const woAdmissible = partitionByEligibility(workOrderRecords).admissible;
   const turnAdmissible = partitionByEligibility(turnRecords).admissible;
   const woBreakdown = partitionWorkOrdersByTurnRelation(woAdmissible);
-  const reportingMode: ReportingModeSummary = {
+  const reportingModeSummary: ReportingModeSummary = {
     mode,
     source: active.config.source,
     isDefault: active.isDefault,
@@ -138,7 +146,8 @@ export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBund
     evidence,
     assignments,
     crossCategory,
-    reportingMode,
+    reportingMode: mode,
+    reportingModeSummary,
     generatedAt: new Date().toISOString(),
     recordPool,
   };

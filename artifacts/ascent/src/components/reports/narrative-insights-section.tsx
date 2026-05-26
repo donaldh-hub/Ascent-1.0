@@ -104,7 +104,8 @@ interface NarrativeInsightsBundle {
     missingFieldsBlockingInsights: string[];
     suggestedNextUpload: string;
   };
-  reportingMode: { mode: string };
+  reportingMode: string;
+  reportingModeSummary?: { mode: string };
   generatedAt: string;
 }
 

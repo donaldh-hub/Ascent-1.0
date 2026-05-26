@@ -276,8 +276,14 @@ const BUILD_CHECKLIST: ChecklistEntry[] = [
         return { status: "fail", observed: "reporting-analysis/all not reachable or non-object" };
       }
       const j = p.rawJson;
-      if (typeof j.reportingMode !== "string") {
-        return { status: "partial", observed: "response missing reportingMode" };
+      // Spec (Build 7.1): reportingMode must be exposed clearly at the
+      // top level of the analysis payload, not only buried inside a
+      // nested config object.
+      if (typeof j.reportingMode !== "string" || j.reportingMode.length === 0) {
+        return {
+          status: "partial",
+          observed: `response missing top-level scalar reportingMode (got ${typeof j.reportingMode})`,
+        };
       }
       return { status: "pass", observed: `reportingMode=${String(j.reportingMode)}` };
     },
@@ -689,32 +695,62 @@ export async function runAudit(buildLabel: string): Promise<AuditBundle> {
   }
 
   // 5) Product-promise checks (does the build help managers act?)
+  //
+  // Spec (Build 7.3): every narrative insight that makes an operational
+  // claim must either (a) carry ≥1 supportingRecordId or (b) be clearly
+  // labelled as an empty-state/readiness insight that does not require
+  // supporting records. The engine now exposes `requiresSupportingRecords`
+  // (false for readiness, true for operational) so this check can exempt
+  // readiness insights instead of treating them as failures.
   const promiseChecks: CheckResult[] = [
     {
       id: "promise.records_back_insights",
       category: "product_promise",
-      title: "Every insight links back to supporting records",
+      title: "Every operational insight links back to supporting records",
       status: (() => {
         if (!narrative?.ok || !isObject(narrative.rawJson)) return "fail";
         const insights = (narrative.rawJson.insights as unknown[]) ?? [];
         if (insights.length === 0) return "manual";
-        const withRecords = insights.filter(
+        const operational = insights.filter(
+          (i) =>
+            isObject(i) &&
+            // Treat missing flag as operational for backward compat.
+            (i.requiresSupportingRecords === undefined ||
+              i.requiresSupportingRecords === true) &&
+            String(i.insightCategory ?? "") !== "data_quality_reporting_readiness" &&
+            String(i.dataSupportLevel ?? "") !== "not_enough_data",
+        );
+        if (operational.length === 0) return "manual"; // only readiness items present
+        const withRecords = operational.filter(
           (i) => isObject(i) && Array.isArray(i.supportingRecordIds) && i.supportingRecordIds.length > 0,
         );
-        if (withRecords.length === insights.length) return "pass";
+        if (withRecords.length === operational.length) return "pass";
         if (withRecords.length === 0) return "fail";
         return "partial";
       })(),
       severity: "high",
-      expected: "Each narrative insight carries ≥1 supportingRecordId",
+      expected:
+        "Each operational insight carries ≥1 supportingRecordId; readiness insights (data_quality_reporting_readiness / not_enough_data) are exempt.",
       observed: (() => {
         if (!narrative?.ok || !isObject(narrative.rawJson)) return "narrative endpoint unreachable";
         const insights = (narrative.rawJson.insights as unknown[]) ?? [];
         if (insights.length === 0) return "no insights to evaluate";
-        const withRecords = insights.filter(
+        const operational = insights.filter(
+          (i) =>
+            isObject(i) &&
+            (i.requiresSupportingRecords === undefined ||
+              i.requiresSupportingRecords === true) &&
+            String(i.insightCategory ?? "") !== "data_quality_reporting_readiness" &&
+            String(i.dataSupportLevel ?? "") !== "not_enough_data",
+        );
+        const readiness = insights.length - operational.length;
+        if (operational.length === 0) {
+          return `0 operational insights, ${readiness} readiness insights (no operational claims to verify)`;
+        }
+        const withRecords = operational.filter(
           (i) => isObject(i) && Array.isArray(i.supportingRecordIds) && i.supportingRecordIds.length > 0,
         ).length;
-        return `${withRecords}/${insights.length} insights backed by records`;
+        return `${withRecords}/${operational.length} operational insights backed by records (${readiness} readiness insights exempt)`;
       })(),
     },
   ];

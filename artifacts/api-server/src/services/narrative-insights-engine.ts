@@ -92,6 +92,16 @@ export interface NarrativeInsight {
 
   supportingRecordCount: number;
   supportingRecordIds: string[];
+  /**
+   * False for empty-state / readiness insights (dataSupportLevel ==
+   * "not_enough_data" or insightCategory == "data_quality_reporting_readiness").
+   * Those insights are explanatory and do not have to carry supporting
+   * record IDs. Operational insights MUST carry ≥1 supporting record ID;
+   * the engine enforces this by demoting any operational candidate with
+   * zero records to a readiness insight rather than emitting an
+   * unsupported operational claim.
+   */
+  requiresSupportingRecords: boolean;
 
   sourceMetricsUsed: string[];
   reportabilityBreakdown: InsightReportabilityBreakdown;
@@ -118,7 +128,9 @@ export interface NarrativeInsightsBundle {
     missingFieldsBlockingInsights: string[];
     suggestedNextUpload: string;
   };
-  reportingMode: ReportingModeSummary;
+  /** Top-level scalar mode value — mirrors `reportingModeSummary.mode`. */
+  reportingMode: TurnWorkOrderReportingModeValue;
+  reportingModeSummary: ReportingModeSummary;
   generatedAt: string;
   generatedFromBuildVersion: string;
 }
@@ -129,7 +141,7 @@ export function buildNarrativeInsights(
   bundle: ReportingAnalysisBundle,
 ): NarrativeInsightsBundle {
   const analyses = flattenBundle(bundle);
-  const mode = bundle.reportingMode.mode;
+  const mode = bundle.reportingMode;
 
   const insights: NarrativeInsight[] = [];
   for (const a of analyses) {
@@ -147,7 +159,8 @@ export function buildNarrativeInsights(
   return {
     insights,
     emptyState: buildEmptyState(analyses, insights),
-    reportingMode: bundle.reportingMode,
+    reportingMode: mode,
+    reportingModeSummary: bundle.reportingModeSummary,
     generatedAt: new Date().toISOString(),
     generatedFromBuildVersion: BUILD_VERSION,
   };
@@ -206,6 +219,7 @@ function generateForAnalysis(
         "Improving the underlying data will let Ascent show a real, evidence-backed insight here.",
       supportingRecordCount: a.supportingRecordCount,
       supportingRecordIds: a.supportingRecordIds,
+      requiresSupportingRecords: false,
       sourceMetricsUsed: sourceMetricsFor(a),
       reportabilityBreakdown,
       limitationText:
@@ -220,6 +234,47 @@ function generateForAnalysis(
   }
 
   // Operational insight branch.
+  //
+  // Hard rule (Build 7.3 spec, Build Auditor product-promise check):
+  // every operational insight must carry ≥1 supportingRecordId so the
+  // user can always drill into evidence. If an analysis somehow reaches
+  // this branch with zero supporting records — meaning we cannot point
+  // the user at any underlying record — demote it to a readiness
+  // insight rather than emit an unsupported operational claim.
+  if (a.supportingRecordIds.length === 0) {
+    return {
+      insightId: `insight:${a.analysisId}:readiness`,
+      sourceAnalysisId: a.analysisId,
+      organizationId: a.organizationId,
+      propertyId: a.propertyId,
+      reportType: reportTypeFor(a),
+      insightCategory: "data_quality_reporting_readiness",
+      insightSeverity: "informational",
+      confidenceLevel: "low",
+      dataSupportLevel: "not_enough_data",
+      headline: `Reporting not yet ready: ${a.title}`,
+      plainLanguageSummary:
+        `Ascent computed "${a.title}" but cannot link it back to specific records yet, ` +
+        `so this is shown as a readiness item rather than an operational recommendation.`,
+      operationalWhyItMatters:
+        "Operational recommendations are only shown when Ascent can point you at the underlying records. " +
+        "When the supporting evidence is missing, the insight is held back until the data catches up.",
+      supportingRecordCount: 0,
+      supportingRecordIds: [],
+      requiresSupportingRecords: false,
+      sourceMetricsUsed: sourceMetricsFor(a),
+      reportabilityBreakdown,
+      limitationText:
+        limitationText ??
+        "No supporting records could be linked to this analysis. Operational claim suppressed until evidence is available.",
+      recommendedReviewQuestion: readinessReviewQuestion(a),
+      suggestedNextStep: readinessNextStep(a),
+      reportingModeUsed: a.reportingModeUsed,
+      createdAt: new Date().toISOString(),
+      generatedFromBuildVersion: BUILD_VERSION,
+    };
+  }
+
   return {
     insightId: `insight:${a.analysisId}`,
     sourceAnalysisId: a.analysisId,
@@ -235,6 +290,7 @@ function generateForAnalysis(
     operationalWhyItMatters: buildWhyItMatters(a, mode),
     supportingRecordCount: a.supportingRecordCount,
     supportingRecordIds: a.supportingRecordIds,
+    requiresSupportingRecords: true,
     sourceMetricsUsed: sourceMetricsFor(a),
     reportabilityBreakdown,
     limitationText,
