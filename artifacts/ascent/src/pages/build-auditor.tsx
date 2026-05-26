@@ -18,6 +18,9 @@ import {
   HelpCircle,
   RotateCw,
   Eye,
+  Camera,
+  Flag,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,16 +51,66 @@ interface ManualTest {
   failCriteria: string;
 }
 
+interface VisualProof {
+  id: string;
+  screenshotNeeded: string;
+  pageOrRoute: string;
+  mustBeVisible: string;
+  whyItMatters: string;
+  passCriteria: string;
+  failCriteria: string;
+}
+
+type AuditStatus = "pass" | "partial" | "fail" | "needs_manual_verification";
+
+interface ExecutiveFeedback {
+  status: AuditStatus;
+  judgement: string;
+  criticalCount: number;
+  highRiskCount: number;
+  manualVerificationCount: number;
+  recommendedNextAction: string;
+  safeToContinue: boolean;
+}
+
+type GoNoGoDecision =
+  | "yes_safe"
+  | "yes_with_caution"
+  | "no_repair_required"
+  | "needs_manual_verification";
+
+interface GoNoGo {
+  decision: GoNoGoDecision;
+  rationale: string;
+  blockingChecks: string[];
+}
+
+interface TopIssue {
+  rank: 1 | 2 | 3;
+  checkId: string;
+  title: string;
+  location: string;
+  whyItMatters: string;
+  requiredFix: string;
+  verificationMethod: string;
+  severity: CheckSeverity;
+  status: CheckStatus;
+}
+
 interface AuditBundle {
   id?: number;
   createdAt?: string;
   buildLabel: string;
   generatedAt: string;
-  status: "pass" | "partial" | "fail" | "needs_manual_verification";
+  status: AuditStatus;
   summary: string;
   counts: { pass: number; partial: number; fail: number; manual: number };
   checks: CheckResult[];
   manualTests: ManualTest[];
+  visualProofs: VisualProof[];
+  executive: ExecutiveFeedback | null;
+  goNoGo: GoNoGo | null;
+  topIssues: TopIssue[];
   reportMarkdown: string;
   nextPromptMarkdown: string;
 }
@@ -73,6 +126,25 @@ interface HistoryItem {
   failCount: number;
   manualCount: number;
 }
+
+const GO_NO_GO_META: Record<GoNoGoDecision, { label: string; tone: string }> = {
+  yes_safe: {
+    label: "YES — safe to move forward",
+    tone: "bg-status-green/15 text-status-green border-status-green/40",
+  },
+  yes_with_caution: {
+    label: "YES, WITH CAUTION — minor issues remain",
+    tone: "bg-amber-500/15 text-amber-500 border-amber-500/40",
+  },
+  no_repair_required: {
+    label: "NO — repair required before next build",
+    tone: "bg-status-red/15 text-status-red border-status-red/40",
+  },
+  needs_manual_verification: {
+    label: "NEEDS MANUAL VERIFICATION — cannot decide until user confirms behaviour",
+    tone: "bg-sky-500/15 text-sky-500 border-sky-500/40",
+  },
+};
 
 const STATUS_META: Record<AuditBundle["status"], { label: string; tone: string; Icon: typeof CheckCircle2 }> = {
   pass: { label: "PASS", tone: "bg-status-green/15 text-status-green border-status-green/40", Icon: CheckCircle2 },
@@ -156,7 +228,13 @@ export default function BuildAuditorPage() {
       const res = await fetch(`/api/build-auditor/${id}`);
       if (!res.ok) throw new Error(`failed to load audit #${id}`);
       const row = await res.json();
-      // The stored row shape mirrors the DB columns; rebuild a bundle-like view.
+      const extras = (row.bundleExtras ?? {}) as Partial<{
+        executive: ExecutiveFeedback;
+        goNoGo: GoNoGo;
+        topIssues: TopIssue[];
+        visualProofs: VisualProof[];
+        manualTests: ManualTest[];
+      }>;
       setBundle({
         id: row.id,
         createdAt: row.createdAt,
@@ -171,7 +249,11 @@ export default function BuildAuditorPage() {
           manual: row.manualCount,
         },
         checks: row.checkResults,
-        manualTests: [],
+        manualTests: extras.manualTests ?? [],
+        visualProofs: extras.visualProofs ?? [],
+        executive: extras.executive ?? null,
+        goNoGo: extras.goNoGo ?? null,
+        topIssues: extras.topIssues ?? [],
         reportMarkdown: row.reportMarkdown,
         nextPromptMarkdown: row.nextPromptMarkdown,
       });
@@ -342,6 +424,83 @@ function AuditReport({
         </div>
       </div>
 
+      {/* Executive Build Feedback */}
+      {bundle.executive && (
+        <Section title="Executive Build Feedback" testId="build-auditor-executive">
+          <div className="rounded-md border border-border bg-card p-4 text-sm space-y-2">
+            <div className="text-sm">{bundle.executive.judgement}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <ExecStat label="Critical issues" value={bundle.executive.criticalCount} tone="text-status-red" />
+              <ExecStat label="High-risk issues" value={bundle.executive.highRiskCount} tone="text-orange-500" />
+              <ExecStat label="Manual to verify" value={bundle.executive.manualVerificationCount} tone="text-sky-500" />
+              <ExecStat
+                label="Safe to continue"
+                value={bundle.executive.safeToContinue ? "Yes" : "No"}
+                tone={bundle.executive.safeToContinue ? "text-status-green" : "text-status-red"}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground flex items-start gap-2 pt-1 border-t border-border/50">
+              <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span><span className="font-semibold text-foreground">Recommended next action:</span> {bundle.executive.recommendedNextAction}</span>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      {/* Can We Move Forward? */}
+      {bundle.goNoGo && (
+        <Section title="Can We Move Forward?" testId="build-auditor-go-nogo">
+          <div className={`rounded-md border-2 p-4 ${GO_NO_GO_META[bundle.goNoGo.decision].tone}`}>
+            <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-sm">
+              <Flag className="h-4 w-4" />
+              {GO_NO_GO_META[bundle.goNoGo.decision].label}
+            </div>
+            <div className="text-xs mt-2 opacity-90">{bundle.goNoGo.rationale}</div>
+            {bundle.goNoGo.blockingChecks.length > 0 && (
+              <div className="text-[11px] mt-2 opacity-80">
+                <span className="font-semibold">Blocking checks:</span>{" "}
+                {bundle.goNoGo.blockingChecks.map((id) => (
+                  <code key={id} className="mr-1 px-1 py-0.5 rounded bg-background/40">{id}</code>
+                ))}
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* Top 3 Issues */}
+      {bundle.topIssues.length > 0 && (
+        <Section title="Top 3 Issues To Fix First" testId="build-auditor-top-issues">
+          <ol className="space-y-2">
+            {bundle.topIssues.map((t) => (
+              <li
+                key={t.checkId}
+                className="rounded-md border border-border bg-card p-3 text-sm"
+                data-testid={`build-auditor-top-${t.rank}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold">
+                    #{t.rank} — {t.title}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs ${SEV_META[t.severity]}`}>{t.severity}</span>
+                    <Badge variant="outline" className={`text-[10px] ${CHECK_STATUS_META[t.status].tone}`}>
+                      {CHECK_STATUS_META[t.status].label}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                  <div><span className="font-semibold text-foreground">Location:</span> {t.location}</div>
+                  <div><span className="font-semibold text-foreground">Why it matters:</span> {t.whyItMatters}</div>
+                  <div><span className="font-semibold text-foreground">Required fix:</span> {t.requiredFix}</div>
+                  <div><span className="font-semibold text-foreground">Verification:</span> {t.verificationMethod}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Section>
+      )}
+
       {/* Problems first per spec */}
       {problems.length > 0 && (
         <Section title="Problems Found" testId="build-auditor-problems">
@@ -401,9 +560,38 @@ function AuditReport({
         );
       })}
 
+      {/* Visual Proof Checklist */}
+      {bundle.visualProofs.length > 0 && (
+        <Section title="Visual Proof Checklist" testId="build-auditor-visual-proofs">
+          <div className="text-xs text-muted-foreground mb-2">
+            Automated probes cannot verify rendered DOM, click behaviour, or workflows. Capture these screenshots after every build.
+          </div>
+          <ul className="space-y-2">
+            {bundle.visualProofs.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-md border border-border bg-card p-3 text-sm"
+                data-testid={`build-auditor-proof-${p.id}`}
+              >
+                <div className="flex items-center gap-2 font-semibold">
+                  <Camera className="h-4 w-4 text-sky-500" /> {p.screenshotNeeded}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                  <div><span className="font-semibold text-foreground">Page/route:</span> {p.pageOrRoute}</div>
+                  <div><span className="font-semibold text-foreground">What must be visible:</span> {p.mustBeVisible}</div>
+                  <div><span className="font-semibold text-foreground">Why it matters:</span> {p.whyItMatters}</div>
+                  <div className="text-status-green"><span className="font-semibold">Pass:</span> {p.passCriteria}</div>
+                  <div className="text-status-red"><span className="font-semibold">Fail:</span> {p.failCriteria}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {/* Manual test plan */}
       {bundle.manualTests.length > 0 && (
-        <Section title="Screenshot / Manual Evidence Needed" testId="build-auditor-manual">
+        <Section title="Manual Test Plan (Click-through Evidence)" testId="build-auditor-manual">
           <ul className="space-y-2">
             {bundle.manualTests.map((t) => (
               <li key={t.id} className="rounded-md border border-border bg-card p-3 text-sm">
@@ -496,6 +684,15 @@ function CountPill({ label, value, tone }: { label: string; value: number; tone:
   return (
     <div className="rounded-md bg-background/40 border border-border/40 px-2 py-1 text-center">
       <div className={`text-base font-bold ${tone}`}>{value}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function ExecStat({ label, value, tone }: { label: string; value: number | string; tone: string }) {
+  return (
+    <div className="rounded-md border border-border/60 bg-secondary/30 px-3 py-2">
+      <div className={`text-lg font-bold ${tone}`}>{value}</div>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );

@@ -638,31 +638,53 @@ export async function runAudit(buildLabel: string): Promise<AuditBundle> {
   if (analysis?.ok && isObject(analysis.rawJson)) {
     const wos = (analysis.rawJson.workOrders as unknown[]) ?? [];
     const turns = (analysis.rawJson.turns as unknown[]) ?? [];
+    const hasPayload = wos.length + turns.length > 0;
     wiringChecks.push({
-      id: "wiring.analysis_to_ui",
+      id: "wiring.analysis_payload_present",
       category: "wiring",
-      title: "Reports page → reporting-analysis payload",
-      status: wos.length + turns.length > 0 ? "pass" : "partial",
+      title: "Reports — analysis payload is reachable (backend wiring)",
+      status: hasPayload ? "pass" : "partial",
       severity: "high",
-      expected: "At least one WO or turn analysis available for the Reports page",
-      observed: `${wos.length} WO + ${turns.length} turn analyses`,
+      expected: "At least one WO or turn analysis returned by /api/reporting-analysis/all",
+      observed: `${wos.length} WO + ${turns.length} turn analyses returned`,
+      notes:
+        "Backend reachability only. Whether the Reports page actually renders these cards, the badges show, and the drill button opens the side sheet must be confirmed by the Visual Proof Checklist below.",
+    });
+    wiringChecks.push({
+      id: "wiring.analysis_rendered_on_reports",
+      category: "wiring",
+      title: "Reports — cards render and drill-through works (user-facing)",
+      status: "manual",
+      severity: "high",
+      expected:
+        "On /reports: cards visible, confidence badge visible, supporting record count shown, 'View N supporting records' opens the drill sheet",
+      observed:
+        "Automated probe cannot observe rendered DOM, button clicks, or sheet behaviour — Visual Proof required.",
+      notes: "See Visual Proof Checklist: proof.reports_cards + proof.reports_drill.",
     });
   }
   const narrative = probes.get("/api/narrative-insights");
   if (narrative?.ok && isObject(narrative.rawJson)) {
     const insights = (narrative.rawJson.insights as unknown[]) ?? [];
     wiringChecks.push({
-      id: "wiring.narrative_to_ui",
+      id: "wiring.narrative_payload_present",
       category: "wiring",
-      title: "Narrative Insights section → narrative-insights payload",
-      status: insights.length > 0 ? "pass" : "manual",
+      title: "Narrative Insights — payload is reachable (backend wiring)",
+      status: "pass",
       severity: "medium",
-      expected: "Insights array drives the Narrative Insights section",
+      expected: "Insights endpoint reachable and returns an insights array (possibly empty)",
       observed: `${insights.length} insight(s) returned`,
-      notes:
-        insights.length === 0
-          ? "Empty insights may be a valid empty-state — verify visually that the section renders the empty-state copy."
-          : undefined,
+    });
+    wiringChecks.push({
+      id: "wiring.narrative_rendered",
+      category: "wiring",
+      title: "Narrative Insights — section renders on /reports (user-facing)",
+      status: "manual",
+      severity: "medium",
+      expected:
+        "Bordered Build 7.3 header card, 4-stat readiness summary, and insight cards (or correct empty-state copy) all visibly render on /reports",
+      observed: "Automated probe cannot inspect DOM rendering — Visual Proof required.",
+      notes: "See Visual Proof Checklist: proof.narrative_section.",
     });
   }
 
@@ -725,8 +747,23 @@ export async function runAudit(buildLabel: string): Promise<AuditBundle> {
 
   const summary = `${counts.pass} pass · ${counts.partial} partial · ${counts.fail} fail · ${counts.manual} manual`;
 
-  const reportMarkdown = buildReportMarkdown({ buildLabel, generatedAt, status, summary, counts, checks });
-  const nextPromptMarkdown = buildNextPrompt({ buildLabel, checks });
+  // 7) Executive feedback, Go/No-Go, Top 3
+  const executive = computeExecutive(status, checks, counts);
+  const goNoGo = computeGoNoGo(status, checks);
+  const topIssues = computeTopIssues(checks);
+
+  const reportMarkdown = buildReportMarkdown({
+    buildLabel,
+    generatedAt,
+    status,
+    summary,
+    counts,
+    checks,
+    executive,
+    goNoGo,
+    topIssues,
+  });
+  const nextPromptMarkdown = buildNextPrompt({ buildLabel, checks, topIssues, goNoGo });
 
   return {
     buildLabel,
@@ -736,9 +773,211 @@ export async function runAudit(buildLabel: string): Promise<AuditBundle> {
     counts,
     checks,
     manualTests: MANUAL_TESTS,
+    visualProofs: VISUAL_PROOFS,
+    executive,
+    goNoGo,
+    topIssues,
     reportMarkdown,
     nextPromptMarkdown,
   };
+}
+
+// ─── Executive / Go-No-Go / Top issues ────────────────────────────────────────
+
+const CRITICAL_DOMAINS = [
+  "routing",
+  "reporting",
+  "upload",
+  "dashboard",
+  "data_flow",
+] as const;
+
+function isCriticalDomainCheck(c: CheckResult): boolean {
+  const id = c.id.toLowerCase();
+  const title = c.title.toLowerCase();
+  if (c.category === "route_integrity") return true; // routing
+  if (c.category === "data_flow") return true;
+  if (id.includes("dashboard") || title.includes("dashboard")) return true;
+  if (id.includes("reporting") || title.includes("report")) return true;
+  if (id.includes("upload") || title.includes("upload") || title.includes("document"))
+    return true;
+  return false;
+}
+
+function computeExecutive(
+  status: BuildAuditStatus,
+  checks: CheckResult[],
+  counts: { pass: number; partial: number; fail: number; manual: number },
+): ExecutiveFeedback {
+  const criticalCount = checks.filter(
+    (c) => c.status === "fail" && c.severity === "critical",
+  ).length;
+  const highRiskCount = checks.filter(
+    (c) =>
+      (c.status === "fail" || c.status === "partial") &&
+      (c.severity === "high" || c.severity === "critical"),
+  ).length;
+  const manualVerificationCount = counts.manual;
+
+  let judgement: string;
+  let recommendedNextAction: string;
+  let safeToContinue: boolean;
+  switch (status) {
+    case "pass":
+      judgement =
+        manualVerificationCount > 0
+          ? "All automated checks passed; visual proofs remain to be confirmed."
+          : "All automated checks passed.";
+      recommendedNextAction =
+        manualVerificationCount > 0
+          ? "Capture the Visual Proof Checklist screenshots, then promote the build."
+          : "Promote the build and start the next planned layer.";
+      safeToContinue = true;
+      break;
+    case "partial":
+      judgement = `${counts.fail} hard failure(s) and ${counts.partial} partial finding(s) detected. Build is incomplete but not broken.`;
+      recommendedNextAction =
+        "Resolve the Top 3 Issues below, capture Visual Proof, then re-run the auditor.";
+      safeToContinue = highRiskCount === 0;
+      break;
+    case "fail":
+      judgement = `Critical or high-severity failures detected (${criticalCount} critical, ${highRiskCount} high-risk). Build is not safe to ship.`;
+      recommendedNextAction =
+        "Fix the #1 issue below first, re-run the auditor, then address the remainder.";
+      safeToContinue = false;
+      break;
+    case "needs_manual_verification":
+      judgement =
+        "Automated checks could not produce a definitive result. Human visual confirmation required.";
+      recommendedNextAction = "Complete the Visual Proof Checklist before promoting.";
+      safeToContinue = false;
+      break;
+  }
+
+  return {
+    status,
+    judgement,
+    criticalCount,
+    highRiskCount,
+    manualVerificationCount,
+    recommendedNextAction,
+    safeToContinue,
+  };
+}
+
+function computeGoNoGo(status: BuildAuditStatus, checks: CheckResult[]): GoNoGo {
+  const criticalDomainBlockers = checks.filter(
+    (c) => (c.status === "fail" || c.status === "partial") && isCriticalDomainCheck(c) &&
+      (c.severity === "high" || c.severity === "critical"),
+  );
+
+  if (criticalDomainBlockers.length > 0 || status === "fail") {
+    return {
+      decision: "no_repair_required",
+      rationale: `Blocking ${criticalDomainBlockers.length || 1} issue(s) in critical domains (routing, reporting, upload, dashboard, or data flow). Repair before next build.`,
+      blockingChecks: criticalDomainBlockers.map((c) => c.id),
+    };
+  }
+  if (status === "needs_manual_verification") {
+    return {
+      decision: "needs_manual_verification",
+      rationale:
+        "Automated checks cannot confirm user-facing behaviour. Run the Visual Proof Checklist before deciding.",
+      blockingChecks: checks.filter((c) => c.status === "manual").map((c) => c.id),
+    };
+  }
+  if (status === "partial") {
+    return {
+      decision: "yes_with_caution",
+      rationale: `${checks.filter((c) => c.status === "partial").length} partial finding(s) remain; none in critical domains. Note them and proceed.`,
+      blockingChecks: [],
+    };
+  }
+  // pass
+  const manualOpen = checks.filter((c) => c.status === "manual");
+  if (manualOpen.length > 0) {
+    return {
+      decision: "yes_with_caution",
+      rationale: `All automated checks passed; ${manualOpen.length} item(s) still need visual confirmation.`,
+      blockingChecks: manualOpen.map((c) => c.id),
+    };
+  }
+  return {
+    decision: "yes_safe",
+    rationale: "All automated checks passed and no manual items are open.",
+    blockingChecks: [],
+  };
+}
+
+function computeTopIssues(checks: CheckResult[]): TopIssue[] {
+  const candidates = checks.filter((c) => c.status === "fail" || c.status === "partial");
+  if (candidates.length === 0) return [];
+  const productRisk = (c: CheckResult): number => (isCriticalDomainCheck(c) ? 1 : 0);
+  const statusRank = (s: CheckStatus): number => (s === "fail" ? 2 : 1);
+  const sorted = [...candidates].sort((a, b) => {
+    const sa = sevRank(b.severity) - sevRank(a.severity);
+    if (sa !== 0) return sa;
+    const pr = productRisk(b) - productRisk(a);
+    if (pr !== 0) return pr;
+    return statusRank(b.status) - statusRank(a.status);
+  });
+  return sorted.slice(0, 3).map((c, i) => ({
+    rank: (i + 1) as 1 | 2 | 3,
+    checkId: c.id,
+    title: c.title,
+    location: locationFor(c),
+    whyItMatters: whyItMatters(c),
+    requiredFix: requiredFix(c),
+    verificationMethod: verificationMethod(c),
+    severity: c.severity,
+    status: c.status,
+  }));
+}
+
+function locationFor(c: CheckResult): string {
+  if (c.category === "route_integrity") return `API route: ${c.title.replace(/^GET\s+/, "")}`;
+  if (c.category === "data_flow") return `Database table referenced by: ${c.title}`;
+  if (c.category === "wiring") return `Cross-layer wiring: ${c.id}`;
+  if (c.category === "build_checklist") return `Build checklist item: ${c.id}`;
+  return `Product promise check: ${c.id}`;
+}
+
+function whyItMatters(c: CheckResult): string {
+  if (c.category === "route_integrity")
+    return "If this route is broken, every dependent UI surface (page, card, drill-through) silently fails for the user.";
+  if (c.category === "data_flow")
+    return "Missing or unexpected data here makes downstream analyses misleading or empty.";
+  if (c.category === "wiring")
+    return "A reachable backend without rendered UI means the user cannot see or act on this signal.";
+  if (c.category === "build_checklist")
+    return "This is a contracted build requirement — leaving it partial means the layer is not actually shipped.";
+  return "This is a core Ascent promise — operators need to trust every insight links back to records.";
+}
+
+function requiredFix(c: CheckResult): string {
+  if (c.status === "fail" && c.category === "route_integrity")
+    return `Restore the route so the probe receives a 2xx response. Observed: ${c.observed}`;
+  if (c.status === "partial" && c.category === "route_integrity")
+    return `Route responds but the shape is wrong — adjust the handler so the response matches the expected contract. Observed: ${c.observed}`;
+  if (c.category === "data_flow")
+    return `Investigate the table referenced by '${c.id}'. Either seed data, fix the query, or correct the predicate. Observed: ${c.observed}`;
+  if (c.category === "wiring")
+    return `Trace the payload through to the rendering component and confirm the UI is wired and visible. Observed: ${c.observed}`;
+  if (c.category === "build_checklist")
+    return `Re-open the build checklist for '${c.id}' and complete the unfinished portion. Observed: ${c.observed}`;
+  return `Make every insight carry ≥1 supportingRecordId so drill-through always lands somewhere. Observed: ${c.observed}`;
+}
+
+function verificationMethod(c: CheckResult): string {
+  if (c.category === "route_integrity")
+    return `Re-run the auditor; the '${c.id}' route check must move to Pass.`;
+  if (c.category === "data_flow")
+    return `Re-run the auditor; the '${c.id}' data-flow check must move to Pass.`;
+  if (c.category === "wiring")
+    return `Re-run the auditor AND capture the matching Visual Proof screenshot (see Visual Proof Checklist).`;
+  if (c.category === "build_checklist")
+    return `Re-run the auditor; the build-checklist row for '${c.id}' must move to Pass.`;
+  return `Re-run the auditor; the product-promise check must move to Pass; spot-check 3 insights in the UI to confirm drill-through.`;
 }
 
 // ─── Markdown rendering ───────────────────────────────────────────────────────
@@ -756,6 +995,15 @@ function checkStatusLabel(s: CheckStatus): string {
   return s === "pass" ? "Pass" : s === "partial" ? "Partial" : s === "fail" ? "Fail" : "Manual";
 }
 
+function goNoGoLabel(d: GoNoGoDecision): string {
+  switch (d) {
+    case "yes_safe": return "YES — safe to move forward";
+    case "yes_with_caution": return "YES, WITH CAUTION — minor issues remain";
+    case "no_repair_required": return "NO — repair required before next build";
+    case "needs_manual_verification": return "NEEDS MANUAL VERIFICATION — cannot decide until user confirms behaviour";
+  }
+}
+
 function buildReportMarkdown(args: {
   buildLabel: string;
   generatedAt: string;
@@ -763,14 +1011,56 @@ function buildReportMarkdown(args: {
   summary: string;
   counts: { pass: number; partial: number; fail: number; manual: number };
   checks: CheckResult[];
+  executive: ExecutiveFeedback;
+  goNoGo: GoNoGo;
+  topIssues: TopIssue[];
 }): string {
-  const { buildLabel, generatedAt, status, summary, counts, checks } = args;
+  const { buildLabel, generatedAt, status, summary, counts, checks, executive, goNoGo, topIssues } = args;
   const byCategory = <C extends CheckResult["category"]>(c: C) => checks.filter((x) => x.category === c);
 
   const lines: string[] = [];
   lines.push(`# Ascent Build Auditor — ${buildLabel}`);
   lines.push(`_Generated ${generatedAt}_`);
   lines.push("");
+
+  // 0. Executive feedback (new)
+  lines.push(`## 0. Executive Build Feedback`);
+  lines.push(`- **Overall status:** ${statusLabel(executive.status)}`);
+  lines.push(`- **Judgement:** ${executive.judgement}`);
+  lines.push(`- **Critical issues:** ${executive.criticalCount}`);
+  lines.push(`- **High-risk issues:** ${executive.highRiskCount}`);
+  lines.push(`- **Manual verification items:** ${executive.manualVerificationCount}`);
+  lines.push(`- **Recommended next action:** ${executive.recommendedNextAction}`);
+  lines.push(`- **Safe to continue from this build:** ${executive.safeToContinue ? "Yes" : "No — repair first"}`);
+  lines.push("");
+
+  // 0a. Go / No-Go
+  lines.push(`## 0a. Can We Move Forward?`);
+  lines.push(`**${goNoGoLabel(goNoGo.decision)}**`);
+  lines.push("");
+  lines.push(goNoGo.rationale);
+  if (goNoGo.blockingChecks.length > 0) {
+    lines.push("");
+    lines.push(`Blocking checks: ${goNoGo.blockingChecks.map((id) => `\`${id}\``).join(", ")}`);
+  }
+  lines.push("");
+
+  // 0b. Top 3 issues
+  lines.push(`## 0b. Top 3 Issues To Fix First`);
+  if (topIssues.length === 0) {
+    lines.push("_No outstanding issues from automated checks._");
+  } else {
+    for (const t of topIssues) {
+      lines.push("");
+      lines.push(`### #${t.rank} — ${t.title} (${t.severity}, ${checkStatusLabel(t.status)})`);
+      lines.push(`- **Location:** ${t.location}`);
+      lines.push(`- **Why it matters:** ${t.whyItMatters}`);
+      lines.push(`- **Required fix:** ${t.requiredFix}`);
+      lines.push(`- **Verification:** ${t.verificationMethod}`);
+    }
+  }
+  lines.push("");
+
   lines.push(`## 1. Build Audit Status`);
   lines.push(`**${statusLabel(status)}** — ${summary}`);
   lines.push("");
@@ -821,7 +1111,22 @@ function buildReportMarkdown(args: {
   }
   lines.push("");
 
-  lines.push(`## 8. Screenshot / Manual Evidence Needed`);
+  lines.push(`## 8a. Visual Proof Checklist`);
+  lines.push(
+    "_Automated probes cannot verify rendered DOM, click behaviour, or user workflows. Capture these screenshots after every build._",
+  );
+  for (const p of VISUAL_PROOFS) {
+    lines.push("");
+    lines.push(`### ${p.screenshotNeeded}`);
+    lines.push(`- **Page/route:** ${p.pageOrRoute}`);
+    lines.push(`- **What must be visible:** ${p.mustBeVisible}`);
+    lines.push(`- **Why it matters:** ${p.whyItMatters}`);
+    lines.push(`- **Pass:** ${p.passCriteria}`);
+    lines.push(`- **Fail:** ${p.failCriteria}`);
+  }
+  lines.push("");
+
+  lines.push(`## 8b. Manual Test Plan (Click-through Evidence)`);
   for (const t of MANUAL_TESTS) {
     lines.push(`### ${t.name}`);
     lines.push(`- Click path: ${t.clickPath}`);
@@ -852,38 +1157,82 @@ function buildReportMarkdown(args: {
   return lines.join("\n");
 }
 
-function buildNextPrompt(args: { buildLabel: string; checks: CheckResult[] }): string {
-  const { buildLabel, checks } = args;
+function buildNextPrompt(args: {
+  buildLabel: string;
+  checks: CheckResult[];
+  topIssues: TopIssue[];
+  goNoGo: GoNoGo;
+}): string {
+  const { buildLabel, checks, topIssues, goNoGo } = args;
   const failures = checks.filter((c) => c.status === "fail" || c.status === "partial");
 
   const lines: string[] = [];
-  lines.push(`Ascent 1.0 — follow-up pass after ${buildLabel}.`);
+  lines.push(`Ascent 1.0 — follow-up pass after "${buildLabel}".`);
+  lines.push("");
+  lines.push(`Auditor decision: ${goNoGoLabel(goNoGo.decision)}.`);
   lines.push("");
 
   if (failures.length === 0) {
     lines.push(
-      "The automated auditor returned no failures. Run the manual evidence checklist (Section 8) and capture screenshots; if everything passes visually, mark this build complete and move to the next planned layer.",
+      "The automated auditor returned no failures. Capture the Visual Proof Checklist screenshots (Section 8a of the report) for /control-tower, /reports analysis cards, /reports drill-through, and the Narrative Insights section. If everything passes visually, mark this build complete.",
     );
-  } else {
-    lines.push("Fix the following auditor findings in priority order:");
-    const sorted = [...failures].sort((a, b) => sevRank(b.severity) - sevRank(a.severity));
-    for (const f of sorted) {
+  } else if (topIssues.length > 0) {
+    const top = topIssues[0]!;
+    lines.push(`## Priority #1 (fix first): ${top.title}`);
+    lines.push(`- **Location:** ${top.location}`);
+    lines.push(`- **Why it matters:** ${top.whyItMatters}`);
+    lines.push(`- **What to fix:** ${top.requiredFix}`);
+    lines.push(`- **Expected behaviour after fix:** Auditor check \`${top.checkId}\` moves to Pass.`);
+    lines.push(`- **Validation:** ${top.verificationMethod}`);
+    lines.push("");
+
+    if (topIssues.length > 1) {
+      lines.push(`## Then address (in order):`);
+      for (const t of topIssues.slice(1)) {
+        lines.push(`- #${t.rank} **${t.title}** (${t.severity}) — ${t.requiredFix}`);
+      }
       lines.push("");
-      lines.push(`- **${f.title}** (${f.severity}, ${checkStatusLabel(f.status)})`);
-      lines.push(`  - Expected: ${f.expected}`);
-      lines.push(`  - Observed: ${f.observed}`);
+    }
+
+    const remaining = failures.filter((f) => !topIssues.some((t) => t.checkId === f.id));
+    if (remaining.length > 0) {
+      lines.push(`## Remaining auditor findings:`);
+      for (const f of remaining.sort((a, b) => sevRank(b.severity) - sevRank(a.severity))) {
+        lines.push(
+          `- ${f.title} (${f.severity}, ${checkStatusLabel(f.status)}) — observed: ${f.observed}`,
+        );
+      }
+      lines.push("");
     }
   }
 
+  lines.push(`## What NOT to break (preserve these working systems):`);
+  lines.push("- All customer routes: /control-tower, /reports, /work-orders, /turns, /assets, /properties, /analytics, /alerts, /governance, /documents, /assignments, /workflows, /setup.");
+  lines.push("- The build_audits table and /api/build-auditor/{run,history,:id} endpoints.");
+  lines.push("- The reporting-analysis service, narrative insights service, and supporting-record drill-through wiring.");
+  lines.push("- The auditor page itself at /dev/build-auditor (extend, do not rewrite).");
   lines.push("");
-  lines.push("Constraints:");
-  lines.push(
-    "- Do not replace working systems unnecessarily. Inspect the current implementation first, preserve working logic, and only modify what is required to complete the requested fix.",
-  );
-  lines.push(
-    "- After completing the work, provide a final report listing files changed, behavior added, behavior preserved, tests performed, and anything still needing manual verification.",
-  );
-  lines.push("- Re-run the Ascent Build Auditor (/dev/build-auditor) and confirm the previously-failing checks now pass.");
+
+  lines.push(`## Files / routes / components to inspect first:`);
+  const surfaces = new Set<string>();
+  for (const t of topIssues) surfaces.add(t.location);
+  if (surfaces.size === 0) surfaces.add("artifacts/ascent/src/pages/reports.tsx (Visual Proof confirmation)");
+  for (const s of surfaces) lines.push(`- ${s}`);
+  lines.push("");
+
+  lines.push(`## Validation requirements:`);
+  lines.push("- Inspect the current implementation before changing it; preserve working logic.");
+  lines.push("- After each fix, re-run /dev/build-auditor and confirm the targeted check IDs move to Pass.");
+  lines.push("- Capture the Visual Proof Checklist screenshots for any user-facing change.");
+  lines.push("- Do not let backend route existence be treated as feature completion — separate 'route exists' from 'page renders' from 'workflow completes'.");
+  lines.push("");
+
+  lines.push(`## Required final report after completion:`);
+  lines.push("- Files changed");
+  lines.push("- Behaviour added / behaviour preserved");
+  lines.push("- Tests performed (auditor run + visual proofs captured)");
+  lines.push("- Anything still needing manual verification");
+  lines.push("- Confirmation that the previous Top-3 issues now Pass");
 
   return lines.join("\n");
 }
@@ -908,6 +1257,13 @@ export async function saveAudit(bundle: AuditBundle): Promise<BuildAudit> {
       reportMarkdown: bundle.reportMarkdown,
       nextPromptMarkdown: bundle.nextPromptMarkdown,
       checkResults: bundle.checks,
+      bundleExtras: {
+        executive: bundle.executive,
+        goNoGo: bundle.goNoGo,
+        topIssues: bundle.topIssues,
+        visualProofs: bundle.visualProofs,
+        manualTests: bundle.manualTests,
+      },
     })
     .returning();
   return row;

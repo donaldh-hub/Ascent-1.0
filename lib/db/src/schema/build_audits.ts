@@ -30,6 +30,7 @@ export const buildAuditsTable = pgTable("build_audits", {
   reportMarkdown: text("report_markdown").notNull(),
   nextPromptMarkdown: text("next_prompt_markdown").notNull(),
   checkResults: jsonb("check_results").notNull(),
+  bundleExtras: jsonb("bundle_extras"),
 });
 
 export type BuildAudit = typeof buildAuditsTable.$inferSelect;
