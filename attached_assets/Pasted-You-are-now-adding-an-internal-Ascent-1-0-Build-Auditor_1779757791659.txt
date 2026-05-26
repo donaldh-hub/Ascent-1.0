@@ -1,0 +1,589 @@
+You are now adding an internal Ascent 1.0 Build Auditor + Wiring Validator Agent to this project.
+
+This agent is NOT a customer-facing feature.
+
+This agent exists to help the developer/team verify every build layer before moving forward.
+
+The purpose is to prevent false completion, broken wiring, dead routes, incomplete dashboards, untested flows, placeholder logic, disconnected data, and visual-only features that do not actually work.
+
+This system must help us work smarter, not harder.
+
+It must review each build, inspect what was changed, compare the result against the intended Ascent 1.0 product promise, validate the wiring, and generate a clear next-step report.
+
+Do not create fake results.
+
+Do not create placeholder audits.
+
+Do not say something passed unless the project code and available app behavior support it.
+
+If something cannot be verified automatically, mark it as “Needs Manual Verification” and explain exactly what screenshot, click path, or test evidence is needed.
+
+---
+
+# PRODUCT CONTEXT
+
+The product is Ascent 1.0.
+
+Ascent 1.0 is a maintenance intelligence system for property managers, service managers, regional maintenance leaders, and operations teams.
+
+Its promise is not just dashboards.
+
+Its promise is better operational conversations based on uploaded maintenance data.
+
+Ascent 1.0 should help managers do more with less by turning reports into operational intelligence.
+
+The system should support maintenance leaders responsible for properties where staffing is often tight, commonly around 100 units per technician.
+
+The app must help users see:
+
+1. Work Order Performance
+2. Turn Performance
+3. Preventative Maintenance Performance
+4. Asset Performance
+5. Risk signals
+6. Flow/bottleneck signals
+7. Execution signals
+8. Financial exposure
+9. Recommended next steps
+10. The supporting records behind every major insight
+
+The system must always preserve the human element.
+
+Ascent 1.0 should not replace the manager.
+
+It should sharpen the question, organize the evidence, and help leadership make better decisions.
+
+Official Ascent 1.0 tagline:
+
+“People are already having the conversation. The Intelligence Engine sharpens the question. The report brings both sides together.”
+
+---
+
+# CORE AUDITOR PURPOSE
+
+Build an internal auditor system that can be used after every build layer.
+
+It must answer:
+
+1. What changed?
+2. What was added?
+3. What was removed?
+4. What was modified?
+5. What appears complete?
+6. What is only partially complete?
+7. What is visually present but not functionally wired?
+8. What data is connected?
+9. What data is disconnected?
+10. What routes/buttons/links may be broken?
+11. What user flows need testing?
+12. What screenshots or evidence are needed?
+13. What should the next Replit prompt fix or build?
+
+---
+
+# REQUIRED INTERNAL FEATURE NAME
+
+Name this internal tool:
+
+“Ascent Build Auditor”
+
+Also include the following internal module/function names where appropriate:
+
+1. Build Audit Engine
+2. Wiring Validation Engine
+3. Route Integrity Checker
+4. Data Flow Verification Engine
+5. Evidence Checklist Generator
+6. Next Prompt Generator
+
+This can be implemented as an internal admin/developer page, utility module, script, or protected diagnostic panel depending on the existing project structure.
+
+Do not expose this to regular customer-facing users.
+
+---
+
+# REQUIRED AUDIT OUTPUT STRUCTURE
+
+Every audit report must use this exact structure:
+
+## 1. Build Audit Status
+
+Status must be one of:
+
+- PASS
+- PARTIAL
+- FAIL
+- NEEDS MANUAL VERIFICATION
+
+Include a short explanation.
+
+## 2. Build Summary
+
+Summarize what changed in plain English.
+
+Include:
+
+- New files
+- Modified files
+- Removed files, if any
+- New routes
+- Modified routes
+- New components
+- Modified components
+- New data logic
+- Modified data logic
+
+## 3. Requirement Match
+
+Compare the completed work against the build objective.
+
+Classify each requirement as:
+
+- Complete
+- Partial
+- Missing
+- Not Verifiable
+
+## 4. Wiring Validation
+
+Check whether each visible UI element is connected to real behavior.
+
+Validate:
+
+- Buttons
+- Upload actions
+- Report generation actions
+- Dashboard tiles
+- Drilldowns
+- Links
+- Share/download actions
+- Navigation routes
+- Expand/collapse cards
+- Filters
+- Property selectors
+- Record-level detail views
+
+Each item must include:
+
+- UI element name
+- Expected behavior
+- Actual discovered behavior
+- Status
+- Risk level
+
+Risk level must be:
+
+- Low
+- Medium
+- High
+- Critical
+
+## 5. Route Integrity
+
+Inspect all relevant routes.
+
+Identify:
+
+- Working routes
+- Missing routes
+- Dead routes
+- Routes that render blank content
+- Routes that return Not Found
+- Routes that display the wrong page
+- Routes that are visually correct but not connected to state/data
+
+## 6. Data Flow Verification
+
+Check whether uploaded data, mock data, seeded data, or parsed report data flows correctly into the app.
+
+Validate:
+
+- Upload input
+- Parsing
+- Normalization
+- Storage/state handling
+- Dashboard metrics
+- Drilldowns
+- Recommendations
+- Report output
+- Download/share output
+
+Mark anything that is hardcoded, mocked, or placeholder.
+
+Do not allow hidden placeholder logic to pass as production-ready logic.
+
+## 7. Ascent Product Promise Check
+
+Confirm whether the build supports the Ascent 1.0 promise.
+
+The build must help users move from:
+
+Report upload → intelligence → operational conversation → better decision.
+
+Check whether the feature helps answer:
+
+- What is happening?
+- Why does it matter?
+- What records support it?
+- What should the manager review first?
+- What conversation should leadership have next?
+
+If the build only creates visuals without decision-support value, mark it as Partial or Fail.
+
+## 8. Screenshot / Manual Evidence Needed
+
+Generate a checklist of screenshots or manual tests needed to confirm anything the system cannot verify automatically.
+
+Each test must include:
+
+- Test name
+- Click path
+- Expected result
+- Evidence needed
+- Pass/fail criteria
+
+## 9. Problems Found
+
+List all problems clearly.
+
+For each problem include:
+
+- Problem
+- Location
+- Why it matters
+- Severity
+- Recommended fix
+
+Severity must be:
+
+- Low
+- Medium
+- High
+- Critical
+
+## 10. Next Replit Prompt
+
+Generate a clean, copy-paste-ready Replit prompt that fixes the highest-priority problems or moves the next build forward.
+
+The prompt must be specific.
+
+It must include:
+
+- What to fix
+- What not to break
+- Required files/routes/components to inspect
+- Required behavior
+- Required validation
+- Required final report from the agent
+
+---
+
+# REQUIRED WIRING VALIDATION RULES
+
+The Wiring Validation Engine must be strict.
+
+A feature is NOT complete unless:
+
+1. The UI element exists.
+2. The UI element is clickable or interactive where expected.
+3. The action produces the correct result.
+4. The result uses real connected data or clearly labeled mock/demo data.
+5. The output connects to the correct dashboard, report, or record view.
+6. The user can trace the insight back to supporting records.
+7. No route produces a dead page, blank page, or unrelated page.
+8. No critical button is decorative only.
+9. No dashboard tile shows a metric that cannot be supported by data.
+10. No recommendation appears without explaining what records or data triggered it.
+
+If any of these fail, the status must be Partial or Fail.
+
+---
+
+# REQUIRED ASCENT-SPECIFIC VALIDATION AREAS
+
+The auditor must pay special attention to these Ascent 1.0 areas:
+
+## Operational Performance Tiles
+
+Validate that these four tiles exist and are properly wired:
+
+1. Work Order Performance
+2. Turn Performance
+3. PM Performance
+4. Asset Performance
+
+Each tile should support drilldown behavior.
+
+Each tile should connect to supporting records or explain what records are missing.
+
+## Work Order Intelligence
+
+Validate:
+
+- Work order count
+- Open/closed status
+- Response time
+- Completion time
+- Bottlenecks
+- Category trends
+- Preventable patterns
+- Unit/property context
+- Technician/team context, if available
+
+## Turn Performance
+
+Validate:
+
+- Turn count
+- Turn stage
+- Percent complete
+- Vacancy clock
+- Stage bottlenecks
+- Staff vs contractor responsibility, where available
+- Vacancy cost exposure, where available
+- Unit/property context
+
+## Preventative Maintenance
+
+Validate:
+
+- PM logs
+- PM gaps
+- PM overdue signals
+- Emergency work order relationship, if available
+- Recommendations connected to PM findings
+
+## Asset Performance
+
+Validate:
+
+- Asset inventory
+- Install dates
+- Warranty status
+- Expired warranties
+- Unit/property context
+- Financial exposure
+- Replacement/service risk
+- Clickable affected asset records
+
+## Recommendations Layer
+
+Validate that recommendations are not vague commands.
+
+Recommendations should be analysis-led.
+
+They should explain:
+
+1. What the analytics suggest
+2. What to review first
+3. Why it matters
+4. What records support it
+5. What operational question the manager should answer next
+
+Do not allow recommendations like “fix this now” without context.
+
+---
+
+# REQUIRED REPORTING BEHAVIOR
+
+After every audit, the system must produce a clean markdown report.
+
+The report should be easy to copy and paste back into ChatGPT or Replit.
+
+The report must avoid vague language.
+
+Use direct classifications:
+
+- Passed
+- Partial
+- Failed
+- Needs Manual Verification
+
+Do not bury critical issues.
+
+Put critical issues near the top.
+
+The report should be usable by a non-engineer who understands maintenance operations.
+
+---
+
+# REQUIRED NEXT PROMPT GENERATOR BEHAVIOR
+
+The Next Prompt Generator must produce Replit prompts that are:
+
+1. Specific
+2. Complete
+3. Copy-paste-ready
+4. Based only on actual audit findings
+5. Free of filler
+6. Free of placeholders
+7. Designed to preserve existing working features
+8. Designed to fix the highest-priority broken wiring first
+
+Every generated prompt must include this rule:
+
+“Do not replace working systems unnecessarily. Inspect the current implementation first, preserve working logic, and only modify what is required to complete the requested fix.”
+
+Every generated prompt must also include:
+
+“After completing the work, provide a final report listing files changed, behavior added, behavior preserved, tests performed, and anything still needing manual verification.”
+
+---
+
+# REQUIRED MANUAL TEST PLAN OUTPUT
+
+The auditor must always generate a manual test plan when needed.
+
+Use this format:
+
+## Manual Test Plan
+
+### Test 1: [Name]
+
+Click Path:
+[Exact path]
+
+Expected Result:
+[Expected result]
+
+Evidence Needed:
+[Screenshot, screen recording, console result, report output, etc.]
+
+Pass Criteria:
+[Clear pass standard]
+
+Fail Criteria:
+[Clear fail standard]
+
+---
+
+# REQUIRED INTERNAL STORAGE / HISTORY
+
+Create a lightweight audit history if appropriate for the project structure.
+
+Each audit record should include:
+
+1. Date/time
+2. Build name or layer
+3. Status
+4. Critical issues
+5. Files reviewed
+6. Manual tests required
+7. Generated next prompt
+
+If full persistent storage is not currently appropriate, create a simple local/internal structure that can be upgraded later.
+
+Do not overbuild database architecture unless the existing app already supports it cleanly.
+
+---
+
+# REQUIRED SAFETY AGAINST FAKE COMPLETION
+
+The auditor must never mark a feature as passing just because the UI exists.
+
+The auditor must identify the difference between:
+
+1. Visual completion
+2. Functional completion
+3. Data completion
+4. Routing completion
+5. Reporting completion
+6. Product-promise completion
+
+A feature only truly passes when all required layers are working.
+
+---
+
+# REQUIRED IMPLEMENTATION APPROACH
+
+Inspect the existing project structure first.
+
+Use the current stack, routing system, component structure, state/data patterns, and styling conventions already present in the app.
+
+Do not rebuild the app.
+
+Do not rename the product.
+
+Do not change the customer-facing Ascent 1.0 language unless required for this internal auditor.
+
+Do not remove existing dashboards, upload flows, report flows, screenshots, homepage language, or Intelligence Engine logic.
+
+Do not break any existing working route.
+
+Add the auditor in the cleanest and least disruptive way possible.
+
+---
+
+# REQUIRED ACCESS CONTROL
+
+This auditor must not appear as a normal customer-facing feature.
+
+If the project has admin/developer routing, place it there.
+
+If not, create a clearly internal route such as:
+
+/internal/build-auditor
+
+or
+
+/dev/build-auditor
+
+Make sure it is clearly labeled as internal.
+
+If the app has environment-aware behavior, restrict it to development mode where appropriate.
+
+---
+
+# REQUIRED FINAL RESPONSE FROM REPLIT AGENT
+
+When finished, provide a final report using this format:
+
+## Build Completed: Ascent Build Auditor
+
+### Files Created
+
+[List files]
+
+### Files Modified
+
+[List files]
+
+### Internal Route / Access Location
+
+[Route or script location]
+
+### Auditor Capabilities Added
+
+[List capabilities]
+
+### Wiring Validation Capabilities Added
+
+[List capabilities]
+
+### Audit Report Format Added
+
+[Confirm format]
+
+### Manual Test Plan Generator Added
+
+[Confirm yes/no]
+
+### Next Prompt Generator Added
+
+[Confirm yes/no]
+
+### Existing Features Preserved
+
+[List preserved features]
+
+### Tests Performed
+
+[List tests]
+
+### Still Needs Manual Verification
+
+[List items]
+
+### Recommended Next Step
+
+[One clear next step]
