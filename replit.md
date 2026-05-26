@@ -42,7 +42,26 @@ The frontend leverages shadcn/ui and Tailwind CSS for a modern, consistent desig
 
 # Build Promotion History
 
-## Build 7.4 — Visuals + Dashboard Reporting Layer — PROMOTED (baseline for Build 7.5)
+## Build 7.5 — PM Data Mapping Layer — PROMOTED (baseline for Build 7.6)
+
+- PM Mapping Readiness section renders on /reports: **PASS**
+- /reports renders: **PASS**
+- Build badge shows `Build 7.1 + 7.2 + 7.3 + 7.5`: **PASS**
+- PM readiness shows 10 rows (was 9 in 7.4): **PASS**
+- PM counts are honest in low-data state (0/0/0/0, confidenceState=insufficient_data): **PASS**
+- No fake PM performance appears: **PASS**
+- Supporting-record trace returns honest empty result when no matching records exist: **PASS**
+- PM language stays separate from work order, turn, and asset language: **PASS**
+- Control Tower still renders: **PASS**
+- 7.4 baseline logic did not regress (summary tiles unchanged at 2,733 / 2,654 / 78 / 1): **PASS**
+- No fake "Completed" bucket appears (claimed-completed-without-date demoted to Unknown + conflicting-dates warning): **PASS**
+- All 12 visual-proof checks passed (Playwright + screenshots)
+- Agent-reported auditor state: **28 pass / 0 partial / 0 fail / 2 manual** (both `build.7_5.*` checks pass)
+- Build 7.5 safe to ship
+
+This state is the locked baseline for Build 7.6. Do not rerun Build 7.5, alter PM mapping logic (alias detection, status derivation, confidence derivation, derived-view exclusion from the global ingestion summary), or change the PM-only vocabulary on the PM Mapping Readiness section without an explicit Build 7.6+ task that supersedes it. Build 7.4's locked outputs (active reporting mode, turn-vs-work-order gating, 7.1–7.3 visual layer) remain locked under 7.5.
+
+## Build 7.4 — Visuals + Dashboard Reporting Layer — PROMOTED (superseded as baseline by Build 7.5; outputs still locked)
 
 - Build 7.4 Visuals + Dashboard Reporting Layer: **PASS**
 - Reports visual layer rendered: **PASS**
@@ -55,7 +74,7 @@ The frontend leverages shadcn/ui and Tailwind CSS for a modern, consistent desig
 - Agent-reported auditor state: **26 pass / 0 partial / 0 fail**
 - Build 7.4 safe to ship
 
-This state is the locked baseline for Build 7.5. Do not rerun Build 7.4, duplicate the completed visual reporting layer, or alter the active reporting mode / turn-vs-work-order gating logic without an explicit Build 7.5+ task that supersedes it.
+Build 7.4 outputs remain locked under the Build 7.5 baseline. Do not rerun Build 7.4, duplicate the completed visual reporting layer, or alter the active reporting mode / turn-vs-work-order gating logic without an explicit Build 7.6+ task that supersedes them.
 
 # External Dependencies
 
