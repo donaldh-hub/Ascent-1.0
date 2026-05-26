@@ -365,6 +365,128 @@ const BUILD_CHECKLIST: ChecklistEntry[] = [
     },
   },
   {
+    id: "build.7_5.pm_mapping_layer",
+    title: "Build 7.5 — PM Data Mapping Layer produces mapped records",
+    build: "7.5",
+    severity: "high",
+    expected:
+      "GET /api/reporting-analysis/all → bundle.pm[0] is a real PM mapping readiness analysis " +
+      "with sourceCategory 'preventative_maintenance', a non-empty supportingRecordIds list " +
+      "(or insufficient_data when no PM-style records exist), and PM-only language in its title.",
+    evaluate: async (ctx) => {
+      const p = ctx.probes.get("/api/reporting-analysis/all");
+      if (!p?.ok || !isObject(p.rawJson)) {
+        return { status: "fail", observed: "no analysis payload" };
+      }
+      const pm = (p.rawJson.pm as unknown[]) ?? [];
+      if (pm.length === 0) {
+        return { status: "fail", observed: "bundle.pm is empty (engine did not emit an analysis)" };
+      }
+      const a = pm[0];
+      if (!isObject(a)) {
+        return { status: "fail", observed: "bundle.pm[0] is not an object" };
+      }
+      if (a.sourceCategory !== "preventative_maintenance") {
+        return {
+          status: "fail",
+          observed: `bundle.pm[0].sourceCategory='${String(a.sourceCategory)}' (expected 'preventative_maintenance')`,
+        };
+      }
+      const supportingIds = Array.isArray(a.supportingRecordIds) ? a.supportingRecordIds : [];
+      const title = String(a.title ?? "");
+      const summaryText = String(a.summary ?? "");
+      const factors = Array.isArray(a.contributingFactors) ? a.contributingFactors : [];
+      const factorLabels = factors
+        .map((f) => (isObject(f) ? String(f.label ?? "") : ""))
+        .filter((s) => s.length > 0);
+      // PM language rule (spec §15): PM-facing copy must not call PM records
+      // turns or work orders. Check title, summary, and contributingFactor
+      // labels — any future copy change anywhere in that surface trips this.
+      const mixesVocab = (s: string) =>
+        /\bturn(s)?\b/i.test(s) || /\bwork[ -]?order(s)?\b/i.test(s);
+      if (mixesVocab(title)) {
+        return { status: "fail", observed: `PM title mixes WO/turn vocabulary: '${title}'` };
+      }
+      if (mixesVocab(summaryText)) {
+        return { status: "fail", observed: `PM summary mixes WO/turn vocabulary: '${summaryText}'` };
+      }
+      const badLabel = factorLabels.find(mixesVocab);
+      if (badLabel) {
+        return {
+          status: "fail",
+          observed: `PM contributingFactor label mixes WO/turn vocabulary: '${badLabel}'`,
+        };
+      }
+      // Every PM supporting id (at the analysis level AND in each factor)
+      // must use the PM namespace so drill-downs route to PM, not WO.
+      const allPmIds: unknown[] = [
+        ...supportingIds,
+        ...factors.flatMap((f) =>
+          isObject(f) && Array.isArray(f.supportingRecordIds) ? f.supportingRecordIds : [],
+        ),
+      ];
+      const badNs = allPmIds.filter(
+        (id) => typeof id !== "string" || !id.startsWith("preventative_maintenance:"),
+      );
+      if (badNs.length > 0) {
+        return {
+          status: "fail",
+          observed: `${badNs.length} PM supporting id(s) do not use the 'preventative_maintenance:' namespace`,
+        };
+      }
+      if (supportingIds.length === 0) {
+        return {
+          status: "pass",
+          observed: `PM mapping readiness reachable; 0 PM records mapped (low-data state correctly surfaced)`,
+        };
+      }
+      return {
+        status: "pass",
+        observed: `bundle.pm[0]: ${supportingIds.length} mapped PM record(s); fully=${a.fullyReportableRecordCount} partially=${a.partiallyReportableRecordCount} excluded=${a.excludedRecordCount}`,
+      };
+    },
+  },
+  {
+    id: "build.7_5.pm_mapping_summary_traceable",
+    title: "Build 7.5 — PM mapping summary counts are traceable to records",
+    build: "7.5",
+    severity: "high",
+    expected:
+      "bundle.pm[0].supportingRecordCount equals the length of supportingRecordIds, " +
+      "and (fullyReportable + partiallyReportable + excluded) equals supportingRecordCount. " +
+      "Spec §wiring: every PM count must trace back to real PM records.",
+    evaluate: async (ctx) => {
+      const p = ctx.probes.get("/api/reporting-analysis/all");
+      if (!p?.ok || !isObject(p.rawJson)) {
+        return { status: "fail", observed: "no analysis payload" };
+      }
+      const pm = (p.rawJson.pm as unknown[]) ?? [];
+      const a = pm[0];
+      if (!isObject(a)) return { status: "fail", observed: "bundle.pm[0] missing" };
+      const ids = Array.isArray(a.supportingRecordIds) ? a.supportingRecordIds : [];
+      const supCount = Number(a.supportingRecordCount ?? 0);
+      const fully = Number(a.fullyReportableRecordCount ?? 0);
+      const partial = Number(a.partiallyReportableRecordCount ?? 0);
+      const excl = Number(a.excludedRecordCount ?? 0);
+      if (supCount !== ids.length) {
+        return {
+          status: "fail",
+          observed: `supportingRecordCount=${supCount} but supportingRecordIds.length=${ids.length}`,
+        };
+      }
+      if (fully + partial + excl !== supCount) {
+        return {
+          status: "fail",
+          observed: `eligibility tiers (fully=${fully} + partial=${partial} + excluded=${excl}) do not equal supportingRecordCount=${supCount}`,
+        };
+      }
+      return {
+        status: "pass",
+        observed: `PM mapping counts traceable: ${supCount} record(s); tiers sum to total`,
+      };
+    },
+  },
+  {
     id: "build.7_3_1.confidence_relabel",
     title: "Build 7.3.1 — Turn category clarified by mode",
     build: "7.3.1",

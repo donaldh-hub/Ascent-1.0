@@ -37,6 +37,7 @@ import { ReportingAnalysisSections, AnalysisSupportingRecordsSheet } from "@/com
 import type { AnalysisDrillContext } from "@/components/reports/reporting-analysis-sections";
 import { ReportingModeAssessment } from "@/components/reports/reporting-mode-assessment";
 import { NarrativeInsightsSection } from "@/components/reports/narrative-insights-section";
+import { PmMappingReadinessSection } from "@/components/reports/pm-mapping-readiness-section";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -408,7 +409,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3 + 7.5</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -453,6 +454,9 @@ export default function ReportsPage() {
 
       {/* Build 7.2 — Reporting analysis sections */}
       <ReportingAnalysisSections onDrill={setAnalysisDrill} />
+
+      {/* Build 7.5 — PM Mapping Readiness (lightweight; precedes narrative) */}
+      <PmMappingReadinessSection onDrill={setAnalysisDrill} />
 
       {/* Build 7.3 — Narrative Insights (placed after summary + analysis blocks per spec) */}
       <NarrativeInsightsSection onDrill={setAnalysisDrill} />

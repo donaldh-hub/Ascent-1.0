@@ -24,6 +24,22 @@ import {
   type ReadinessRow,
 } from "./reporting-readiness-selectors";
 
+/**
+ * Build 7.5 — derived-view sources MUST NOT inflate the global ingestion
+ * summary. `preventative_maintenance` records are re-emitted from
+ * `work_orders` rows under a distinct sourceType / id namespace so PM gets
+ * its own readiness row and PM-only drill-downs, but the underlying raw row
+ * is already counted under `work_orders`. Including PM in the global
+ * `allRecords` pool would inflate Build 7.4's locked tiles
+ * (`totalRecordsReviewed`, `fullyReportableCount`, etc.) by exactly the PM
+ * count — silently the first time a PM-style work order is loaded. The set
+ * below explicitly lists derived views to skip when assembling the global
+ * summary; each per-source readiness row is unaffected.
+ */
+const DERIVED_VIEW_SOURCES: ReadonlySet<ReportingSourceType> = new Set<ReportingSourceType>([
+  "preventative_maintenance",
+]);
+
 export type IngestionMode = "flexible" | "strict";
 
 export interface ReportingIngestionResult {
@@ -81,8 +97,14 @@ export async function runReportingIngestion(opts: { mode?: IngestionMode } = {})
   const mode: IngestionMode = opts.mode ?? "flexible";
   const recordsBySource = await loadAllSources();
 
+  // Build 7.5 — skip derived views (PM) so the locked 7.4 summary tiles do
+  // not double-count records that are already represented under their raw
+  // source (work_orders). Readiness still receives the full map below.
   const allRecords: NormalizedReportingRecord[] = [];
-  for (const arr of recordsBySource.values()) allRecords.push(...arr);
+  for (const [sourceType, arr] of recordsBySource.entries()) {
+    if (DERIVED_VIEW_SOURCES.has(sourceType)) continue;
+    allRecords.push(...arr);
+  }
 
   const summary = buildIngestionSummary(allRecords);
   const readiness = buildAllReadinessRows(recordsBySource);

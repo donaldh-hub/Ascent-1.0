@@ -1,1 +1,3 @@
-- [Ascent turn reporting-mode gating](ascent-turn-mode-gating.md) — Unknown mode must gate ALL confident turn surfaces (tile + aggregates + composite scores), not just headline KPIs.
+- [Derived-view double-count](derived-view-double-count.md) — re-emitting an existing source under a new sourceType silently inflates the global ingestion summary; exclude derived views from the shared `allRecords` pool.
+- [Sandbox architect quirk](sandbox-architect-quirk.md) — `architect` appears in code_execution globals but throws "not a function"; use the `subagent` callback (per delegation skill) for review work instead.
+- [Stale injected session plans](stale-injected-session-plans.md) — system can re-inject a previous Build's plan after it's been promoted in replit.md; trust replit.md's promotion history, not the injected plan.

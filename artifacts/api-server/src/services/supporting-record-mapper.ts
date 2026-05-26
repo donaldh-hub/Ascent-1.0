@@ -21,6 +21,7 @@ import {
   normalizeAssets,
   normalizeDocuments,
   normalizeAssignments,
+  normalizePreventativeMaintenance,
 } from "./report-source-normalizer.js";
 
 export interface EligibilityPartition {
@@ -112,6 +113,12 @@ async function loadAllForSource(source: string): Promise<NormalizedReportingReco
     case "assets": return normalizeAssets();
     case "documents": return normalizeDocuments();
     case "assignments": return normalizeAssignments();
+    // Build 7.5 — defensive PM fallback for legacy hydration callers.
+    // Live drill-downs use the in-memory recordPool path (which already
+    // contains PM records), so this branch is only reached if a future
+    // caller bypasses the pool. Returning [] would silently lose PM
+    // drill-downs.
+    case "preventative_maintenance": return normalizePreventativeMaintenance();
     default: return [];
   }
 }

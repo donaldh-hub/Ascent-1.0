@@ -30,6 +30,17 @@ import type {
   ReportingSourceType,
 } from "./reporting-record-contract";
 import { classifyReportingEligibility } from "./reporting-eligibility-classifier";
+import {
+  looksLikePmCategory,
+  normalizePmCategory,
+  normalizePmStatus,
+  derivePmMappingConfidence,
+  collectPmWarnings,
+  type PmStatus,
+  type PmCategory,
+  type PmMappingConfidence,
+  type PmWarning,
+} from "./pm-mapping.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -374,10 +385,152 @@ export async function normalizeAssignments(): Promise<NormalizedReportingRecord[
   });
 }
 
+// ─── Build 7.5 — PM normalizer ────────────────────────────────────────────────
+
+/**
+ * Build 7.5 — PM Data Mapping Layer.
+ *
+ * Sources PM records FROM the existing work_orders table by alias-matching
+ * the `category` column (spec rule: do NOT create a separate PM upload
+ * world, do NOT create a separate PM table). Each PM record gets a distinct
+ * `sourceType: "preventative_maintenance"` and a distinct id namespace
+ * (`preventative_maintenance:wo_<id>`) so reports and drill-downs can
+ * surface PM-only language about them while the same raw row also feeds
+ * the work_orders source view.
+ *
+ * Every count this normalizer produces is provable: `rawPayloadReference`
+ * points back at the work_orders row, and `id` is stable across runs.
+ */
+export async function normalizePreventativeMaintenance(): Promise<NormalizedReportingRecord[]> {
+  const [rows, props, units] = await Promise.all([
+    db.select().from(workOrdersTable),
+    loadPropertyNames(),
+    loadUnitNames(),
+  ]);
+  const now = new Date();
+  const pmRows = rows.filter((w) => looksLikePmCategory(w.category));
+  return pmRows.map((w) => {
+    const dueAt: Date | null = w.scheduledDate ?? null;
+    const completedAt: Date | null = w.completedDate ?? null;
+    const opened = w.createdDate ?? w.scheduledDate ?? w.importedAt ?? null;
+    const { ageDays, ageHours } = ageFrom(opened);
+
+    const normalizedCategory: PmCategory = normalizePmCategory(w.category);
+    const statusResult = normalizePmStatus({
+      rawStatus: w.status,
+      dueAt,
+      completedAt,
+      now,
+    });
+    const normalizedStatus: PmStatus = statusResult.status;
+
+    const mappingConfidence: PmMappingConfidence = derivePmMappingConfidence({
+      propertyId: w.propertyId,
+      unitId: w.unitId,
+      pmTaskOrCategoryRaw: w.category,
+      normalizedCategory,
+      normalizedStatus,
+      dueAt,
+      completedAt,
+    });
+
+    const pmWarnings: PmWarning[] = collectPmWarnings({
+      propertyId: w.propertyId,
+      unitId: w.unitId,
+      pmTaskOrCategoryRaw: w.category,
+      normalizedCategory,
+      normalizedStatus,
+      dueAt,
+      completedAt,
+      statusConflict: statusResult.conflicting,
+      confidence: mappingConfidence,
+    });
+
+    // Map the PM mapping confidence into the assignment-confidence vocabulary
+    // the eligibility classifier already understands. PM source is wired with
+    // `assignmentRequirements: "any"`, so this does not gate eligibility — it
+    // simply surfaces honest confidence on the drill-down.
+    const assignmentConfidence: ReportingAssignmentConfidence =
+      mappingConfidence === "high" ? "high" : mappingConfidence === "medium" ? "medium" : "low";
+
+    // Resolution mirrors the link state of the underlying row. Never invent
+    // fully_resolved when the property/unit linkage is unknown.
+    const resolutionStatus: ReportingResolutionStatus =
+      w.propertyId == null
+        ? "unresolved"
+        : w.unitId == null
+        ? "partially_resolved"
+        : asResolution(w.resolutionStatus);
+
+    return withEligibility({
+      id: `preventative_maintenance:wo_${w.id}`,
+      organizationId: null,
+      sourceType: "preventative_maintenance" as ReportingSourceType,
+      sourceRecordId: w.id,
+      sourceFileName: w.sourceFileName ?? null,
+      sourceRowIndex: w.sourceRowIndex ?? null,
+      propertyId: w.propertyId,
+      propertyName:
+        w.propertyId != null ? props.get(w.propertyId) ?? w.propertyNameRaw ?? null : w.propertyNameRaw ?? null,
+      unitId: w.unitId,
+      unitNameOrNumber:
+        w.unitId != null ? units.get(w.unitId) ?? w.unitNumberRaw ?? null : w.unitNumberRaw ?? null,
+      workflowId: null,
+      workflowItemId: w.workflowItemId,
+      assetId: w.assetId,
+      documentId: null,
+      // Surface the normalized PM category as the `category` column so the
+      // shared classifier's "category required" check works against PM data
+      // without bespoke wiring. Raw text is preserved in supportingContext.
+      category: normalizedCategory,
+      status: normalizedStatus,
+      priority: w.priority,
+      openedAt: opened,
+      updatedAt: w.updatedAt,
+      completedAt,
+      dueAt,
+      ageDays,
+      ageHours,
+      resolutionStatus,
+      assignmentConfidence,
+      // PM does not participate in the 1.12.7 WO rollup gate — leave null so
+      // the classifier falls through to the generic resolution/required-field
+      // pathway.
+      unitRollupAvailable: null,
+      propertyRollupAvailable: null,
+      supportingContext: {
+        // PM-specific structured data; UI/drill-downs read these for PM
+        // mapping readiness without re-deriving them.
+        pmCategoryRaw: w.category,
+        pmCategoryNormalized: normalizedCategory,
+        pmStatusRaw: w.status,
+        pmStatusNormalized: normalizedStatus,
+        pmStatusConflict: statusResult.conflicting,
+        pmMappingConfidence: mappingConfidence,
+        pmMappingWarnings: pmWarnings,
+        pmDueDate: dueAt ? dueAt.toISOString() : null,
+        pmCompletedDate: completedAt ? completedAt.toISOString() : null,
+        pmAssignedTo: w.assignedTo,
+        pmVendorOrInternal: w.vendor ? "vendor" : w.assignedTo ? "internal" : null,
+        pmVendor: w.vendor,
+        pmNotes: w.notes,
+        // Stable back-reference so the auditor can prove PM counts trace to
+        // real work_orders rows (no fake records).
+        derivedFromWorkOrderId: w.id,
+      },
+      // Spec §13: every PM record's source must be auditable. The raw row
+      // lives in work_orders; the PM view simply re-narrates it.
+      rawPayloadReference: { table: "work_orders", id: w.id },
+    });
+  });
+}
+
 /**
  * Fan-out: normalise a specific source type. Returns [] for sources that are
- * not wired today (PM, workflow_items, alerts, score_snapshots) — the
- * registry's `lowDataMessage` is what surfaces in the UI.
+ * not wired today (workflow_items, alerts, score_snapshots) — the registry's
+ * `lowDataMessage` is what surfaces in the UI.
+ *
+ * Build 7.5 wires preventative_maintenance into this fan-out.
  */
 export async function normalizeBySource(sourceType: ReportingSourceType): Promise<NormalizedReportingRecord[]> {
   switch (sourceType) {
@@ -395,6 +548,7 @@ export async function normalizeBySource(sourceType: ReportingSourceType): Promis
     case "assignments":
       return normalizeAssignments();
     case "preventative_maintenance":
+      return normalizePreventativeMaintenance();
     case "workflow_items":
     case "alerts":
     case "score_snapshots":

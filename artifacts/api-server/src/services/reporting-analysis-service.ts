@@ -17,6 +17,7 @@ import {
   normalizeAssets,
   normalizeAssignments,
   normalizeDocuments,
+  normalizePreventativeMaintenance,
   normalizeTurns,
   normalizeWorkOrders,
 } from "./report-source-normalizer.js";
@@ -82,10 +83,21 @@ export interface ReportingAnalysisBundleWithRecords extends ReportingAnalysisBun
 }
 
 export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBundleWithRecords> {
-  const [active, workOrderRecords, turnRecords, assetRecords, documentRecords, assignmentRecords] = await Promise.all([
+  const [
+    active,
+    workOrderRecords,
+    turnRecords,
+    pmRecords,
+    assetRecords,
+    documentRecords,
+    assignmentRecords,
+  ] = await Promise.all([
     getActiveReportingConfig(),
     normalizeWorkOrders(),
     normalizeTurns(),
+    // Build 7.5 — PM Data Mapping Layer. PM records are a normalized view
+    // over the work_orders table (no separate PM table or upload pipeline).
+    normalizePreventativeMaintenance(),
     normalizeAssets(),
     normalizeDocuments(),
     normalizeAssignments(),
@@ -96,9 +108,11 @@ export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBund
   // mode-specific evidence analyses.
   const workOrders = analyseWorkOrders(workOrderRecords, { mode });
   const turns = analyseTurns(turnRecords, { mode, workOrderRecords });
-  // PM source is not yet wired in Build 7.1; the engine handles the
-  // insufficient-data case correctly when passed an empty array.
-  const pm = analysePm([]);
+  // Build 7.5 — PM analysis now consumes real mapped PM records. The engine
+  // still returns the existing insufficient-data shape when no PM records
+  // pass the alias filter, so prior 7.1–7.4 behavior is preserved when no
+  // PM-style work orders exist in the dataset.
+  const pm = analysePm(pmRecords);
   const assets = analyseAssetRisk(assetRecords);
   const evidence = analyseEvidence({
     documents: documentRecords,
@@ -117,9 +131,12 @@ export async function runAllAnalysesWithRecords(): Promise<ReportingAnalysisBund
 
   // Build the unified pool exactly once. Drill-down hydration reuses this
   // instead of re-normalising every source on every supporting-records hit.
+  // Build 7.5 — PM records are added so PM supportingRecordIds hydrate
+  // through the same /supporting-records endpoint.
   const recordPool: NormalizedReportingRecord[] = [
     ...workOrderRecords,
     ...turnRecords,
+    ...pmRecords,
     ...assetRecords,
     ...documentRecords,
     ...assignmentRecords,

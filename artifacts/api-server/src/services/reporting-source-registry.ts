@@ -63,16 +63,23 @@ export const REPORTING_SOURCE_REGISTRY: Record<ReportingSourceType, ReportingSou
   },
   preventative_maintenance: {
     sourceType: "preventative_maintenance",
+    // Build 7.5 — PM Data Mapping Layer.
+    // PM records are derived from work_orders rows whose category matches PM
+    // aliases (see pm-mapping.ts → looksLikePmCategory). No separate PM table
+    // or upload endpoint is introduced; PM is a normalized *view* over the
+    // existing raw source with a distinct sourceType so reports, drill-downs,
+    // and the auditor can speak PM-only language about them.
     displayName: "Preventative Maintenance",
-    requiredFields: ["propertyId", "pmType", "scheduledDate"],
-    optionalFields: ["unitId", "assetId", "completedDate", "status"],
+    requiredFields: ["propertyId", "category", "scheduledDate"],
+    optionalFields: ["unitId", "assetId", "status"],
     acceptedResolutionStates: ["fully_resolved", "partially_resolved"],
     assignmentRequirements: "any",
     reportingScopeSupport: ["organization", "property", "unit", "asset"],
-    supportedReportFamilies: ["pm_compliance", "pm_overdue"],
+    supportedReportFamilies: ["pm_mapping_readiness"],
     drillDownTarget: "/work-orders?category=PM",
-    lowDataMessage: "PM reporting will activate after PM source data is uploaded or created.",
-    isWiredToday: false,
+    lowDataMessage:
+      "No preventative maintenance records have been mapped yet. Upload PM logs or inspection records to begin PM reporting readiness.",
+    isWiredToday: true,
   },
   assets: {
     sourceType: "assets",
