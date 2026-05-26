@@ -1,0 +1,735 @@
+BUILD 7.5 — PM DATA MAPPING LAYER
+
+SOURCE CONTINUITY NOTE
+
+Continue Ascent 1.0 from the Master Source Index + Build Continuity Spine.
+
+The system already includes authentication, roles, app shell, organization/property/unit structure, unit profiles, assignment engine, workflow engine, work order logic, turn logic, scoring, alerts, dashboard intelligence, documents/evidence, evidence visibility, signal language, system integration/reaction layer, dual-mode import governance, Build 7 reporting spine, Build 7.1 reporting ingestion, Build 7.2 reporting analysis, Build 7.2.1 active reporting mode, Build 7.3 narrative insights, Build 7.3.1 turn-category mode clarification, Control Tower pre-wiring, universal wiring audit logic, and clickable signal verification logic.
+
+Do NOT rebuild prior systems.
+
+Do NOT duplicate existing logic.
+
+Do NOT invent fake data, fake metrics, fake records, or fake wiring.
+
+Do NOT treat partial data as complete truth.
+
+Do NOT create dead-end counts, fake signals, or unclickable proof claims.
+
+All new work must connect to the shared source of truth.
+
+All surfaced metrics must be explainable.
+
+All clickable signals must return supporting records.
+
+All reporting outputs must distinguish confirmed truth from partial or unresolved data.
+
+Extend the system.
+
+Do not restart it.
+
+CURRENT VERIFIED BUILD STATE
+
+The current verified state is:
+
+- Build 7.1 reporting ingestion: PASS
+- Build 7.2 analysis cards confidenceState: PASS
+- Build 7.2.1 active reporting mode: PASS
+- Build 7.3 narrative insights output: PASS
+- Build 7.3.1 turn category clarified by mode: PASS
+- Reports visual proof: PASS
+- Narrative visual proof: PASS
+- Auditor state: 24 pass / 0 partial / 0 fail
+- Remaining manual items have been visually confirmed
+- SAFE TO PROMOTE
+
+Treat this verified state as the floor for Build 7.5.
+
+Do not relitigate or rebuild Build 7.1 through 7.3.1 unless a true regression is discovered.
+
+BUILD NUMBER
+
+Build 7.5
+
+BUILD NAME
+
+PM Data Mapping Layer
+
+PURPOSE OF THIS BUILD
+
+Build 7.5 creates the preventative maintenance data mapping layer for Ascent 1.0 reporting.
+
+This build does NOT create final PM scoring.
+
+This build does NOT create PM recommendations yet.
+
+This build does NOT create predictive PM conclusions.
+
+This build creates the mapping contract that allows uploaded PM records to be normalized, classified, assigned, and prepared for future PM rules, PM gap detection, PM insight generation, and PM dashboard/reporting layers.
+
+The purpose is simple:
+
+Turn messy PM records into mapped, report-aware operational records that can be trusted, reviewed, filtered, and connected to supporting records.
+
+WHAT ALREADY EXISTS
+
+The system already has:
+
+1. Reporting ingestion architecture.
+
+2. Reporting source registry.
+
+3. Normalized reporting record contracts.
+
+4. Reporting eligibility states:
+   - Fully Reportable
+   - Partially Reportable
+   - Not Reportable Yet
+
+5. Dual-mode import governance.
+
+6. Assignment engine.
+
+7. Property and unit matching.
+
+8. Document/evidence engine.
+
+9. Reports page foundation.
+
+10. Analysis card structure.
+
+11. Narrative insight output.
+
+12. Active reporting mode behavior.
+
+13. Control Tower pre-wiring.
+
+14. Clickable supporting-record expectations.
+
+15. Auditor logic.
+
+Build 7.5 must extend these systems.
+
+Do not create a separate PM upload world.
+
+Do not create a separate PM reporting system.
+
+Do not create a separate PM source of truth.
+
+CORE GOAL
+
+Create a PM Data Mapping Layer that can identify, normalize, classify, and prepare preventative maintenance records for reporting.
+
+The system must be able to map uploaded PM data into a consistent PM reporting shape, even when the uploaded records are imperfect.
+
+The system must classify each PM record honestly based on available fields.
+
+WHAT THIS BUILD MUST ADD
+
+1. PM Reporting Source Type
+
+Add or extend the reporting source registry so the system recognizes preventative maintenance records as a first-class reporting source type.
+
+Use a stable internal source type such as:
+
+preventative_maintenance
+
+or the existing naming convention if one already exists.
+
+Do not create multiple competing PM source names.
+
+2. PM Normalized Record Contract
+
+Create or extend a normalized PM reporting record structure.
+
+Each mapped PM record should support these fields when available:
+
+- sourceRecordId
+- sourceFileId
+- organizationId
+- propertyId
+- propertyName
+- unitId
+- unitName / unitNumber
+- assetId
+- assetType
+- assetName
+- pmCategory
+- pmTaskName
+- pmStatus
+- pmDueDate
+- pmCompletedDate
+- pmAssignedTo
+- pmCompletedBy
+- vendorOrInternal
+- recurrenceInterval
+- recurrenceUnit
+- lastCompletedDate
+- nextDueDate
+- daysPastDue
+- evidenceDocumentIds
+- notes
+- rawSourceRow
+- mappingConfidence
+- assignmentConfidence
+- reportingEligibility
+- resolutionState
+- mappingWarnings
+
+Use existing property, unit, asset, document, assignment, and reporting structures wherever available.
+
+Do not create duplicate property, unit, asset, or document tables unless no shared model exists.
+
+3. PM Field Mapping Logic
+
+Create mapping logic that can interpret common PM upload column names.
+
+Support flexible aliases for common fields.
+
+Examples:
+
+Property:
+- property
+- property name
+- site
+- community
+- location
+
+Unit:
+- unit
+- unit number
+- apartment
+- apt
+- home
+- space
+
+Asset:
+- asset
+- equipment
+- equipment type
+- appliance
+- system
+- component
+
+PM Task:
+- pm task
+- task
+- maintenance task
+- service task
+- inspection type
+- checklist item
+
+PM Category:
+- category
+- pm category
+- maintenance category
+- system category
+
+Due Date:
+- due date
+- pm due date
+- scheduled date
+- target date
+- next due
+
+Completed Date:
+- completed date
+- completion date
+- date completed
+- service date
+- inspection date
+
+Status:
+- status
+- pm status
+- completion status
+
+Assigned To:
+- assigned to
+- technician
+- tech
+- responsible party
+
+Completed By:
+- completed by
+- performed by
+- technician completed
+- vendor
+
+Notes:
+- notes
+- comments
+- description
+- details
+
+The mapper should be forgiving during user ingestion mode but strict during system validation mode.
+
+4. PM Category Normalization
+
+Normalize PM categories into stable operational groups.
+
+Use these initial categories unless the existing system already has better shared categories:
+
+- HVAC
+- Plumbing
+- Electrical
+- Appliance
+- Life Safety
+- Exterior
+- Interior
+- Grounds
+- Building Systems
+- Unit Inspection
+- Other
+
+Do not force unknown records into the wrong category.
+
+If a category cannot be confidently mapped, classify it as:
+
+Other
+
+and add a mapping warning.
+
+5. PM Status Normalization
+
+Normalize PM statuses into stable states.
+
+Use:
+
+- Completed
+- Scheduled
+- Due Soon
+- Overdue
+- Deferred
+- Canceled
+- Unknown
+
+If a record has a completed date, it may be treated as Completed unless conflicting fields indicate otherwise.
+
+If a record has a due date in the past and no completed date, it may be treated as Overdue.
+
+If a record has a due date and no completed date, it may be Scheduled or Due Soon depending on existing date logic.
+
+If status cannot be determined, classify as Unknown and add a warning.
+
+Do not create fake completion.
+
+Do not assume work was completed without evidence.
+
+6. PM Date Logic
+
+Add PM date parsing and normalization.
+
+Support common date formats.
+
+The mapper should calculate when possible:
+
+- daysPastDue
+- nextDueDate
+- lastCompletedDate
+- dueDateConfidence
+- completedDateConfidence
+
+If due date is missing, the record may still be mapped but must not be treated as fully reportable for due-date-based reporting.
+
+If completed date is missing, the record may still be mapped but must not be treated as confirmed completed unless status clearly supports completion.
+
+7. PM Reporting Eligibility
+
+Classify each mapped PM record into the existing reporting eligibility states:
+
+Fully Reportable
+
+Use when the record has enough information to support PM reporting with confidence.
+
+Minimum requirements:
+
+- organizationId
+- propertyId or confirmed property match
+- PM task or PM category
+- status or due/completion date logic
+- enough date context to support the type of report being generated
+
+Partially Reportable
+
+Use when the record has some usable PM data but is missing key fields.
+
+Examples:
+
+- property matched but unit missing
+- task exists but due date missing
+- due date exists but status unclear
+- category known but assignment unresolved
+- completed date exists but asset/unit unclear
+
+Not Reportable Yet
+
+Use when the record cannot safely support PM reporting.
+
+Examples:
+
+- no property match
+- no PM task/category
+- no meaningful date/status information
+- unresolved row that cannot be connected to the organization/property/unit context
+
+Do not silently mix these states as equal truth.
+
+8. PM Resolution State
+
+Also classify each PM record using the existing resolution model:
+
+- Fully Resolved
+- Partially Resolved
+- Unresolved
+
+This is not the same as reporting eligibility.
+
+A record can be partially resolved but still partially reportable.
+
+A record can be unresolved and not reportable yet.
+
+Preserve both concepts.
+
+9. Mapping Confidence
+
+Each PM record should receive a mapping confidence state.
+
+Use the existing confidence pattern if one exists.
+
+If not, use:
+
+- high
+- medium
+- low
+
+High confidence:
+
+The PM record has clear field matches and strong property/unit/task/date interpretation.
+
+Medium confidence:
+
+The PM record has usable field matches but missing or ambiguous values.
+
+Low confidence:
+
+The PM record has weak field matches, unknown categories, unresolved assignment, or conflicting values.
+
+Do not auto-upgrade confidence to make reports look better.
+
+10. PM Mapping Summary Output
+
+After PM data is ingested/mapped, produce a PM mapping summary.
+
+The summary must include:
+
+- total PM rows received
+- fully resolved count
+- partially resolved count
+- unresolved count
+- fully reportable count
+- partially reportable count
+- not reportable yet count
+- mapped property count
+- mapped unit count
+- mapped asset count if asset data exists
+- unknown category count
+- missing due date count
+- missing completed date count
+- overdue candidate count
+- records requiring review count
+
+This summary should be available to reporting readiness and future PM reporting layers.
+
+11. PM Mapping Warnings
+
+Each record should support mapping warnings.
+
+Examples:
+
+- Missing property match
+- Missing unit match
+- Missing PM task
+- Missing PM category
+- Unknown PM status
+- Missing due date
+- Missing completed date
+- Conflicting status/date values
+- Asset not matched
+- Duplicate possible
+- Review required before reporting
+
+Warnings should help the user understand what needs correction without blocking all upload momentum.
+
+12. PM Review Queue Compatibility
+
+Mapped PM records that are partially resolved, unresolved, partially reportable, or not reportable yet should be compatible with the existing review/assignment flow if one exists.
+
+Do not create a brand-new review experience unless required.
+
+Connect PM review needs to existing unresolved/partial record handling.
+
+13. PM Supporting Records Compatibility
+
+Any PM mapping summary count or future PM reporting signal must be able to return supporting records.
+
+For Build 7.5, verify that mapped PM records can be filtered by:
+
+- property
+- unit
+- asset if available
+- category
+- status
+- due date state
+- reporting eligibility
+- resolution state
+- mapping confidence
+- warning type
+
+This build does not need final PM dashboard cards, but the data must be ready for future clickable reporting.
+
+14. Empty / Low-Data PM States
+
+If no PM records exist, show honest low-data/readiness messaging.
+
+Use language like:
+
+“No preventative maintenance records have been mapped yet.”
+
+“Upload PM logs or inspection records to begin PM reporting readiness.”
+
+Do not show fake PM performance.
+
+Do not show fake overdue counts.
+
+Do not show fake compliance percentages.
+
+If only partial PM data exists, say so clearly.
+
+15. PM Language Rules
+
+Use PM language only for PM records.
+
+Do not mix work order language into PM unless the record is explicitly a work order being used as PM evidence.
+
+Do not mix turn language into PM.
+
+Do not call PM records “turns.”
+
+Do not call PM tasks “work orders” unless the source record actually is a work order.
+
+If PM evidence comes from work orders in future builds, it must be labeled clearly as:
+
+“PM evidence inferred from work order records”
+
+But Build 7.5 should focus on PM mapping, not PM inference.
+
+WHAT THIS BUILD MUST NOT TOUCH
+
+Do NOT rebuild authentication.
+
+Do NOT rebuild app shell.
+
+Do NOT rebuild navigation.
+
+Do NOT rebuild organization/property/unit structure.
+
+Do NOT rebuild unit profiles.
+
+Do NOT rebuild the assignment engine.
+
+Do NOT rebuild the reporting ingestion layer.
+
+Do NOT rebuild Build 7.2 analysis cards.
+
+Do NOT rebuild Build 7.2.1 active reporting mode.
+
+Do NOT rebuild Build 7.3 narrative insights.
+
+Do NOT rebuild Build 7.3.1 turn-category clarification.
+
+Do NOT rebuild Control Tower.
+
+Do NOT redesign Reports page unless a small PM mapping/readiness section is needed.
+
+Do NOT alter existing work order report behavior.
+
+Do NOT alter existing turn report behavior.
+
+Do NOT alter existing narrative logic except to ensure PM mapping readiness can be referenced later.
+
+Do NOT add fake PM records.
+
+Do NOT hardcode demo metrics.
+
+Do NOT create placeholder production logic.
+
+DATA RULES
+
+1. Use real uploaded/ingested data only.
+
+2. If mock data is needed for local development/testing, clearly isolate it and do not let it feed production reporting truth.
+
+3. Preserve raw source rows for auditability.
+
+4. Preserve mapping warnings.
+
+5. Preserve field-level uncertainty.
+
+6. Do not overwrite original uploaded data.
+
+7. Do not treat missing values as completed values.
+
+8. Do not treat unknown status as completed.
+
+9. Do not treat missing due date as on-time.
+
+10. Do not treat unresolved property/unit assignment as fully reportable.
+
+WIRING RULES
+
+Every PM mapped record must be traceable through:
+
+UPLOAD / SOURCE ROW
+→ FIELD MAPPING
+→ NORMALIZED PM RECORD
+→ ASSIGNMENT / RESOLUTION STATE
+→ REPORTING ELIGIBILITY
+→ SUPPORTING RECORD FILTER ACCESS
+
+No PM mapping summary should display a count that cannot be traced back to the matching PM records.
+
+If a count exists, the records behind it must exist.
+
+If the records do not exist, the count must not appear as operational truth.
+
+UI RULES
+
+Build 7.5 may add a lightweight PM Mapping Readiness section if needed.
+
+This section should not become a full PM dashboard yet.
+
+It should show mapping readiness, not final performance.
+
+Suggested display:
+
+PM Mapping Readiness
+
+- Total PM records mapped
+- Fully reportable
+- Partially reportable
+- Not reportable yet
+- Records requiring review
+- Common mapping warnings
+
+Include clear low-data states.
+
+Include supporting-record access where practical.
+
+Do not clutter the Control Tower.
+
+Do not visually imply Build 7.6 / 7.7 / 7.8 PM intelligence exists yet.
+
+AUDITOR / VALIDATION REQUIREMENTS
+
+After implementation, run or extend validation to confirm:
+
+1. PM source type is recognized.
+
+2. PM upload/source records can be mapped into normalized PM records.
+
+3. PM field aliases are handled correctly.
+
+4. PM categories normalize correctly.
+
+5. PM statuses normalize correctly.
+
+6. PM due/completion date logic works.
+
+7. PM reporting eligibility states are assigned correctly.
+
+8. PM resolution states are assigned correctly.
+
+9. PM mapping confidence is emitted.
+
+10. PM mapping warnings are preserved.
+
+11. PM mapping summary counts match underlying records.
+
+12. Partial PM records are not treated as fully reportable.
+
+13. Unknown PM records are not treated as complete truth.
+
+14. Existing work order and turn reporting still pass.
+
+15. Build 7.2 analysis cards still emit confidenceState.
+
+16. Build 7.2.1 active reporting mode still works.
+
+17. Build 7.3 narrative insights still render.
+
+18. Build 7.3.1 turn-category language remains mode-consistent.
+
+19. No fake PM performance metrics are created.
+
+20. No unrelated systems were rebuilt.
+
+SUCCESS STATE
+
+Build 7.5 is successful when:
+
+1. PM records have a real mapping layer.
+
+2. PM records normalize into a stable reporting-ready contract.
+
+3. PM records are classified by resolution state and reporting eligibility.
+
+4. PM mapping confidence is emitted.
+
+5. PM mapping warnings are preserved.
+
+6. PM mapping summaries are explainable.
+
+7. PM data can be filtered back to supporting records.
+
+8. Partial PM data is clearly separated from confirmed PM truth.
+
+9. Existing Build 7 reporting stack remains intact.
+
+10. The system is ready for Build 7.6 — PM Rules Layer.
+
+RETURN FORMAT
+
+Return the following:
+
+1. Files changed.
+
+2. What was added.
+
+3. What existing systems were extended.
+
+4. What was not touched.
+
+5. PM mapping fields supported.
+
+6. PM category/status normalization added.
+
+7. Reporting eligibility behavior.
+
+8. Resolution state behavior.
+
+9. Mapping warning behavior.
+
+10. Validation results.
+
+11. Any known limitations.
+
+12. Whether Build 7.5 is safe to promote.
+
+INTERNAL BUILD LABEL
+
+Build 7.5 — PM Data Mapping Layer
+
+Do not rename this build.
+
+Do not start Build 7.6 in this prompt.
