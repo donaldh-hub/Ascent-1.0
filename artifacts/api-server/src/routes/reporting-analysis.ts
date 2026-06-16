@@ -38,6 +38,9 @@ import {
   normalizeAssets,
   normalizePreventativeMaintenance,
 } from "../services/report-source-normalizer.js";
+import { calculateImpactSnapshot } from "../services/impact-recalculation-engine.js";
+import { rankPriorityActions } from "../services/priority-action-ranker.js";
+import { analyzeTrends } from "../services/trend-pattern-analyzer.js";
 
 const router: IRouter = Router();
 
@@ -198,6 +201,58 @@ router.get("/reporting-analysis/evidence/missing-docs", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to load missing documentation records", details: String(err) });
+  }
+});
+
+// ─── Build 8.0 — Impact Recalculation Snapshot ───────────────────────────────
+
+/**
+ * GET /api/reporting-analysis/impact/snapshot
+ *
+ * Runs the full analysis, feeds the record pool into calculateImpactSnapshot(),
+ * and returns the recalculation impact snapshot.
+ */
+router.get("/reporting-analysis/impact/snapshot", async (_req, res) => {
+  try {
+    const bundle = await runAllAnalysesWithRecords();
+    const snapshot = calculateImpactSnapshot(bundle.recordPool);
+    res.json(snapshot);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to compute impact snapshot", details: String(err) });
+  }
+});
+
+// ─── Build 8.1 — Priority Actions ────────────────────────────────────────────
+
+/**
+ * GET /api/reporting-analysis/priority-actions
+ *
+ * Runs the full analysis, ranks priority actions by urgency and record count.
+ */
+router.get("/reporting-analysis/priority-actions", async (_req, res) => {
+  try {
+    const bundle = await runAllAnalyses();
+    const result = rankPriorityActions(bundle);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to rank priority actions", details: String(err) });
+  }
+});
+
+// ─── Build 8.2 — Trend + Pattern Intelligence ────────────────────────────────
+
+/**
+ * GET /api/reporting-analysis/trends
+ *
+ * Runs the full analysis, feeds the record pool into analyzeTrends().
+ */
+router.get("/reporting-analysis/trends", async (_req, res) => {
+  try {
+    const bundle = await runAllAnalysesWithRecords();
+    const report = analyzeTrends(bundle.recordPool);
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to analyze trends", details: String(err) });
   }
 });
 

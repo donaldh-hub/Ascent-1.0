@@ -42,6 +42,10 @@ import { EvidenceReportSection } from "@/components/reports/evidence-report-sect
 import { AssignmentDataQualitySection } from "@/components/reports/assignment-data-quality-section";
 import { ReportExportPanel } from "@/components/reports/report-export-panel";
 import { ReportingAuditGate } from "@/components/reports/reporting-audit-gate";
+import { ImpactSnapshotPanel } from "@/components/reports/impact-snapshot-panel";
+import { PriorityActionsPanel } from "@/components/reports/priority-actions-panel";
+import { TrendPatternPanel } from "@/components/reports/trend-pattern-panel";
+import { ImpactAuditGate } from "@/components/reports/impact-audit-gate";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -413,7 +417,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -438,6 +442,18 @@ export default function ReportsPage() {
 
       {/* Build 7.9 — Reporting Completion Audit Gate */}
       <ReportingAuditGate />
+
+      {/* Build 8.0 — Impact Recalculation Snapshot */}
+      <ImpactSnapshotPanel />
+
+      {/* Build 8.1 — Priority Actions */}
+      <PriorityActionsPanel onDrill={setAnalysisDrill} />
+
+      {/* Build 8.2 — Trend + Pattern Intelligence */}
+      <TrendPatternPanel />
+
+      {/* Build 8.3 — Impact Recalculation Audit Gate */}
+      <ImpactAuditGate />
 
       {/* Headline summary */}
       {loading && !summary && (
