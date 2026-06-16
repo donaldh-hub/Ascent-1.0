@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Database, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { JordanContext } from "@/App";
 
 export function DemoDataPanel({ onChange }: { onChange?: () => void }) {
+  const { triggerJordanCheck } = useContext(JordanContext);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -19,6 +21,7 @@ export function DemoDataPanel({ onChange }: { onChange?: () => void }) {
       setCounts(data);
       setLoaded(true);
       onChange?.();
+      setTimeout(() => triggerJordanCheck(), 1200);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     } finally {

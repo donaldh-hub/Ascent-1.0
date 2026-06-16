@@ -3,10 +3,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import { useEffect } from "react";
+import { useEffect, useState, createContext, useContext, useCallback } from "react";
 import Layout from "@/components/layout";
 import { Activity } from "lucide-react";
 import { useSetupStatus } from "@/hooks/use-setup-status";
+import { JordanActivationModal } from "@/components/coach/jordan-activation-modal";
+
+// ─── Jordan activation context ────────────────────────────────────────────────
+// Any component (e.g. upload panel) can call triggerJordanCheck() after data
+// is uploaded. The app checks if activation is needed and shows the modal.
+
+interface JordanContextValue {
+  triggerJordanCheck: () => void;
+}
+
+export const JordanContext = createContext<JordanContextValue>({ triggerJordanCheck: () => {} });
 
 // Pages
 import Dashboard from "@/pages/dashboard";
@@ -140,17 +151,37 @@ function ControlTowerRedirect() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 function App() {
+  const [showJordan, setShowJordan] = useState(false);
+  const [, navigate] = useLocation();
+
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
 
+  const triggerJordanCheck = useCallback(() => {
+    fetch("/api/coach/preferences")
+      .then((r) => r.json())
+      .then((prefs: { activationCompleted: boolean }) => {
+        if (!prefs.activationCompleted) setShowJordan(true);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleJordanComplete = () => {
+    setShowJordan(false);
+    navigate("/coach");
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
+        <JordanContext.Provider value={{ triggerJordanCheck }}>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          {showJordan && <JordanActivationModal onComplete={handleJordanComplete} />}
+          <Toaster />
+        </JordanContext.Provider>
       </TooltipProvider>
     </QueryClientProvider>
   );
