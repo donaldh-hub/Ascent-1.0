@@ -431,6 +431,9 @@ router.get("/build-auditor/9-3", async (_req, res) => {
  */
 import { assessTrialReadiness } from "../services/trial-readiness-service.js";
 import { loadDemoDataset } from "../services/demo-data-service.js";
+import { generateCoachRecommendations } from "../services/operations-coach-service.js";
+import { getActiveNotifications } from "../services/notification-service.js";
+import { runDataQualityCheck } from "../services/data-quality-service.js";
 
 router.get("/build-auditor/10-3", async (_req, res) => {
   try {
@@ -524,6 +527,122 @@ router.get("/build-auditor/10-3", async (_req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Build 10.3 audit failed", details: String(err) });
+  }
+});
+
+/**
+ * Build 11.3 — Operations Coach + Notifications + Data Quality Audit Gate
+ *
+ * GET /api/build-auditor/11-3
+ */
+router.get("/build-auditor/11-3", async (_req, res) => {
+  try {
+    const checks: Array<{
+      checkId: string;
+      label: string;
+      result: "PASS" | "PARTIAL" | "FAIL";
+      reason: string;
+    }> = [];
+
+    // ── Check A: Operations Coach ─────────────────────────────────────────────
+    try {
+      const report = await generateCoachRecommendations();
+      const hasShape =
+        typeof report.coachUnlocked === "boolean" &&
+        Array.isArray(report.insights) &&
+        typeof report.workOrderCount === "number";
+
+      checks.push({
+        checkId: "operations_coach",
+        label: "Operations Coach",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Coach returned valid shape. Unlocked: ${report.coachUnlocked}. Work orders: ${report.workOrderCount}. Insights: ${report.insights.length}.`
+          : "Coach returned but shape is missing required fields.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "operations_coach",
+        label: "Operations Coach",
+        result: "FAIL",
+        reason: `generateCoachRecommendations threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check B: Notifications ────────────────────────────────────────────────
+    try {
+      const notifications = await getActiveNotifications();
+      const hasShape = Array.isArray(notifications);
+
+      checks.push({
+        checkId: "notifications",
+        label: "Notification Service",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Notifications returned valid array. Count: ${notifications.length}.`
+          : "Notifications returned but is not an array.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "notifications",
+        label: "Notification Service",
+        result: "FAIL",
+        reason: `getActiveNotifications threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check C: Data Quality ─────────────────────────────────────────────────
+    try {
+      const report = await runDataQualityCheck();
+      const hasShape =
+        typeof report.overallHealth === "string" &&
+        Array.isArray(report.issues) &&
+        typeof report.blockingCount === "number";
+
+      checks.push({
+        checkId: "data_quality",
+        label: "Data Quality Check",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Data quality check complete. Health: ${report.overallHealth}. Issues: ${report.issues.length}. Blocking: ${report.blockingCount}. Warnings: ${report.warningCount}. Records checked: ${report.totalRecordsChecked}.`
+          : "Data quality check returned but shape is missing required fields.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "data_quality",
+        label: "Data Quality Check",
+        result: "FAIL",
+        reason: `runDataQualityCheck threw: ${String(err)}`,
+      });
+    }
+
+    const failCount = checks.filter((c) => c.result === "FAIL").length;
+    const partialCount = checks.filter((c) => c.result === "PARTIAL").length;
+
+    const overallDecision =
+      failCount > 0 ? "NOT_SAFE_TO_PROMOTE" : partialCount > 0 ? "SAFE_WITH_CAUTION" : "SAFE_TO_PROMOTE";
+    const overallReason =
+      failCount > 0
+        ? `${failCount} Build 11 component(s) failed — Operations Coach stack is not complete.`
+        : partialCount > 0
+        ? `${partialCount} component(s) returned partial output — safe to continue but review is needed.`
+        : "All 3 Build 11 components (Operations Coach, Notifications, Data Quality) are producing valid output. Build 11 is ops-coach-complete.";
+
+    res.json({
+      auditLabel: "Build 11.3 — Operations Coach Audit Gate",
+      generatedAt: new Date().toISOString(),
+      checks,
+      summary: {
+        pass: checks.filter((c) => c.result === "PASS").length,
+        partial: partialCount,
+        fail: failCount,
+        total: checks.length,
+      },
+      overallDecision,
+      overallReason,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Build 11.3 audit failed", details: String(err) });
   }
 });
 
