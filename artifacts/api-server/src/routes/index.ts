@@ -22,6 +22,9 @@ import buildAuditorRouter from "./build-auditor";
 import uploadRouter from "./upload";
 import demoRouter from "./demo";
 import trialRouter from "./trial";
+import coachRouter from "./coach";
+import notificationsRouter from "./notifications";
+import dataQualityRouter from "./data-quality";
 
 const router: IRouter = Router();
 
@@ -48,5 +51,8 @@ router.use(buildAuditorRouter);
 router.use(uploadRouter);
 router.use(demoRouter);
 router.use(trialRouter);
+router.use(coachRouter);
+router.use(notificationsRouter);
+router.use(dataQualityRouter);
 
 export default router;

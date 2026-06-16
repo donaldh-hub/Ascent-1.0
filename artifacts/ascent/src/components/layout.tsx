@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck, Upload } from "lucide-react";
+import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck, Upload, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -21,6 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { href: "/upload", label: "Upload", icon: Upload },
     { href: "/reports", label: "Reports", icon: FileBarChart },
     { href: "/governance", label: "Governance", icon: ShieldCheck },
+    { href: "/coach", label: "Coach", icon: BrainCircuit },
   ];
 
   return (
@@ -85,6 +87,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 flex flex-col relative overflow-y-auto">
         {/* Subtle grid pattern overlay for war room vibe */}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] z-0"></div>
+        <div className="relative z-10 h-12 flex items-center justify-end px-6 border-b border-border/50 shrink-0">
+          <NotificationBell />
+        </div>
         <div className="relative z-10 flex-1 flex flex-col p-6">
           {children}
         </div>
