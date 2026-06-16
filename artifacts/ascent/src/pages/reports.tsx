@@ -51,6 +51,8 @@ import { WarrantyIntelligencePanel } from "@/components/reports/warranty-intelli
 import { AssetPerformancePanel } from "@/components/reports/asset-performance-panel";
 import { AssetAuditGate } from "@/components/reports/asset-audit-gate";
 import { CustomerReadinessAuditGate } from "@/components/reports/customer-readiness-audit-gate";
+import { DataQualityPanel } from "@/components/reports/data-quality-panel";
+import { Build11AuditGate } from "@/components/reports/build11-audit-gate";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -422,7 +424,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate · 9.0 asset registry · 9.1 warranty · 9.2 performance · 9.3 audit gate · 10.0 upload · 10.1 demo · 10.2 trial · 10.3 customer readiness">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3 + 9.0 + 9.1 + 9.2 + 9.3 + 10.0 + 10.1 + 10.2 + 10.3</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate · 9.0 asset registry · 9.1 warranty · 9.2 performance · 9.3 audit gate · 10.0 upload · 10.1 demo · 10.2 trial · 10.3 customer readiness · 11.0 ops coach · 11.1 notifications · 11.2 data quality · 11.3 audit gate">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3 + 9.0 + 9.1 + 9.2 + 9.3 + 10.0 + 10.1 + 10.2 + 10.3 + 11.0 + 11.1 + 11.2 + 11.3</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -474,6 +476,12 @@ export default function ReportsPage() {
 
       {/* Build 10.3 — Customer Readiness Audit Gate */}
       <CustomerReadinessAuditGate />
+
+      {/* Build 11.2 — Data Quality Guardrails */}
+      <DataQualityPanel />
+
+      {/* Build 11.3 — Operations Coach Audit Gate */}
+      <Build11AuditGate />
 
       {/* Headline summary */}
       {loading && !summary && (
