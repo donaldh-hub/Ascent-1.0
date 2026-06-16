@@ -6,8 +6,7 @@
  */
 
 import { db } from "@workspace/db";
-import { assetsTable } from "@workspace/db/schema/assets";
-import { propertiesTable, unitsTable } from "@workspace/db/schema/properties";
+import { assetsTable, propertiesTable, unitsTable } from "@workspace/db/schema";
 import { eq, sql } from "drizzle-orm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

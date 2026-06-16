@@ -8,9 +8,7 @@
  */
 
 import { db } from "@workspace/db";
-import { assetsTable } from "@workspace/db/schema/assets";
-import { workOrdersTable } from "@workspace/db/schema/work_orders";
-import { propertiesTable } from "@workspace/db/schema/properties";
+import { assetsTable, workOrdersTable, propertiesTable } from "@workspace/db/schema";
 import { eq, sql, isNotNull } from "drizzle-orm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,7 +32,7 @@ export interface AssetPerformanceReport {
   topRepeatIssueAssets: RepeatIssueAsset[];
   highRiskAssets: RepeatIssueAsset[];
   warrantyOpportunities: RepeatIssueAsset[];
-  confidenceState: "sufficient" | "directional" | "insufficient";
+  confidenceState: "confirmed_analysis" | "qualified_analysis" | "insufficient_data";
   highRiskCount: number;
   warrantyOpportunityCount: number;
 }
@@ -62,7 +60,7 @@ export async function buildAssetPerformanceReport(): Promise<AssetPerformanceRep
       topRepeatIssueAssets: [],
       highRiskAssets: [],
       warrantyOpportunities: [],
-      confidenceState: "insufficient",
+      confidenceState: "insufficient_data",
       highRiskCount: 0,
       warrantyOpportunityCount: 0,
     };
@@ -163,13 +161,13 @@ export async function buildAssetPerformanceReport(): Promise<AssetPerformanceRep
   const totalAssets = assets.length;
   const assetsWithWOs = assetIds.length;
 
-  let confidenceState: "sufficient" | "directional" | "insufficient";
+  let confidenceState: "confirmed_analysis" | "qualified_analysis" | "insufficient_data";
   if (totalAssets === 0 || assetsWithWOs === 0) {
-    confidenceState = "insufficient";
+    confidenceState = "insufficient_data";
   } else if (assetsWithWOs / totalAssets >= 0.3) {
-    confidenceState = "sufficient";
+    confidenceState = "confirmed_analysis";
   } else {
-    confidenceState = "directional";
+    confidenceState = "qualified_analysis";
   }
 
   return {

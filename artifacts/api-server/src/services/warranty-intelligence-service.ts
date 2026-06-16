@@ -7,8 +7,7 @@
  */
 
 import { db } from "@workspace/db";
-import { assetsTable } from "@workspace/db/schema/assets";
-import { propertiesTable } from "@workspace/db/schema/properties";
+import { assetsTable, propertiesTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,7 +32,7 @@ export interface WarrantyIntelligenceReport {
   unknown: WarrantyAsset[];
   expiringWithin90Days: WarrantyAsset[];
   opportunityFlags: WarrantyAsset[];
-  confidenceState: "sufficient" | "directional" | "insufficient";
+  confidenceState: "confirmed_analysis" | "qualified_analysis" | "insufficient_data";
   activeCount: number;
   expiredCount: number;
   unknownCount: number;
@@ -116,15 +115,15 @@ export async function analyzeWarrantyIntelligence(): Promise<WarrantyIntelligenc
   // Confidence based on how many assets have warranty data
   const withData = active.length + expired.length;
   const total = rows.length;
-  let confidenceState: "sufficient" | "directional" | "insufficient";
+  let confidenceState: "confirmed_analysis" | "qualified_analysis" | "insufficient_data";
   if (total === 0) {
-    confidenceState = "insufficient";
+    confidenceState = "insufficient_data";
   } else if (withData / total >= 0.5) {
-    confidenceState = "sufficient";
+    confidenceState = "confirmed_analysis";
   } else if (withData > 0) {
-    confidenceState = "directional";
+    confidenceState = "qualified_analysis";
   } else {
-    confidenceState = "insufficient";
+    confidenceState = "insufficient_data";
   }
 
   return {

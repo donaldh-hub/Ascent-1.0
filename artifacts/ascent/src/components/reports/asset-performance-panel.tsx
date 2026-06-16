@@ -6,11 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface RepeatIssueAsset {
   assetId: number;
-  name: string;
-  propertyName: string;
+  assetName: string;
+  assetType: string | null;
+  propertyName: string | null;
   workOrderCount: number;
-  lastWorkOrderDate: string;
-  riskLevel: "high" | "medium" | "low";
+  warrantyStatus: "active" | "expired" | "unknown";
+  stoplight: string;
+  healthScore: number;
 }
 
 interface AssetPerformanceReport {
@@ -21,10 +23,10 @@ interface AssetPerformanceReport {
   confidenceState: "confirmed_analysis" | "qualified_analysis" | "insufficient_data";
 }
 
-const RISK_META = {
-  high: { badge: "border-status-red/40 text-status-red bg-status-red/10", label: "High" },
-  medium: { badge: "border-amber-500/40 text-amber-600 bg-amber-500/10", label: "Medium" },
-  low: { badge: "border-status-green/40 text-status-green bg-status-green/10", label: "Low" },
+const WARRANTY_BADGE: Record<string, string> = {
+  active: "border-status-green/40 text-status-green bg-status-green/10",
+  expired: "border-status-red/40 text-status-red bg-status-red/10",
+  unknown: "border-muted text-muted-foreground bg-secondary/50",
 };
 
 const CONFIDENCE_META = {
@@ -110,21 +112,20 @@ export function AssetPerformancePanel() {
                 Repeat issue assets
               </h4>
               <div className="rounded-md border border-border divide-y divide-border">
-                {data.topRepeatIssueAssets.slice(0, 8).map((a) => {
-                  const rm = RISK_META[a.riskLevel];
-                  return (
-                    <div key={a.assetId} className="flex items-center justify-between px-3 py-2.5 gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate">{a.name}</p>
-                        <p className="text-xs text-muted-foreground">{a.propertyName}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-muted-foreground">{a.workOrderCount} WOs</span>
-                        <Badge variant="outline" className={`text-xs ${rm.badge}`}>{rm.label}</Badge>
-                      </div>
+                {data.topRepeatIssueAssets.slice(0, 8).map((a) => (
+                  <div key={a.assetId} className="flex items-center justify-between px-3 py-2.5 gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{a.assetName}</p>
+                      <p className="text-xs text-muted-foreground">{a.propertyName ?? "Unknown property"}</p>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground">{a.workOrderCount} WOs</span>
+                      <Badge variant="outline" className={`text-xs capitalize ${WARRANTY_BADGE[a.warrantyStatus] ?? ""}`}>
+                        {a.warrantyStatus}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
               </div>
             </section>
           )}
