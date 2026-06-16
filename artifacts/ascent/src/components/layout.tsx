@@ -23,6 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { href: "/reports", label: "Reports", icon: FileBarChart },
     { href: "/governance", label: "Governance", icon: ShieldCheck },
     { href: "/coach", label: "Coach", icon: BrainCircuit },
+    { href: "/admin", label: "Admin", icon: Server },
   ];
 
   return (
