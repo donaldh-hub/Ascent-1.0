@@ -53,6 +53,8 @@ import { AssetAuditGate } from "@/components/reports/asset-audit-gate";
 import { CustomerReadinessAuditGate } from "@/components/reports/customer-readiness-audit-gate";
 import { DataQualityPanel } from "@/components/reports/data-quality-panel";
 import { Build11AuditGate } from "@/components/reports/build11-audit-gate";
+import { LaunchAuditGate } from "@/components/reports/launch-audit-gate";
+import { LaunchReadinessPanel } from "@/components/admin/launch-readiness-panel";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -424,7 +426,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate · 9.0 asset registry · 9.1 warranty · 9.2 performance · 9.3 audit gate · 10.0 upload · 10.1 demo · 10.2 trial · 10.3 customer readiness · 11.0 ops coach · 11.1 notifications · 11.2 data quality · 11.3 audit gate">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3 + 9.0 + 9.1 + 9.2 + 9.3 + 10.0 + 10.1 + 10.2 + 10.3 + 11.0 + 11.1 + 11.2 + 11.3</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate · 9.0 asset registry · 9.1 warranty · 9.2 performance · 9.3 audit gate · 10.0 upload · 10.1 demo · 10.2 trial · 10.3 customer readiness · 11.0 ops coach · 11.1 notifications · 11.2 data quality · 11.3 audit gate · 12.0 health · 12.1 launch readiness · 12.2 final audit gate">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3 + 9.0 + 9.1 + 9.2 + 9.3 + 10.0 + 10.1 + 10.2 + 10.3 + 11.0 + 11.1 + 11.2 + 11.3 + 12.0 + 12.1 + 12.2</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -482,6 +484,12 @@ export default function ReportsPage() {
 
       {/* Build 11.3 — Operations Coach Audit Gate */}
       <Build11AuditGate />
+
+      {/* Build 12.2 — Final Launch Readiness Audit Gate */}
+      <LaunchAuditGate />
+
+      {/* Build 12.1 — Launch Readiness Summary */}
+      <LaunchReadinessPanel />
 
       {/* Headline summary */}
       {loading && !summary && (

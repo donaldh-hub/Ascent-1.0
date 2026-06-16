@@ -15,6 +15,8 @@ import {
   listRecentAudits,
   getAuditById,
 } from "../services/build-auditor-service.js";
+import { runHealthCheck } from "../services/health-check-service.js";
+import { assessLaunchReadiness } from "../services/launch-readiness-service.js";
 import { runAllAnalyses, runAllAnalysesWithRecords } from "../services/reporting-analysis-service.js";
 import { calculateImpactSnapshot } from "../services/impact-recalculation-engine.js";
 import { rankPriorityActions } from "../services/priority-action-ranker.js";
@@ -643,6 +645,125 @@ router.get("/build-auditor/11-3", async (_req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Build 11.3 audit failed", details: String(err) });
+  }
+});
+
+/**
+ * Build 12.2 — Final Launch Readiness Audit Gate
+ *
+ * GET /api/build-auditor/12-2
+ */
+router.get("/build-auditor/12-2", async (req, res) => {
+  try {
+    const checks: Array<{
+      checkId: string;
+      label: string;
+      result: "PASS" | "PARTIAL" | "FAIL";
+      reason: string;
+    }> = [];
+
+    // ── Check A: Health check ─────────────────────────────────────────────────
+    try {
+      const health = await runHealthCheck();
+      const ok = health.databaseConnected && health.status !== "down";
+      checks.push({
+        checkId: "health_check",
+        label: "System Health",
+        result: ok ? "PASS" : health.databaseConnected ? "PARTIAL" : "FAIL",
+        reason: ok
+          ? `Health check passed. Status: ${health.status}. DB connected. Work orders: ${health.workOrderCount}, assets: ${health.assetCount}, properties: ${health.propertyCount}.`
+          : `Health check issue. DB connected: ${health.databaseConnected}. Status: ${health.status}.`,
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "health_check",
+        label: "System Health",
+        result: "FAIL",
+        reason: `runHealthCheck threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check B: Launch readiness ─────────────────────────────────────────────
+    try {
+      const readiness = await assessLaunchReadiness();
+      const hasShape = typeof readiness.overallStatus === "string" && Array.isArray(readiness.items);
+      checks.push({
+        checkId: "launch_readiness",
+        label: "Launch Readiness",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Launch readiness returned valid shape. Overall: ${readiness.overallStatus}. Ready: ${readiness.readyCount}, partial: ${readiness.partialCount}, not ready: ${readiness.notReadyCount}, blockers: ${readiness.blockerCount}.`
+          : "Launch readiness returned but shape is incomplete.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "launch_readiness",
+        label: "Launch Readiness",
+        result: "FAIL",
+        reason: `assessLaunchReadiness threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check C: Prior audit gates ────────────────────────────────────────────
+    const priorGates = [
+      { gate: "7-9", label: "Build 7.9" },
+      { gate: "8-3", label: "Build 8.3" },
+      { gate: "9-3", label: "Build 9.3" },
+      { gate: "10-3", label: "Build 10.3" },
+      { gate: "11-3", label: "Build 11.3" },
+    ];
+
+    const baseUrl = `http://localhost:${process.env.PORT ?? 3000}`;
+    const gateResults = await Promise.allSettled(
+      priorGates.map(({ gate }) =>
+        fetch(`${baseUrl}/api/build-auditor/${gate}`).then((r) => ({ gate, status: r.status }))
+      )
+    );
+
+    const failedGates: string[] = [];
+    gateResults.forEach((result, idx) => {
+      const { gate, label } = priorGates[idx];
+      if (result.status === "rejected" || (result.status === "fulfilled" && result.value.status === 404)) {
+        failedGates.push(label);
+      }
+    });
+
+    checks.push({
+      checkId: "prior_audit_gates",
+      label: "Prior Audit Gates (7–11)",
+      result: failedGates.length === 0 ? "PASS" : "FAIL",
+      reason: failedGates.length === 0
+        ? "All prior audit gates (7.9, 8.3, 9.3, 10.3, 11.3) are registered and reachable."
+        : `Missing gates: ${failedGates.join(", ")}.`,
+    });
+
+    const failCount = checks.filter((c) => c.result === "FAIL").length;
+    const partialCount = checks.filter((c) => c.result === "PARTIAL").length;
+
+    const overallDecision =
+      failCount > 0 ? "NOT_SAFE_TO_PROMOTE" : partialCount > 0 ? "SAFE_WITH_CAUTION" : "SAFE_TO_PROMOTE";
+    const overallReason =
+      failCount > 0
+        ? `${failCount} Build 12 check(s) failed — launch readiness audit is not complete.`
+        : partialCount > 0
+        ? `${partialCount} check(s) returned partial output — review before final launch.`
+        : "All Build 12 checks passed. Health, launch readiness, and all prior audit gates verified. Ascent 1.0 is launch ready.";
+
+    res.json({
+      auditLabel: "Build 12.2 — Final Launch Readiness Audit Gate",
+      generatedAt: new Date().toISOString(),
+      checks,
+      summary: {
+        pass: checks.filter((c) => c.result === "PASS").length,
+        partial: partialCount,
+        fail: failCount,
+        total: checks.length,
+      },
+      overallDecision,
+      overallReason,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Build 12.2 audit failed", details: String(err) });
   }
 });
 
