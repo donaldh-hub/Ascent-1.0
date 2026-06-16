@@ -40,6 +40,11 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface AnalysisOutput {
+  metricValue: number | null;
+  contributingFactors: { label: string; count?: number }[];
+}
+
 interface EvidenceContextRow {
   contextKey: string;
   contextLabel: string;
@@ -273,9 +278,40 @@ export function EvidenceReportSection() {
   const load = () => {
     setLoading(true);
     setError(null);
+    // Try the richer context endpoint first; fall back to the existing /all
+    // endpoint so the section renders even before the api-server rebuilds.
     fetch("/api/reporting-analysis/evidence/by-context")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("context endpoint not ready");
+        return r.json();
+      })
       .then((d: EvidenceContextReport) => setReport(d))
+      .catch(() =>
+        fetch("/api/reporting-analysis/all")
+          .then((r) => r.json())
+          .then((bundle: { evidence: AnalysisOutput[] }) => {
+            const ev = bundle.evidence?.[0];
+            if (!ev) throw new Error("no evidence analysis");
+            const withEvidence = ev.contributingFactors.find(f => f.label.includes("with supporting"))?.count ?? 0;
+            const withoutEvidence = ev.contributingFactors.find(f => f.label.includes("without supporting"))?.count ?? 0;
+            const total = withEvidence + withoutEvidence;
+            setReport({
+              generatedAt: new Date().toISOString(),
+              byProperty: [],
+              byUnit: [],
+              byEntityType: [],
+              missingDocs: [],
+              missingDocCount: withoutEvidence,
+              summary: {
+                totalOperationalRecords: total,
+                withEvidence,
+                withoutEvidence,
+                coveragePercent: ev.metricValue ?? 0,
+                documentTypeBreakdown: [],
+              },
+            });
+          })
+      )
       .catch(() => setError("Failed to load evidence report."))
       .finally(() => setLoading(false));
   };
