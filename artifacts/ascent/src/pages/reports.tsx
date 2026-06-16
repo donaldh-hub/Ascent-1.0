@@ -40,6 +40,7 @@ import { NarrativeInsightsSection } from "@/components/reports/narrative-insight
 import { PmMappingReadinessSection } from "@/components/reports/pm-mapping-readiness-section";
 import { EvidenceReportSection } from "@/components/reports/evidence-report-section";
 import { AssignmentDataQualitySection } from "@/components/reports/assignment-data-quality-section";
+import { ReportExportPanel } from "@/components/reports/report-export-panel";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -411,7 +412,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -430,6 +431,9 @@ export default function ReportsPage() {
           Refresh
         </Button>
       </div>
+
+      {/* Build 7.8 — Report Export Panel */}
+      <ReportExportPanel />
 
       {/* Headline summary */}
       {loading && !summary && (

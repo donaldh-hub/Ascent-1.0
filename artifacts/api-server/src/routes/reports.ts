@@ -7,6 +7,7 @@ import {
   REPORT_REGISTRY,
   type ReportFilter,
 } from "../services/reporting-service";
+import { runAllAnalyses } from "../services/reporting-analysis-service.js";
 
 const router: IRouter = Router();
 
@@ -73,6 +74,55 @@ router.get("/reports/assignment-coverage", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to generate assignment report");
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * Build 7.8 — Report Snapshot
+ *
+ * GET /api/reports/snapshot
+ * Returns a point-in-time snapshot of the full reporting state:
+ * ingestion summary + all analysis outputs + confidence states + mode.
+ * Used by the frontend export panel to generate a downloadable report.
+ */
+router.get("/reports/snapshot", async (_req, res) => {
+  try {
+    const bundle = await runAllAnalyses();
+    const allAnalyses = [
+      ...bundle.workOrders,
+      ...bundle.turns,
+      ...bundle.pm,
+      ...bundle.assets,
+      ...bundle.evidence,
+      ...bundle.assignments,
+      ...bundle.crossCategory,
+    ];
+    res.json({
+      snapshotVersion: "7.8",
+      generatedAt: bundle.generatedAt,
+      reportingMode: bundle.reportingMode,
+      reportingModeSummary: bundle.reportingModeSummary,
+      analyses: allAnalyses.map((a) => ({
+        analysisId: a.analysisId,
+        analysisType: a.analysisType,
+        sourceCategory: a.sourceCategory,
+        title: a.title,
+        summary: a.summary,
+        metricValue: a.metricValue,
+        metricUnit: a.metricUnit,
+        confidenceState: a.confidenceState,
+        fullyReportableRecordCount: a.fullyReportableRecordCount,
+        partiallyReportableRecordCount: a.partiallyReportableRecordCount,
+        excludedRecordCount: a.excludedRecordCount,
+        supportingRecordCount: a.supportingRecordCount,
+        recommendedReviewQuestion: a.recommendedReviewQuestion,
+      })),
+      disclaimer:
+        "This snapshot reflects data confidence at the time of generation. " +
+        "Partial data is marked. Do not treat partial or directional analyses as confirmed operational truth.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to generate report snapshot", details: String(err) });
   }
 });
 
