@@ -41,6 +41,9 @@ import {
 import { calculateImpactSnapshot } from "../services/impact-recalculation-engine.js";
 import { rankPriorityActions } from "../services/priority-action-ranker.js";
 import { analyzeTrends } from "../services/trend-pattern-analyzer.js";
+import { getAssetRegistry, summarizeAssetRegistry } from "../services/asset-registry-service.js";
+import { analyzeWarrantyIntelligence } from "../services/warranty-intelligence-service.js";
+import { buildAssetPerformanceReport } from "../services/asset-performance-service.js";
 
 const router: IRouter = Router();
 
@@ -253,6 +256,67 @@ router.get("/reporting-analysis/trends", async (_req, res) => {
     res.json(report);
   } catch (err) {
     res.status(500).json({ error: "Failed to analyze trends", details: String(err) });
+  }
+});
+
+// ─── Build 9.0 — Asset Registry ──────────────────────────────────────────────
+
+/**
+ * GET /api/reporting-analysis/assets/registry
+ * Returns summary aggregates for the asset registry.
+ */
+router.get("/reporting-analysis/assets/registry", async (_req, res) => {
+  try {
+    const summary = await summarizeAssetRegistry();
+    res.json(summary);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to summarize asset registry", details: String(err) });
+  }
+});
+
+/**
+ * GET /api/reporting-analysis/assets/registry/list
+ * Returns paginated list of assets with joined property/unit names.
+ * Query params: limit (default 100), offset (default 0)
+ */
+router.get("/reporting-analysis/assets/registry/list", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 100), 500);
+    const offset = Number(req.query.offset ?? 0);
+    const assets = await getAssetRegistry(limit, offset);
+    res.json({ assets, returnedCount: assets.length, limit, offset });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load asset registry list", details: String(err) });
+  }
+});
+
+// ─── Build 9.1 — Warranty Intelligence ───────────────────────────────────────
+
+/**
+ * GET /api/reporting-analysis/assets/warranty
+ * Returns warranty intelligence derived from asset warranty columns.
+ */
+router.get("/reporting-analysis/assets/warranty", async (_req, res) => {
+  try {
+    const report = await analyzeWarrantyIntelligence();
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to analyze warranty intelligence", details: String(err) });
+  }
+});
+
+// ─── Build 9.2 — Asset Performance ───────────────────────────────────────────
+
+/**
+ * GET /api/reporting-analysis/assets/performance
+ * Returns asset performance report cross-referencing assets with work orders.
+ */
+router.get("/reporting-analysis/assets/performance", async (_req, res) => {
+  try {
+    const report = await buildAssetPerformanceReport();
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to build asset performance report", details: String(err) });
   }
 });
 

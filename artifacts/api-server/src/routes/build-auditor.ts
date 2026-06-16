@@ -19,6 +19,9 @@ import { runAllAnalyses, runAllAnalysesWithRecords } from "../services/reporting
 import { calculateImpactSnapshot } from "../services/impact-recalculation-engine.js";
 import { rankPriorityActions } from "../services/priority-action-ranker.js";
 import { analyzeTrends } from "../services/trend-pattern-analyzer.js";
+import { summarizeAssetRegistry } from "../services/asset-registry-service.js";
+import { analyzeWarrantyIntelligence } from "../services/warranty-intelligence-service.js";
+import { buildAssetPerformanceReport } from "../services/asset-performance-service.js";
 
 const router: IRouter = Router();
 
@@ -291,6 +294,130 @@ router.get("/build-auditor/8-3", async (_req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Build 8.3 audit failed", details: String(err) });
+  }
+});
+
+/**
+ * Build 9.3 — Asset / Warranty Audit Gate
+ *
+ * GET /api/build-auditor/9-3
+ *
+ * Checks that all 3 Build 9 layers (asset registry, warranty intelligence,
+ * asset performance) produce valid output shapes from the current data.
+ */
+router.get("/build-auditor/9-3", async (_req, res) => {
+  try {
+    const checks: Array<{
+      checkId: string;
+      label: string;
+      result: "PASS" | "PARTIAL" | "FAIL";
+      reason: string;
+    }> = [];
+
+    // ── Check A: Asset Registry ────────────────────────────────────────────────
+    try {
+      const summary = await summarizeAssetRegistry();
+      const hasShape =
+        typeof summary.totalAssets === "number" &&
+        summary.totalAssets >= 0 &&
+        Array.isArray(summary.byProperty);
+
+      checks.push({
+        checkId: "asset_registry",
+        label: "Asset Registry",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Registry returned valid shape. Total assets: ${summary.totalAssets}. Properties: ${summary.byProperty.length}. Statuses: ${summary.byStatus.length}. Types: ${summary.byType.length}.`
+          : "Registry returned but shape is missing required fields.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "asset_registry",
+        label: "Asset Registry",
+        result: "FAIL",
+        reason: `summarizeAssetRegistry threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check B: Warranty Intelligence ────────────────────────────────────────
+    try {
+      const warranty = await analyzeWarrantyIntelligence();
+      const hasShape =
+        typeof warranty.activeCount === "number" &&
+        typeof warranty.expiredCount === "number" &&
+        typeof warranty.unknownCount === "number";
+
+      checks.push({
+        checkId: "warranty_intelligence",
+        label: "Warranty Intelligence",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Warranty analysis complete. Active: ${warranty.activeCount}, expired: ${warranty.expiredCount}, unknown: ${warranty.unknownCount}, expiring soon: ${warranty.expiringWithin90DaysCount}, opportunities: ${warranty.opportunityFlagCount}. Confidence: ${warranty.confidenceState}.`
+          : "Warranty intelligence returned but shape is missing required fields.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "warranty_intelligence",
+        label: "Warranty Intelligence",
+        result: "FAIL",
+        reason: `analyzeWarrantyIntelligence threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check C: Asset Performance ────────────────────────────────────────────
+    try {
+      const perf = await buildAssetPerformanceReport();
+      const hasShape = Array.isArray(perf.topRepeatIssueAssets);
+
+      checks.push({
+        checkId: "asset_performance",
+        label: "Asset Performance Report",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Performance report complete. Assets with WOs: ${perf.totalAssetsWithWorkOrders}. Repeat issue assets: ${perf.topRepeatIssueAssets.length}. High risk: ${perf.highRiskCount}. Warranty opportunities: ${perf.warrantyOpportunityCount}. Confidence: ${perf.confidenceState}.`
+          : "Performance report returned but topRepeatIssueAssets is not an array.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "asset_performance",
+        label: "Asset Performance Report",
+        result: "FAIL",
+        reason: `buildAssetPerformanceReport threw: ${String(err)}`,
+      });
+    }
+
+    const failCount = checks.filter((c) => c.result === "FAIL").length;
+    const partialCount = checks.filter((c) => c.result === "PARTIAL").length;
+
+    const overallDecision =
+      failCount > 0
+        ? "NOT_SAFE_TO_PROMOTE"
+        : partialCount > 0
+        ? "SAFE_WITH_CAUTION"
+        : "SAFE_TO_PROMOTE";
+
+    const overallReason =
+      failCount > 0
+        ? `${failCount} Build 9 component(s) failed — asset/warranty stack is not complete.`
+        : partialCount > 0
+        ? `${partialCount} component(s) returned partial output — safe to continue but review is needed.`
+        : "All 3 Build 9 components (asset registry, warranty intelligence, asset performance) are producing valid output. Build 9 is asset-complete.";
+
+    res.json({
+      auditLabel: "Build 9.3 — Asset/Warranty Audit Gate",
+      generatedAt: new Date().toISOString(),
+      checks,
+      summary: {
+        pass: checks.filter((c) => c.result === "PASS").length,
+        partial: partialCount,
+        fail: failCount,
+        total: checks.length,
+      },
+      overallDecision,
+      overallReason,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Build 9.3 audit failed", details: String(err) });
   }
 });
 
