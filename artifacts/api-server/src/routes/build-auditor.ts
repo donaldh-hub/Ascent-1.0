@@ -15,7 +15,10 @@ import {
   listRecentAudits,
   getAuditById,
 } from "../services/build-auditor-service.js";
-import { runAllAnalyses } from "../services/reporting-analysis-service.js";
+import { runAllAnalyses, runAllAnalysesWithRecords } from "../services/reporting-analysis-service.js";
+import { calculateImpactSnapshot } from "../services/impact-recalculation-engine.js";
+import { rankPriorityActions } from "../services/priority-action-ranker.js";
+import { analyzeTrends } from "../services/trend-pattern-analyzer.js";
 
 const router: IRouter = Router();
 
@@ -156,6 +159,138 @@ router.get("/build-auditor/7-9", async (_req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Build 7.9 audit failed", details: String(err) });
+  }
+});
+
+/**
+ * Build 8.3 — Impact Recalculation Audit Gate
+ *
+ * GET /api/build-auditor/8-3
+ *
+ * Checks that the 3 Build 8 layers (impact snapshot, priority actions,
+ * trend analysis) all produce valid output shapes from the current data.
+ */
+router.get("/build-auditor/8-3", async (_req, res) => {
+  try {
+    const bundleWithRecords = await runAllAnalysesWithRecords();
+    const bundle = await runAllAnalyses();
+
+    const checks: Array<{
+      checkId: string;
+      label: string;
+      result: "PASS" | "PARTIAL" | "FAIL";
+      reason: string;
+    }> = [];
+
+    // ── Check A: Impact snapshot ───────────────────────────────────────────────
+    try {
+      const snapshot = calculateImpactSnapshot(bundleWithRecords.recordPool);
+      const hasShape =
+        typeof snapshot.recalculationNeeded === "boolean" &&
+        Array.isArray(snapshot.staleness) &&
+        Array.isArray(snapshot.recentChanges) &&
+        Array.isArray(snapshot.completionImpact) &&
+        Array.isArray(snapshot.missingEvidenceImpact);
+
+      checks.push({
+        checkId: "impact_snapshot",
+        label: "Impact Snapshot Engine",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Snapshot returned valid shape. Staleness: ${snapshot.stalenessCount}, recent changes: ${snapshot.recentChangesCount}, completion impact: ${snapshot.completionImpactCount}.`
+          : "Snapshot returned but shape is missing required fields.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "impact_snapshot",
+        label: "Impact Snapshot Engine",
+        result: "FAIL",
+        reason: `calculateImpactSnapshot threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check B: Priority action ranker ───────────────────────────────────────
+    try {
+      const ranked = rankPriorityActions(bundle);
+      const hasShape =
+        Array.isArray(ranked.actions) &&
+        typeof ranked.totalActionsConsidered === "number";
+
+      checks.push({
+        checkId: "priority_actions",
+        label: "Priority Action Ranker",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Ranked ${ranked.actions.length} priority action(s) from ${ranked.totalActionsConsidered} eligible analyses.`
+          : "Ranker returned but output shape is incomplete.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "priority_actions",
+        label: "Priority Action Ranker",
+        result: "FAIL",
+        reason: `rankPriorityActions threw: ${String(err)}`,
+      });
+    }
+
+    // ── Check C: Trend analyzer ───────────────────────────────────────────────
+    try {
+      const trends = analyzeTrends(bundleWithRecords.recordPool);
+      const hasShape =
+        Array.isArray(trends.topCategories) &&
+        Array.isArray(trends.propertiesByVolume) &&
+        Array.isArray(trends.agingRecords) &&
+        typeof trends.trendConfidence === "string";
+
+      checks.push({
+        checkId: "trend_analysis",
+        label: "Trend + Pattern Analyzer",
+        result: hasShape ? "PASS" : "PARTIAL",
+        reason: hasShape
+          ? `Trends analyzed with ${trends.admissibleRecordCount} admissible records. Confidence: ${trends.trendConfidence}. Top categories: ${trends.topCategories.length}. Aging records: ${trends.agingRecordCount}.`
+          : "Trend analyzer returned but output shape is incomplete.",
+      });
+    } catch (err) {
+      checks.push({
+        checkId: "trend_analysis",
+        label: "Trend + Pattern Analyzer",
+        result: "FAIL",
+        reason: `analyzeTrends threw: ${String(err)}`,
+      });
+    }
+
+    const failCount = checks.filter((c) => c.result === "FAIL").length;
+    const partialCount = checks.filter((c) => c.result === "PARTIAL").length;
+
+    const overallDecision =
+      failCount > 0
+        ? "NOT_SAFE_TO_PROMOTE"
+        : partialCount > 0
+        ? "SAFE_WITH_CAUTION"
+        : "SAFE_TO_PROMOTE";
+
+    const overallReason =
+      failCount > 0
+        ? `${failCount} Build 8 component(s) failed — recalculation stack is not complete.`
+        : partialCount > 0
+        ? `${partialCount} component(s) returned partial output — safe to continue but review is needed.`
+        : "All 3 Build 8 components (impact snapshot, priority actions, trends) are producing valid output. Build 8 is recalculation-complete.";
+
+    res.json({
+      auditLabel: "Build 8.3 — Impact Recalculation Audit Gate",
+      generatedAt: bundleWithRecords.generatedAt,
+      checks,
+      summary: {
+        pass: checks.filter((c) => c.result === "PASS").length,
+        partial: partialCount,
+        fail: failCount,
+        total: checks.length,
+      },
+      overallDecision,
+      overallReason,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Build 8.3 audit failed", details: String(err) });
   }
 });
 
