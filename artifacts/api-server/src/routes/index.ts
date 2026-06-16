@@ -19,6 +19,9 @@ import reportingAnalysisRouter from "./reporting-analysis";
 import reportingConfigRouter from "./reporting-config";
 import narrativeInsightsRouter from "./narrative-insights";
 import buildAuditorRouter from "./build-auditor";
+import uploadRouter from "./upload";
+import demoRouter from "./demo";
+import trialRouter from "./trial";
 
 const router: IRouter = Router();
 
@@ -42,5 +45,8 @@ router.use(reportingAnalysisRouter);
 router.use(reportingConfigRouter);
 router.use(narrativeInsightsRouter);
 router.use(buildAuditorRouter);
+router.use(uploadRouter);
+router.use(demoRouter);
+router.use(trialRouter);
 
 export default router;

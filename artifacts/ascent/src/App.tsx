@@ -29,6 +29,7 @@ import ControlTower from "@/pages/control-tower";
 import Governance from "@/pages/governance";
 import Reports from "@/pages/reports";
 import BuildAuditor from "@/pages/build-auditor";
+import UploadPage from "@/pages/upload";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,7 @@ function Router() {
         <Route path="/turns" component={Turns} />
         <Route path="/governance" component={Governance} />
         <Route path="/reports" component={Reports} />
+        <Route path="/upload" component={UploadPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

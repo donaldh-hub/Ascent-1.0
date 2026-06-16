@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck } from "lucide-react";
+import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -18,6 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { href: "/documents", label: "Documents", icon: FileText },
     { href: "/assets", label: "Assets", icon: Server },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
+    { href: "/upload", label: "Upload", icon: Upload },
     { href: "/reports", label: "Reports", icon: FileBarChart },
     { href: "/governance", label: "Governance", icon: ShieldCheck },
   ];
