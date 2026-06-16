@@ -38,6 +38,7 @@ import type { AnalysisDrillContext } from "@/components/reports/reporting-analys
 import { ReportingModeAssessment } from "@/components/reports/reporting-mode-assessment";
 import { NarrativeInsightsSection } from "@/components/reports/narrative-insights-section";
 import { PmMappingReadinessSection } from "@/components/reports/pm-mapping-readiness-section";
+import { EvidenceReportSection } from "@/components/reports/evidence-report-section";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -457,6 +458,19 @@ export default function ReportsPage() {
 
       {/* Build 7.5 — PM Mapping Readiness (lightweight; precedes narrative) */}
       <PmMappingReadinessSection onDrill={setAnalysisDrill} />
+
+      {/* Build 7.6 — Evidence + Documentation Report */}
+      <section data-testid="evidence-report-wrapper">
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Evidence &amp; Documentation
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Coverage, missing documentation risk, and breakdown by property, unit, and record type.
+          </p>
+        </div>
+        <EvidenceReportSection />
+      </section>
 
       {/* Build 7.3 — Narrative Insights (placed after summary + analysis blocks per spec) */}
       <NarrativeInsightsSection onDrill={setAnalysisDrill} />
