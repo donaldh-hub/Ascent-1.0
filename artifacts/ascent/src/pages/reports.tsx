@@ -46,6 +46,10 @@ import { ImpactSnapshotPanel } from "@/components/reports/impact-snapshot-panel"
 import { PriorityActionsPanel } from "@/components/reports/priority-actions-panel";
 import { TrendPatternPanel } from "@/components/reports/trend-pattern-panel";
 import { ImpactAuditGate } from "@/components/reports/impact-audit-gate";
+import { AssetRegistryPanel } from "@/components/reports/asset-registry-panel";
+import { WarrantyIntelligencePanel } from "@/components/reports/warranty-intelligence-panel";
+import { AssetPerformancePanel } from "@/components/reports/asset-performance-panel";
+import { AssetAuditGate } from "@/components/reports/asset-audit-gate";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -417,7 +421,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights · 8.0 impact snapshot · 8.1 priority actions · 8.2 trends · 8.3 audit gate · 9.0 asset registry · 9.1 warranty · 9.2 performance · 9.3 audit gate">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7 + 7.8 + 7.9 + 8.0 + 8.1 + 8.2 + 8.3 + 9.0 + 9.1 + 9.2 + 9.3</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -454,6 +458,18 @@ export default function ReportsPage() {
 
       {/* Build 8.3 — Impact Recalculation Audit Gate */}
       <ImpactAuditGate />
+
+      {/* Build 9.0 — Asset Registry */}
+      <AssetRegistryPanel />
+
+      {/* Build 9.1 — Warranty Intelligence */}
+      <WarrantyIntelligencePanel />
+
+      {/* Build 9.2 — Asset Performance */}
+      <AssetPerformancePanel />
+
+      {/* Build 9.3 — Asset/Warranty Audit Gate */}
+      <AssetAuditGate />
 
       {/* Headline summary */}
       {loading && !summary && (
