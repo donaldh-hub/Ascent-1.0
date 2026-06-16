@@ -39,6 +39,7 @@ import { ReportingModeAssessment } from "@/components/reports/reporting-mode-ass
 import { NarrativeInsightsSection } from "@/components/reports/narrative-insights-section";
 import { PmMappingReadinessSection } from "@/components/reports/pm-mapping-readiness-section";
 import { EvidenceReportSection } from "@/components/reports/evidence-report-section";
+import { AssignmentDataQualitySection } from "@/components/reports/assignment-data-quality-section";
 
 // ─── Types (mirror api-server/services/reporting-record-contract) ─────────────
 
@@ -410,7 +411,7 @@ export default function ReportsPage() {
           <div className="flex items-center gap-2">
             <FileBarChart className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6</Badge>
+            <Badge variant="outline" className="text-xs" title="7.1 ingestion · 7.2 analysis · 7.3 narrative insights">Build 7.1 + 7.2 + 7.3 + 7.5 + 7.6 + 7.7</Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
             The reporting intake gate. Every operational record is normalised, classified,
@@ -470,6 +471,19 @@ export default function ReportsPage() {
           </p>
         </div>
         <EvidenceReportSection />
+      </section>
+
+      {/* Build 7.7 — Assignment + Data Quality Report */}
+      <section data-testid="assignment-dq-wrapper">
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Assignment &amp; Data Quality
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Resolution state of ingested records — fully resolved, partial, and unresolved with review queue.
+          </p>
+        </div>
+        <AssignmentDataQualitySection />
       </section>
 
       {/* Build 7.3 — Narrative Insights (placed after summary + analysis blocks per spec) */}
