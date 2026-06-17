@@ -1,7 +1,6 @@
-import { useRef, useState, useContext } from "react";
+import { useRef, useState } from "react";
 import { Upload, FileText, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { JordanContext } from "@/App";
 
 interface IngestionResult {
   totalRows: number;
@@ -18,7 +17,6 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
   const [result, setResult] = useState<IngestionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const { triggerJordanCheck } = useContext(JordanContext);
 
   const upload = async (file: File) => {
     setUploading(true);
@@ -33,8 +31,6 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
       if (!r.ok) throw new Error(data.error ?? "Upload failed");
       setResult(data as IngestionResult);
       onSuccess?.();
-      // Brief pause so the user sees "Upload complete", then Jordan appears
-      setTimeout(() => triggerJordanCheck(), 1200);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {

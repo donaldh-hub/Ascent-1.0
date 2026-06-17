@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck, Upload, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { JordanChatBubble } from "@/components/coach/jordan-chat-bubble";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -95,6 +96,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+      <JordanChatBubble />
     </div>
   );
 }

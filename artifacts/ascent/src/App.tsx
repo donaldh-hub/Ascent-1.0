@@ -3,21 +3,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import { useEffect, useState, createContext, useContext, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Layout from "@/components/layout";
 import { Activity } from "lucide-react";
 import { useSetupStatus } from "@/hooks/use-setup-status";
-import { JordanActivationModal } from "@/components/coach/jordan-activation-modal";
-
-// ─── Jordan activation context ────────────────────────────────────────────────
-// Any component (e.g. upload panel) can call triggerJordanCheck() after data
-// is uploaded. The app checks if activation is needed and shows the modal.
-
-interface JordanContextValue {
-  triggerJordanCheck: () => void;
-}
-
-export const JordanContext = createContext<JordanContextValue>({ triggerJordanCheck: () => {} });
 
 // Pages
 import Dashboard from "@/pages/dashboard";
@@ -43,6 +32,8 @@ import BuildAuditor from "@/pages/build-auditor";
 import UploadPage from "@/pages/upload";
 import CoachPage from "@/pages/coach";
 import AdminPage from "@/pages/admin";
+import LandingPage from "@/pages/landing";
+import OnboardingPage from "@/pages/onboarding";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +50,28 @@ function SetupCheckLoader() {
   );
 }
 
+// ─── Account status ─────────────────────────────────────────────────────────
+
+interface AccountStatus {
+  subscriptionStatus: string;
+  onboardingCompleted: boolean;
+}
+
+function useAccountStatus() {
+  const [status, setStatus] = useState<AccountStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/account/status")
+      .then((r) => r.json())
+      .then((s: AccountStatus) => setStatus(s))
+      .catch(() => setStatus({ subscriptionStatus: "trial", onboardingCompleted: true }))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  return { status, isLoading };
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 function Router() {
@@ -67,8 +80,12 @@ function Router() {
   // Internal /dev/* routes (e.g. Build Auditor) must work regardless of setup
   // status — they are diagnostic tools, not customer flows.
   const isDevRoute = location.startsWith("/dev/");
+  const isPreEngineRoute =
+    location === "/landing" || location.startsWith("/landing?") ||
+    location === "/onboarding" || location.startsWith("/onboarding?");
 
   const { isComplete, isLoading } = useSetupStatus();
+  const { status: accountStatus, isLoading: isAccountLoading } = useAccountStatus();
 
   // /setup is always accessible
   if (isSetupRoute) {
@@ -85,9 +102,25 @@ function Router() {
     );
   }
 
+  // Pre-engine routes (marketing + onboarding) — no sidebar, no gating.
+  if (isPreEngineRoute) {
+    return (
+      <Switch>
+        <Route path="/landing" component={LandingPage} />
+        <Route path="/onboarding" component={OnboardingPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
   // Hold rendering while we check real data
-  if (isLoading) {
+  if (isLoading || isAccountLoading) {
     return <SetupCheckLoader />;
+  }
+
+  // Root path: show the marketing landing page until onboarding is complete.
+  if (location === "/" && accountStatus && !accountStatus.onboardingCompleted) {
+    return <LandingPage />;
   }
 
   // Setup incomplete — gate ALL protected routes
@@ -151,37 +184,17 @@ function ControlTowerRedirect() {
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [showJordan, setShowJordan] = useState(false);
-  const [, navigate] = useLocation();
-
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
 
-  const triggerJordanCheck = useCallback(() => {
-    fetch("/api/coach/preferences")
-      .then((r) => r.json())
-      .then((prefs: { activationCompleted: boolean }) => {
-        if (!prefs.activationCompleted) setShowJordan(true);
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleJordanComplete = () => {
-    setShowJordan(false);
-    navigate("/coach");
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <JordanContext.Provider value={{ triggerJordanCheck }}>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          {showJordan && <JordanActivationModal onComplete={handleJordanComplete} />}
-          <Toaster />
-        </JordanContext.Provider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Router />
+        </WouterRouter>
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );

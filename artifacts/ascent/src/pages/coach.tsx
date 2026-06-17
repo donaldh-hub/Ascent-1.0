@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { BrainCircuit } from "lucide-react";
-import { JordanActivationFlow } from "@/components/coach/jordan-activation-flow";
 import { WeeklySummaryPanel } from "@/components/coach/weekly-summary-panel";
 import { OperationsCoachPanel } from "@/components/coach/operations-coach-panel";
 
@@ -13,22 +12,15 @@ export default function CoachPage() {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadPrefs = () => {
-    setLoading(true);
+  useEffect(() => {
     fetch("/api/coach/preferences")
       .then((r) => r.json())
       .then((d: Prefs) => setPrefs(d))
       .catch(() => setPrefs({ coachName: "Jordan", activationCompleted: true }))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { loadPrefs(); }, []);
+  }, []);
 
   if (loading) return null;
-
-  if (prefs && !prefs.activationCompleted) {
-    return <JordanActivationFlow onComplete={loadPrefs} />;
-  }
 
   const coachName = prefs?.coachName ?? "Jordan";
 
