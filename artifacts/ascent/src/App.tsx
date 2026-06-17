@@ -34,6 +34,8 @@ import CoachPage from "@/pages/coach";
 import AdminPage from "@/pages/admin";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
+import PricingPage from "@/pages/pricing";
+import SharedReportPage from "@/pages/shared-report";
 
 const queryClient = new QueryClient();
 
@@ -82,7 +84,9 @@ function Router() {
   const isDevRoute = location.startsWith("/dev/");
   const isPreEngineRoute =
     location === "/landing" || location.startsWith("/landing?") ||
-    location === "/onboarding" || location.startsWith("/onboarding?");
+    location === "/onboarding" || location.startsWith("/onboarding?") ||
+    location === "/pricing" || location.startsWith("/pricing?");
+  const isSharedReportRoute = location.startsWith("/shared/");
 
   const { isComplete, isLoading } = useSetupStatus();
   const { status: accountStatus, isLoading: isAccountLoading } = useAccountStatus();
@@ -108,6 +112,17 @@ function Router() {
       <Switch>
         <Route path="/landing" component={LandingPage} />
         <Route path="/onboarding" component={OnboardingPage} />
+        <Route path="/pricing" component={PricingPage} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
+  // Public view-only shared report route — no sidebar, no auth/gating.
+  if (isSharedReportRoute) {
+    return (
+      <Switch>
+        <Route path="/shared/:shareToken" component={SharedReportPage} />
         <Route component={NotFound} />
       </Switch>
     );

@@ -24,6 +24,7 @@ import { useSignalDrill, type SignalType, type DrillRow } from "@/hooks/use-sign
 import { isAssetWarrantyExpired } from "@/lib/operational-predicates";
 import { useReportingMode } from "@/components/reports/use-reporting-mode";
 import { TurnReportingModeBanner } from "@/components/reports/turn-reporting-mode-banner";
+import { ShareReportPanel } from "@/components/reports/share-report-panel";
 import {
   TURN_PERFORMANCE_LABEL,
   gateTurnConfidentSignals,
@@ -925,11 +926,14 @@ export default function ControlTower() {
             Click any tile to drill into the records driving the score.
           </p>
         </div>
-        {isLoading && (
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" /> Refreshing
-          </div>
-        )}
+        <div className="flex flex-col items-end gap-2">
+          {isLoading && (
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Refreshing
+            </div>
+          )}
+          <ShareReportPanel />
+        </div>
       </div>
 
       {hasErr && (
