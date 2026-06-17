@@ -10,11 +10,12 @@ router.post("/upload/work-orders", async (req, res) => {
     const report = await getOrCreateReportForSession(req.sessionToken);
     const accountStatus = await getOrCreateAccountStatus();
     if (report.uploadCount >= 1 && accountStatus.subscriptionStatus !== "subscribed") {
-      return res.status(403).json({
+      res.status(403).json({
         error: "upload_gated",
         message:
           "Your first report is free. Ongoing uploads are included in your Ascent subscription — so your dashboard stays current every week.",
       });
+      return;
     }
 
     const contentType = req.headers["content-type"] ?? "";
@@ -26,7 +27,8 @@ router.post("/upload/work-orders", async (req, res) => {
     if (contentType.includes("multipart/form-data")) {
       const boundary = contentType.split("boundary=")[1]?.trim();
       if (!boundary) {
-        return res.status(400).json({ error: "Missing multipart boundary." });
+        res.status(400).json({ error: "Missing multipart boundary." });
+        return;
       }
 
       const body = req.body as string | Buffer;
@@ -63,7 +65,8 @@ router.post("/upload/work-orders", async (req, res) => {
     }
 
     if (fileContent === undefined || fileContent === null) {
-      return res.status(400).json({ error: "No file content provided. Send multipart/form-data with a 'file' field." });
+      res.status(400).json({ error: "No file content provided. Send multipart/form-data with a 'file' field." });
+      return;
     }
 
     const ingestionResult = await ingestUploadedFile(fileContent, fileName, propertyId);
