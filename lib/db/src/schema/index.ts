@@ -12,3 +12,4 @@ export * from "./build_audits";
 
 export * from "./coach_preferences";
 export * from "./coach_weekly_summaries";
+export * from "./account_status";

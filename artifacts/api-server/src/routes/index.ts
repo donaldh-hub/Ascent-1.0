@@ -26,6 +26,7 @@ import coachRouter from "./coach";
 import notificationsRouter from "./notifications";
 import dataQualityRouter from "./data-quality";
 import launchRouter from "./launch";
+import accountRouter from "./account";
 
 const router: IRouter = Router();
 
@@ -56,5 +57,6 @@ router.use(coachRouter);
 router.use(notificationsRouter);
 router.use(dataQualityRouter);
 router.use(launchRouter);
+router.use(accountRouter);
 
 export default router;
