@@ -8,6 +8,7 @@ import {
   type ReportFilter,
 } from "../services/reporting-service";
 import { runAllAnalyses } from "../services/reporting-analysis-service.js";
+import { getOrCreateAccountStatus } from "../services/account-status-service.js";
 
 const router: IRouter = Router();
 
@@ -87,6 +88,15 @@ router.get("/reports/assignment-coverage", async (req, res) => {
  */
 router.get("/reports/snapshot", async (_req, res) => {
   try {
+    const accountStatus = await getOrCreateAccountStatus();
+    if (accountStatus.subscriptionStatus !== "subscribed") {
+      res.status(403).json({
+        error: "download_gated",
+        message: "Downloading reports is included in your Ascent subscription. Start at $149/month.",
+      });
+      return;
+    }
+
     const bundle = await runAllAnalyses();
     const allAnalyses = [
       ...bundle.workOrders,

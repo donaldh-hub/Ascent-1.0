@@ -1,10 +1,22 @@
 import { Router, type IRouter } from "express";
 import { ingestUploadedFile } from "../services/upload-ingestion-service.js";
+import { getOrCreateReportForSession, incrementUploadCount } from "../services/report-service.js";
+import { getOrCreateAccountStatus } from "../services/account-status-service.js";
 
 const router: IRouter = Router();
 
 router.post("/upload/work-orders", async (req, res) => {
   try {
+    const report = await getOrCreateReportForSession(req.sessionToken);
+    const accountStatus = await getOrCreateAccountStatus();
+    if (report.uploadCount >= 1 && accountStatus.subscriptionStatus !== "subscribed") {
+      return res.status(403).json({
+        error: "upload_gated",
+        message:
+          "Your first report is free. Ongoing uploads are included in your Ascent subscription — so your dashboard stays current every week.",
+      });
+    }
+
     const contentType = req.headers["content-type"] ?? "";
 
     let fileContent: string | undefined;
@@ -55,6 +67,7 @@ router.post("/upload/work-orders", async (req, res) => {
     }
 
     const ingestionResult = await ingestUploadedFile(fileContent, fileName, propertyId);
+    await incrementUploadCount(req.sessionToken);
     res.json(ingestionResult);
   } catch (err) {
     req.log.error({ err }, "upload/work-orders failed");

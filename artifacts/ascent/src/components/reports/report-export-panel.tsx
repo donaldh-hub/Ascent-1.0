@@ -75,8 +75,14 @@ export function ReportExportPanel() {
 
   const fetchSnapshot = async (): Promise<ReportSnapshot | null> => {
     const r = await fetch("/api/reports/snapshot");
-    if (!r.ok) throw new Error(`Snapshot failed: ${r.status}`);
-    return r.json();
+    const data = await r.json().catch(() => null);
+    if (!r.ok) {
+      if (r.status === 403 && data?.error === "download_gated") {
+        throw new Error(data.message ?? "Downloading reports requires a subscription.");
+      }
+      throw new Error(`Snapshot failed: ${r.status}`);
+    }
+    return data;
   };
 
   const handleDownload = async () => {
@@ -93,8 +99,8 @@ export function ReportExportPanel() {
       a.download = `ascent-report-snapshot-${date}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      setExportError("Export failed. The report server may still be starting up.");
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : "Export failed. The report server may still be starting up.");
     } finally {
       setExporting(false);
     }
@@ -109,8 +115,8 @@ export function ReportExportPanel() {
       await navigator.clipboard.writeText(buildPlainTextSummary(snapshot));
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setExportError("Copy failed. Try the download option instead.");
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : "Copy failed. Try the download option instead.");
     } finally {
       setCopying(false);
     }

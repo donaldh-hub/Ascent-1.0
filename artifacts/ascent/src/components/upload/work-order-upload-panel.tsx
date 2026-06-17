@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Upload, FileText, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
 
 interface IngestionResult {
   totalRows: number;
@@ -16,11 +17,13 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<IngestionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [gated, setGated] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
   const upload = async (file: File) => {
     setUploading(true);
     setError(null);
+    setGated(null);
     setResult(null);
     setFileName(file.name);
     try {
@@ -28,7 +31,13 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
       form.append("file", file);
       const r = await fetch("/api/upload/work-orders", { method: "POST", body: form });
       const data = await r.json();
-      if (!r.ok) throw new Error(data.error ?? "Upload failed");
+      if (!r.ok) {
+        if (r.status === 403 && data.error === "upload_gated") {
+          setGated(data.message ?? "Ongoing uploads require a subscription.");
+          return;
+        }
+        throw new Error(data.error ?? "Upload failed");
+      }
       setResult(data as IngestionResult);
       onSuccess?.();
     } catch (e) {
@@ -90,6 +99,18 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
         <div className="mt-3 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm text-amber-700">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {gated && (
+        <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm text-amber-700">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{gated}</span>
+          </div>
+          <Link href="/onboarding" className="text-xs font-medium underline underline-offset-2 ml-6">
+            Go to onboarding to subscribe
+          </Link>
         </div>
       )}
 
