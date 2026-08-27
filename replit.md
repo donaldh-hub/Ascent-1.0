@@ -42,7 +42,80 @@ The frontend leverages shadcn/ui and Tailwind CSS for a modern, consistent desig
 
 # Build Promotion History
 
-## Build 7.5 — PM Data Mapping Layer — PROMOTED (baseline for Build 7.6)
+**Current state (superseding the stale "baseline for Build 7.6" note below): Build 12.2 is PROMOTED and tagged Ascent 1.0 Launch Ready. A further, unnumbered Post-Launch layer (Jordan AI coach, subscriptions, landing page, tenancy) has since been built on top of it — see the two sections above the 7.5/7.4 entries for the full record.** This file had not been updated between Build 7.5 and Build 12.2; the entries below fill that gap from commit history.
+
+## Post-Launch — Jordan Coach, Subscriptions, Landing Page (unnumbered, built after Build 12.2)
+
+- Jordan: Subscriber preference store + convergence scoring engine
+- Jordan: Weekly summary engine + updated coach routes
+- Jordan: Activation flow + weekly summary panel + coach page
+- Jordan: Auto-trigger activation modal after first data upload
+- Jordan chat bubble — replaces full-screen activation modal
+- Account status service + subscription routes
+- Public landing page + onboarding page shell
+- Subscribe wall + app shell rewiring for landing/onboarding/engine flow
+- Minimal tenancy: anonymous session + reports schema
+- Gate uploads beyond the first and report downloads behind subscription
+- View-only share link for reports
+- Stubbed email-a-coworker send
+- Landing page demo dashboard, LLM-backed coach, and pricing page (current HEAD as of this update)
+
+This layer is not covered by an audit gate the way Builds 7–12 are. Treat it as active/unlocked until a Build 13 promotion + audit gate is run against it.
+
+## Build 12.2 — Final Launch Readiness Audit Gate — PROMOTED (Ascent 1.0 Launch Ready)
+
+Final launch readiness audit gate, closing out the Build 12 series. Marks the point the codebase was declared launch-ready, before the Post-Launch (Jordan/subscriptions/landing page) layer above was added.
+
+## Build 12.1 — Launch Readiness Checklist Service + Panel — PROMOTED
+
+## Build 12.0 — System Health + Observability Panel — PROMOTED
+
+## Build 11.3 — Build 11 Audit Gate + reports.tsx wired — PROMOTED
+
+## Build 11.2 — Data Quality Guardrails + Panel — PROMOTED
+
+## Build 11.1 — Notification Bell + Active Notifications Service — PROMOTED
+
+## Build 11.0 — Operations Coach Service + Route + Panel — PROMOTED
+
+## Build 10 — Self-service upload, demo dataset, trial readiness, customer audit gate — PROMOTED
+
+- Build 10.0: CSV upload ingestion service + route + drag-drop upload panel + /upload page
+- Build 10.1: Demo dataset loader (150 WOs across 2 properties) + frontend panel
+- Build 10.2: Trial readiness engine with Operations Coach unlock scoring
+- Build 10.3: Customer readiness audit gate in build-auditor route + frontend gate component
+
+## Build 9 — Asset Registry, Warranty Intelligence, Asset Performance — PROMOTED
+
+- Build 9.0: Asset Registry Service + Route + Panel
+- Build 9.1: Warranty Intelligence Service + Route + Panel
+- Build 9.2: Asset Performance Service + Route + Panel
+- Build 9.3: Asset/Warranty Audit Gate + reports.tsx wired
+
+## Build 8.0–8.3 — Impact Recalculation Engine — PROMOTED
+
+- Build 8.0: Impact Recalculation Engine — calculateImpactSnapshot() projects staleness, recent changes, completion impact, missing evidence impact
+- Build 8.1: Priority Action Recalculation Layer — rankPriorityActions()
+- Build 8.2: Trend + Pattern Intelligence Layer — analyzeTrends()
+- Build 8.3: Impact Recalculation Audit Gate (GET /api/build-auditor/8-3)
+
+## Build 7.9 — Reporting Completion Audit + Promotion Gate — PROMOTED
+
+GET /api/build-auditor/7-9 checks all 6 reporting categories (work orders, turns, PM, assets, evidence, assignments) for analysis outputs and confidence states.
+
+## Build 7.8 — Report Export + Snapshot Layer — PROMOTED
+
+New GET /api/reports/snapshot endpoint returning full reporting state as a JSON snapshot.
+
+## Build 7.7 — Assignment + Data Quality Reporting Layer — PROMOTED
+
+AssignmentDataQualitySection component: resolution state summary, review queue CTA, drill-down sheet for records needing resolution.
+
+## Build 7.6 — Evidence + Documentation Reporting Layer — PROMOTED
+
+New evidence-context-analyzer.ts service: breaks coverage down by property, unit, and entity type; produces missing-doc report.
+
+## Build 7.5 — PM Data Mapping Layer — PROMOTED (superseded as baseline by Build 12.2 above; outputs still locked)
 
 - PM Mapping Readiness section renders on /reports: **PASS**
 - /reports renders: **PASS**
@@ -59,7 +132,7 @@ The frontend leverages shadcn/ui and Tailwind CSS for a modern, consistent desig
 - Agent-reported auditor state: **28 pass / 0 partial / 0 fail / 2 manual** (both `build.7_5.*` checks pass)
 - Build 7.5 safe to ship
 
-This state is the locked baseline for Build 7.6. Do not rerun Build 7.5, alter PM mapping logic (alias detection, status derivation, confidence derivation, derived-view exclusion from the global ingestion summary), or change the PM-only vocabulary on the PM Mapping Readiness section without an explicit Build 7.6+ task that supersedes it. Build 7.4's locked outputs (active reporting mode, turn-vs-work-order gating, 7.1–7.3 visual layer) remain locked under 7.5.
+Build 7.5's PM mapping logic (alias detection, status derivation, confidence derivation, derived-view exclusion from the global ingestion summary) and PM-only vocabulary remain locked outputs carried forward through every later build — do not alter them without an explicit task that supersedes this note. Build 7.4's locked outputs (active reporting mode, turn-vs-work-order gating, 7.1–7.3 visual layer) remain locked under 7.5. Build 12.2 is the current promoted baseline; see above.
 
 ## Build 7.4 — Visuals + Dashboard Reporting Layer — PROMOTED (superseded as baseline by Build 7.5; outputs still locked)
 
