@@ -29,6 +29,7 @@ import launchRouter from "./launch";
 import accountRouter from "./account";
 import authRouter from "./auth";
 import hubUsersRouter from "./hub-users";
+import inboundEmailRouter from "./inbound-email";
 import shareRouter from "./share";
 
 const router: IRouter = Router();
@@ -63,6 +64,7 @@ router.use(launchRouter);
 router.use(accountRouter);
 router.use(authRouter);
 router.use(hubUsersRouter);
+router.use(inboundEmailRouter);
 router.use(shareRouter);
 
 export default router;
