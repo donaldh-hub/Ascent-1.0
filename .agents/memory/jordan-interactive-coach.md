@@ -89,6 +89,24 @@ core text-based, grounded conversation works, not before.
 - Voice input/output (see above) as a follow-on layer once the core
   grounded conversation works.
 
+## Example queries (from the user, use as acceptance tests when built)
+
+- "How many open work orders do we have at [site]?" — a site-scoped count
+  by status; maps directly to the work-orders list query already scoped by
+  `req.accessibleSiteIds` (PR #4), just needs a "count by status for a
+  named site" tool wrapping it.
+- "How many turns do we have at Elmwood Terrace, and how many of them are
+  close to being completed?" — a site-scoped turn count plus a
+  "near-completion" tool built on the same predicates `turn-matrix-service`
+  and `operational-selectors.ts` already use (e.g. days-in-stage close to
+  typical completion, not blocked/not-rent-ready) — do not invent a new
+  "close to completion" definition; derive it from existing turn-status
+  logic or ask for a precise definition if one doesn't already exist.
+- General pattern: questions are almost always "count/status of [entity]
+  at [named site]" — the tool surface should be built around that shape
+  first (by-site, by-entity-type, by-status/condition), since that's what
+  real usage looks like, not abstract Q&A.
+
 ## Next step when picked up
 
 Don't jump straight to code — this needs a short design pass first:
