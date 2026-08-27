@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { BrainCircuit, X, ChevronUp } from "lucide-react";
+import { BrainCircuit, X, ChevronUp, Send, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useJordanVoiceInput } from "@/hooks/use-jordan-voice-input";
 
 interface Message {
   id: number;
@@ -48,6 +49,10 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
   >("idle");
   const startedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const voice = useJordanVoiceInput((transcript) => setChatInput(transcript));
 
   useEffect(() => {
     fetch("/api/coach/preferences")
@@ -190,6 +195,38 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
     setPhase("ongoing");
   };
 
+  const sendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || sending) return;
+    setChatInput("");
+    setSending(true);
+    await pushMessage("user", text, 0);
+    try {
+      const r = await fetch("/api/coach/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, conversationId: conversationId ?? undefined }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        await pushMessage(
+          "jordan",
+          r.status === 503
+            ? "I can't have a live conversation yet — that capability isn't configured on this deployment. I can still give you the weekly summary or this week's focus."
+            : "I ran into a problem answering that — try again in a moment.",
+          400,
+        );
+      } else {
+        setConversationId(data.conversationId);
+        await pushMessage("jordan", data.reply, 400);
+      }
+    } catch {
+      await pushMessage("jordan", "I couldn't reach the server just now — try again in a moment.", 400);
+    } finally {
+      setSending(false);
+    }
+  };
+
   const toggleOpen = () => {
     const next = !open;
     setOpen(next);
@@ -279,6 +316,36 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
               </div>
             )}
           </div>
+
+          {phase === "ongoing" && (
+            <div className="flex items-center gap-2 border-t border-border p-3 shrink-0">
+              {voice.isSupported && (
+                <button
+                  type="button"
+                  onClick={voice.listening ? voice.stop : voice.start}
+                  title={voice.listening ? "Stop listening" : "Ask Jordan out loud"}
+                  className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-colors ${
+                    voice.listening ? "bg-destructive text-destructive-foreground animate-pulse" : "bg-secondary text-foreground hover:bg-secondary/70"
+                  }`}
+                >
+                  <Mic className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <Input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={voice.listening ? "Listening..." : "Ask Jordan anything about your data"}
+                className="h-9 text-sm"
+                disabled={sending}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") sendChatMessage();
+                }}
+              />
+              <Button size="icon" className="h-9 w-9 shrink-0" onClick={sendChatMessage} disabled={sending || !chatInput.trim()}>
+                <Send className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
