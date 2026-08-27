@@ -17,18 +17,48 @@ This is locked positioning per core.md Section 3 ("Ascent 1.0's
 positioning, any locked language") — flag a proposed change to this
 boundary, don't make it unilaterally.
 
-**The mission, in the user's own words:** "We want to be the coach outside
-of the boxing ring. We're not in the ring fighting. We're on the outside
-seeing what the fighter can't see, to make them a better fighter — to give
-them a different vantage point." User-friendliness and that outside
-vantage point are the point, not a side effect. This is the "why" behind
-the boundary below, and it should shape tone and UX everywhere in the
-product, not just the schema-level access boundary: Ascent observes,
-explains, and coaches from outside the work — it never steps into the
-ring and does the work itself. **This defines Jordan's persona directly**
-(see `.agents/memory/jordan-interactive-coach.md`): Jordan talks like a
-coach giving a fighter a vantage point they can't get from inside the
-fight, not like a dispatcher or an operations system.
+**The mission, in full (the user's own words, refined the same night):**
+
+> Ascent is the coach outside the ring.
+
+The maintenance team is inside the ring — handling work orders, turns,
+emergencies, staffing shortages, and resident needs in real time. They
+are too close to the action to see everything. Ascent does not throw the
+punches. Ascent watches the entire fight. It sees where the team is
+losing time, which problems keep returning, what is draining capacity,
+where documentation is breaking down, which properties or units are
+creating hidden pressure, what the team is doing well, and what must
+change before the next round. Then Ascent gives the manager clear,
+evidence-backed guidance: "Here is what I'm seeing. Here is why it
+matters. Here are the records that prove it. Here is what you should
+examine next."
+
+**Mission statement:** Ascent 1.0 gives maintenance leaders the outside
+perspective they cannot get while managing the work — turning existing
+operational records into clear, explainable intelligence that helps
+teams see problems earlier, make better decisions, and continuously
+improve.
+
+**The clearest positioning statements** (use these, don't paraphrase them
+into something vaguer): "Your maintenance team works inside the
+operation. Ascent stands outside it — seeing patterns, risks, and
+opportunities the team may be too close to recognize." Or more simply:
+"You manage the work. Ascent helps you see the fight."
+
+**The user-friendly promise — this is specific, not a vibe.** Being
+user-friendly does not mean fewer buttons. It means the user should never
+need to be a data analyst, a software engineer, a reporting specialist,
+an AI expert, or an enterprise systems administrator to get value. They
+upload the records they already have and understand: (1) what is
+happening, (2) why it is happening, (3) what evidence supports it, (4)
+what deserves attention first, (5) what question to ask their team next.
+Any feature or UI decision that requires the user to think like one of
+those five excluded roles is working against the mission, not toward it.
+
+This is the "why" behind the boundary below, and it should shape tone and
+UX everywhere in the product, not just the schema-level access boundary:
+Ascent observes, explains, and coaches from outside the work — it never
+steps into the ring and does the work itself.
 
 **Ascent 1.0 remains a Maintenance Intelligence Layer, not a maintenance
 operations platform.** The product promise: "Your system records the
@@ -58,6 +88,21 @@ explainable recommendations, and Jordan's grounded analysis.
 feeding Ascent information — none of them changes its identity** as an
 intelligence layer, not an operations system (see
 `.agents/memory/ingestion-connection-ladder.md`).
+
+**Jordan's precise role** (full detail in
+`.agents/memory/jordan-interactive-coach.md`): Jordan is the corner
+coach, not a dispatcher or maintenance supervisor. It reads the Control
+Tower, explains the score, points to supporting records, identifies
+blind spots, answers follow-up questions, helps interpret patterns,
+compares reporting periods, and measures whether previous decisions
+produced improvement. Jordan never says "I completed that work order."
+It says something like: "This unit has generated four plumbing-related
+work orders in 60 days. Three were closed without a documented cause.
+Before treating the latest request as isolated, review the repair
+history and determine whether the team is addressing symptoms instead of
+the underlying failure." That is coaching through intelligence, not task
+management — the distinction is load-bearing for every response Jordan
+ever gives.
 
 **This constrains the flagged-issues feature specifically** (see
 `.agents/memory/flagged-issues-feature.md`): flagged issues must stay an
