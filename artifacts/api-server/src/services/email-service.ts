@@ -36,3 +36,16 @@ export async function sendMagicLinkEmail({
   console.log(`[EMAIL STUB] Would send login link to ${to}: ${loginUrl}`);
   return { sent: false, stubbed: true };
 }
+
+export async function sendIngestionCompleteEmail({
+  to,
+  fileName,
+  totalRows,
+}: {
+  to: string;
+  fileName: string;
+  totalRows: number;
+}): Promise<{ sent: boolean; stubbed: boolean }> {
+  console.log(`[EMAIL STUB] Would notify ${to}: your emailed report "${fileName}" (${totalRows} rows) has been processed.`);
+  return { sent: false, stubbed: true };
+}
