@@ -203,11 +203,16 @@ router.get("/turns/unit/:unitId", async (req, res) => {
       return;
     }
 
-    const rawTurns = await db
+    let rawTurns = await db
       .select()
       .from(turnsTable)
       .where(eq(turnsTable.unitId, unitId))
       .limit(10);
+
+    if (req.accessibleSiteIds) {
+      const siteIds = req.accessibleSiteIds;
+      rawTurns = rawTurns.filter((t) => t.propertyId !== null && siteIds.includes(t.propertyId));
+    }
 
     if (rawTurns.length === 0) {
       res.json({ hasData: false, turns: [], activeTurn: null });
@@ -266,6 +271,10 @@ router.get("/turns", async (req, res) => {
     const matrix = await buildTurnMatrix();
     let turns = matrix.turns;
 
+    if (req.accessibleSiteIds) {
+      const siteIds = req.accessibleSiteIds;
+      turns = turns.filter(t => t.propertyId !== null && siteIds.includes(t.propertyId));
+    }
     if (status) {
       turns = turns.filter(t => t.turnStatus === status);
     }
@@ -309,6 +318,10 @@ router.get("/turns/:id", async (req, res) => {
       .limit(1);
 
     if (!turn) { res.status(404).json({ error: "Turn not found" }); return; }
+    if (req.accessibleSiteIds && (!turn.propertyId || !req.accessibleSiteIds.includes(turn.propertyId))) {
+      res.status(404).json({ error: "Turn not found" });
+      return;
+    }
     res.json(turn);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

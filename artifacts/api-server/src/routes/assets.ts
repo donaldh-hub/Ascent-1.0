@@ -61,6 +61,10 @@ router.get("/assets", async (req, res) => {
 
     let rows = await db.select().from(assetsTable);
 
+    if (req.accessibleSiteIds) {
+      const siteIds = req.accessibleSiteIds;
+      rows = rows.filter((a) => a.propertyId !== null && siteIds.includes(a.propertyId));
+    }
     if (query.status) rows = rows.filter((a) => a.status === query.status);
     if (unitId) rows = rows.filter((a) => a.unitId === parseInt(unitId));
     if (propertyId) rows = rows.filter((a) => a.propertyId === parseInt(propertyId));
@@ -166,7 +170,11 @@ router.get("/assets/unit/:unitId", async (req, res) => {
       res.status(400).json({ error: "Invalid unit ID" });
       return;
     }
-    const rows = await db.select().from(assetsTable).where(eq(assetsTable.unitId, unitId));
+    let rows = await db.select().from(assetsTable).where(eq(assetsTable.unitId, unitId));
+    if (req.accessibleSiteIds) {
+      const siteIds = req.accessibleSiteIds;
+      rows = rows.filter((a) => a.propertyId !== null && siteIds.includes(a.propertyId));
+    }
     res.json(rows.map(enrichAsset));
   } catch (err) {
     req.log.error({ err }, "Failed to list unit assets");
@@ -178,7 +186,11 @@ router.get("/assets/unit/:unitId", async (req, res) => {
 
 router.get("/assets/warranties", async (req, res) => {
   try {
-    const assets = await db.select().from(assetsTable);
+    let assets = await db.select().from(assetsTable);
+    if (req.accessibleSiteIds) {
+      const siteIds = req.accessibleSiteIds;
+      assets = assets.filter((a) => a.propertyId !== null && siteIds.includes(a.propertyId));
+    }
     const result = assets.map((a) => {
       const daysRemaining = calcWarrantyDays(a.warrantyExpiration);
       let status: string;
@@ -418,6 +430,9 @@ router.get("/assets/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, id));
     if (!asset) return res.status(404).json({ error: "Not found" });
+    if (req.accessibleSiteIds && (!asset.propertyId || !req.accessibleSiteIds.includes(asset.propertyId))) {
+      return res.status(404).json({ error: "Not found" });
+    }
     res.json(enrichAsset(asset));
   } catch (err) {
     req.log.error({ err }, "Failed to get asset");

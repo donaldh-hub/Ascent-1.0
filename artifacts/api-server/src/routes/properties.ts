@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { propertiesTable, unitsTable, documentsTable, assignmentsTable, assetsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
+import { siteScopeWhere } from "../lib/site-scope.js";
 
 const router: IRouter = Router();
 
@@ -17,7 +18,10 @@ function enrichUnit(u: typeof unitsTable.$inferSelect) {
 
 router.get("/properties", async (req, res) => {
   try {
-    const rows = await db.select().from(propertiesTable).orderBy(propertiesTable.createdAt);
+    const scope = siteScopeWhere(propertiesTable.id, req.accessibleSiteIds);
+    const rows = scope
+      ? await db.select().from(propertiesTable).where(scope).orderBy(propertiesTable.createdAt)
+      : await db.select().from(propertiesTable).orderBy(propertiesTable.createdAt);
     res.json(rows.map(enrichProperty));
   } catch (err) {
     req.log.error({ err }, "Failed to list properties");
@@ -58,8 +62,11 @@ router.delete("/properties/:id", async (req, res) => {
 router.get("/units", async (req, res) => {
   try {
     const propertyId = req.query.propertyId ? parseInt(req.query.propertyId as string, 10) : undefined;
-    const rows = propertyId && !isNaN(propertyId)
-      ? await db.select().from(unitsTable).where(eq(unitsTable.propertyId, propertyId)).orderBy(unitsTable.unitNumber)
+    const scope = siteScopeWhere(unitsTable.propertyId, req.accessibleSiteIds);
+    const explicitPropertyFilter = propertyId && !isNaN(propertyId) ? eq(unitsTable.propertyId, propertyId) : undefined;
+    const where = [explicitPropertyFilter, scope].filter((c): c is NonNullable<typeof c> => Boolean(c));
+    const rows = where.length > 0
+      ? await db.select().from(unitsTable).where(and(...where)).orderBy(unitsTable.propertyId, unitsTable.unitNumber)
       : await db.select().from(unitsTable).orderBy(unitsTable.propertyId, unitsTable.unitNumber);
     res.json(rows.map(enrichUnit));
   } catch (err) {
@@ -126,6 +133,10 @@ router.get("/units/:id", async (req, res) => {
     if (isNaN(id)) { res.status(400).json({ error: "Invalid unit id" }); return; }
     const [unit] = await db.select().from(unitsTable).where(eq(unitsTable.id, id));
     if (!unit) { res.status(404).json({ error: "Unit not found" }); return; }
+    if (req.accessibleSiteIds && (!unit.propertyId || !req.accessibleSiteIds.includes(unit.propertyId))) {
+      res.status(404).json({ error: "Unit not found" });
+      return;
+    }
     const [property] = unit.propertyId
       ? await db.select().from(propertiesTable).where(eq(propertiesTable.id, unit.propertyId))
       : [];
@@ -148,6 +159,10 @@ router.get("/units/:id/history", async (req, res) => {
 
     const [unit] = await db.select().from(unitsTable).where(eq(unitsTable.id, id));
     if (!unit) { res.status(404).json({ error: "Unit not found" }); return; }
+    if (req.accessibleSiteIds && (!unit.propertyId || !req.accessibleSiteIds.includes(unit.propertyId))) {
+      res.status(404).json({ error: "Unit not found" });
+      return;
+    }
 
     const [docs, assignments, assets] = await Promise.all([
       db.select().from(documentsTable)
