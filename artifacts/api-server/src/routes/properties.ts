@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { propertiesTable, unitsTable, documentsTable, assignmentsTable, assetsTable } from "@workspace/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { siteScopeWhere } from "../lib/site-scope.js";
+import { getPricingDashboard } from "../services/pricing-service.js";
 
 const router: IRouter = Router();
 
@@ -53,6 +54,31 @@ router.delete("/properties/:id", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Failed to delete property");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Pricing ─────────────────────────────────────────────────────────────────
+//
+// Dashboard fields per the decided Data-Tier Monitor spec: current
+// aggregated unit count, current tier/fee, next tier threshold, units
+// remaining before that tier, and last recalculation date. The "clickable
+// list of units supporting the count" is GET /units?propertyId=<id> — same
+// site-scoped endpoint the rest of the app already uses, so the dashboard
+// list and the count can never drift apart.
+
+router.get("/properties/:id/pricing", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid property id" }); return; }
+    if (req.accessibleSiteIds && !req.accessibleSiteIds.includes(id)) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
+    const dashboard = await getPricingDashboard(id);
+    res.json(dashboard);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get site pricing");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -48,6 +48,7 @@ import {
   WO_WORKFLOW_TITLE,
 } from "../services/work-order-service";
 import { buildImpactAnalysis } from "../services/work-order-impact-service";
+import { recalculateSitePricingTier } from "../services/pricing-service.js";
 import {
   computeGovernanceFields,
   recordImportRun,
@@ -438,6 +439,20 @@ router.post("/work-orders/import", async (req, res) => {
       { importedCount, errorCount, batchId, blockedCount, fullyResolvedCount, partiallyResolvedCount, unresolvedCount },
       "Work orders imported with governance classification"
     );
+
+    // A site's true unit count is only ever known cumulatively — recheck
+    // every property this batch actually touched, not just the ones that
+    // changed today. Errors here shouldn't fail the import itself.
+    const touchedPropertyIds = [...new Set(
+      Array.from(propertyCache.values()).map((c) => c.propertyId).filter((id): id is number => id !== null),
+    )];
+    for (const propertyId of touchedPropertyIds) {
+      try {
+        await recalculateSitePricingTier(propertyId);
+      } catch (err) {
+        req.log.warn({ err, propertyId }, "Failed to recalculate site pricing tier");
+      }
+    }
 
     // ── Governance summary ────────────────────────────────────────────────────
     const governance = {

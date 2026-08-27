@@ -589,6 +589,101 @@ function ImprovementReveal({ card, turnStats, onDrill }: { card: PropertyPortfol
   );
 }
 
+// ── Data Tier Monitor (pricing) ────────────────────────────────────────────────
+
+interface PricingDashboard {
+  propertyId: number;
+  unitCount: number;
+  tierLabel: string;
+  dataFee: number;
+  monthlyTotal: number;
+  nextTierThreshold: number;
+  unitsRemainingBeforeNextTier: number;
+  approachingNextTier: boolean;
+  lastCalculatedAt: string;
+}
+
+function usePricingDashboard(propertyId: number) {
+  return useQuery<PricingDashboard>({
+    queryKey: ["properties", propertyId, "pricing"],
+    queryFn: async () => {
+      const res = await fetch(`/api/properties/${propertyId}/pricing`);
+      if (!res.ok) throw new Error("Failed to fetch pricing");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+}
+
+// Every number here traces to a real query — the count is always exactly
+// what /api/units?propertyId=<id> returns, so "show the units behind this
+// count" can never drift from the tier calculation above it.
+function DataTierPanel({ propertyId, units }: { propertyId: number; units: { id: number; unitNumber: string }[] }) {
+  const { data } = usePricingDashboard(propertyId);
+  const [expanded, setExpanded] = useState(false);
+
+  if (!data) return null;
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground flex items-center gap-2">
+          <Hash className="h-3.5 w-3.5" /> Data Tier
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          Last recalculated {new Date(data.lastCalculatedAt).toLocaleDateString()}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+        <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+          <div className="text-xl font-bold tabular-nums text-foreground">{data.unitCount}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Unique Units</div>
+        </div>
+        <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+          <div className="text-xl font-bold tabular-nums text-foreground">{data.tierLabel}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Current Tier</div>
+        </div>
+        <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+          <div className="text-xl font-bold tabular-nums text-foreground">${data.monthlyTotal}/mo</div>
+          <div className="text-xs text-muted-foreground mt-0.5">${data.dataFee} data + $40 base</div>
+        </div>
+        <div className="rounded-lg bg-secondary/30 border border-border/30 px-3 py-3 text-center">
+          <div className={cn("text-xl font-bold tabular-nums", data.approachingNextTier ? "text-status-yellow" : "text-foreground")}>
+            {data.unitsRemainingBeforeNextTier}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">Units to next tier ({data.nextTierThreshold})</div>
+        </div>
+      </div>
+
+      {data.approachingNextTier && (
+        <div className="rounded-lg border border-status-yellow/30 bg-status-yellow/10 px-3 py-2 text-xs text-status-yellow mb-3">
+          Your site currently contains data for {data.unitCount} unique units. When the aggregated count exceeds{" "}
+          {data.nextTierThreshold} units, your site will move to the next data tier.
+        </div>
+      )}
+
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="text-xs text-primary/70 hover:text-primary transition-colors flex items-center gap-1"
+      >
+        {expanded ? "Hide" : "Show"} the {units.length} units behind this count
+        <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+      </button>
+
+      {expanded && (
+        <div className="mt-3 grid grid-cols-3 sm:grid-cols-6 gap-1.5 max-h-48 overflow-y-auto pr-1">
+          {units.map((u) => (
+            <div key={u.id} className="rounded bg-secondary/40 border border-border/30 px-2 py-1 text-[11px] text-center tabular-nums text-foreground/80">
+              {u.unitNumber}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Property Metric Reveal Section ────────────────────────────────────────────
 
 function PropertyMetricRevealSection({
@@ -1142,6 +1237,8 @@ function PropertyControlTower({ card, propertyId }: { card: PropertyPortfolioCar
             </div>
         </div>
       </div>
+
+      <DataTierPanel propertyId={propertyId} units={propertyUnits} />
 
       {/* Financial Intelligence */}
       {(card.totalAssetCost != null || card.expiredWarrantyCost != null || card.expiringSoonCost != null) && (
