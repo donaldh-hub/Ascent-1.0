@@ -23,35 +23,18 @@ import {
   stagesTable,
 } from "@workspace/db/schema";
 import { eq, and, or, inArray, desc, ne } from "drizzle-orm";
-import { randomUUID } from "crypto";
 import {
   WORK_ORDER_SIGNAL_WHERE,
   isWorkOrderSignal,
-  isWoSlaViolation,
 } from "../services/operational-selectors";
 import {
-  extractField,
-  parseDate,
-  parseBool,
-  parseFloat2,
-  parseInt2,
-  normalizePriority,
-  normalizeStatus,
-  normalizeCategory,
-  computeSla,
   DEFAULT_SLA_HOURS,
-  getOrCreateWorkOrdersWorkflow,
-  createWorkflowItemForWorkOrder,
   getWorkOrderStats,
-  resolveProperty,
-  resolveUnit,
   WO_WORKFLOW_TITLE,
 } from "../services/work-order-service";
 import { buildImpactAnalysis } from "../services/work-order-impact-service";
-import { recalculateSitePricingTier } from "../services/pricing-service.js";
+import { importWorkOrderRows } from "../services/work-order-import-service.js";
 import {
-  computeGovernanceFields,
-  recordImportRun,
   getImportSummary,
   type ImportMode,
 } from "../services/governance-service";
@@ -177,311 +160,22 @@ router.post("/work-orders/import", async (req, res) => {
       return;
     }
 
-    const batchId = randomUUID();
-
-    // Governance counters
-    let fullyResolvedCount = 0;
-    let partiallyResolvedCount = 0;
-    let unresolvedCount = 0;
-
-    // Property resolution cache (avoid repeated DB lookups for same property)
-    const propertyCache = new Map<string, { propertyId: number | null; confidence: string }>();
-
-    // Get / provision system workflow
-    const wfData = createWorkflowItems ? await getOrCreateWorkOrdersWorkflow() : null;
-
-    const results: {
-      row: number;
-      status: "imported" | "error";
-      workOrderId?: number;
-      workflowItemId?: number;
-      unitMatched: boolean;
-      propertyMatched: boolean;
-      propertyConfidence?: string;
-      slaStatus: string;
-      isBlocked: boolean;
-      bottleneckType?: string | null;
-      resolutionStatus?: "fully_resolved" | "partially_resolved" | "unresolved";
-      assignmentConfidence?: "high" | "medium" | "low" | "none";
-    }[] = [];
-
-    let importedCount = 0;
-    let errorCount = 0;
-
-    for (let i = 0; i < rows.length; i++) {
-      const raw = rows[i];
-
-      try {
-        // ── Core fields ──────────────────────────────────────────────────────
-        const externalId       = extractField(raw, "work_order_id");
-        const categoryRaw      = extractField(raw, "category");
-        const description      = extractField(raw, "description");
-        const priorityRaw      = extractField(raw, "priority");
-        const statusRaw        = extractField(raw, "status");
-        const assignedTo       = extractField(raw, "assigned_to");
-        const notesRaw         = extractField(raw, "notes");
-
-        // ── Hierarchy ────────────────────────────────────────────────────────
-        const regionName       = extractField(raw, "region_name");
-        const propertyNameRaw  = extractField(raw, "property_name");
-        const unitNumberRaw    = extractField(raw, "unit_number");
-        const turnId           = extractField(raw, "turn_id");
-
-        // ── Timeline ────────────────────────────────────────────────────────
-        const createdRaw       = extractField(raw, "created_date");
-        const scheduledRaw     = extractField(raw, "scheduled_date");
-        const responseRaw      = extractField(raw, "first_response_date");
-        const completedRaw     = extractField(raw, "completed_date");
-
-        // ── Labor hours ──────────────────────────────────────────────────────
-        const estimatedHours   = parseFloat2(extractField(raw, "estimated_hours"));
-        const actualHours      = parseFloat2(extractField(raw, "actual_hours"));
-
-        // ── Turn stage ───────────────────────────────────────────────────────
-        const stage            = extractField(raw, "stage");
-        const stageStatus      = extractField(raw, "stage_status");
-        const daysInStage      = parseInt2(extractField(raw, "days_in_stage"));
-
-        // ── Blockage ────────────────────────────────────────────────────────
-        const isBlocked        = parseBool(extractField(raw, "is_blocked"));
-        const delayReason      = extractField(raw, "delay_reason");
-        const vendor           = extractField(raw, "vendor");
-
-        // ── Bottleneck ───────────────────────────────────────────────────────
-        const bottleneckFlag   = parseBool(extractField(raw, "bottleneck_flag"));
-        const bottleneckType   = extractField(raw, "bottleneck_type") ?? null;
-        const aggregationScope = extractField(raw, "aggregation_scope");
-
-        // ── Normalization ────────────────────────────────────────────────────
-        const category         = normalizeCategory(categoryRaw);
-        const priority         = normalizePriority(priorityRaw);
-        const status           = normalizeStatus(statusRaw ?? (completedRaw ? "completed" : undefined));
-        const createdDate      = parseDate(createdRaw);
-        const scheduledDate    = parseDate(scheduledRaw);
-        const firstResponseDate = parseDate(responseRaw);
-        const completedDate    = parseDate(completedRaw);
-
-        // ── Property matching (cached) ────────────────────────────────────────
-        let propertyId: number | null = null;
-        let propertyConfidence = "none";
-
-        if (propertyNameRaw) {
-          const cacheKey = propertyNameRaw.toLowerCase().trim();
-          if (propertyCache.has(cacheKey)) {
-            const cached = propertyCache.get(cacheKey)!;
-            propertyId = cached.propertyId;
-            propertyConfidence = cached.confidence;
-          } else {
-            const resolved = await resolveProperty(propertyNameRaw);
-            propertyId = resolved.propertyId;
-            propertyConfidence = resolved.confidence;
-            propertyCache.set(cacheKey, { propertyId, confidence: propertyConfidence });
-          }
-        }
-
-        // ── Unit matching within property ─────────────────────────────────────
-        let unitId: number | null = null;
-        if (unitNumberRaw && propertyId) {
-          unitId = await resolveUnit(unitNumberRaw, propertyId);
-        }
-
-        // ── Governance classification ─────────────────────────────────────────
-        const gov = computeGovernanceFields({
-          mode: importMode,
-          propertyId,
-          unitId,
-          propertyConfidence,
-          unitNumberRaw,
-          sourceFileName,
-          sourceRowIndex: i,
-        });
-
-        // Track resolution state counts
-        if (gov.resolutionStatus === "fully_resolved") fullyResolvedCount++;
-        else if (gov.resolutionStatus === "partially_resolved") partiallyResolvedCount++;
-        else unresolvedCount++;
-
-        // ── SLA computation ──────────────────────────────────────────────────
-        const sla = computeSla(createdDate, firstResponseDate, slaDeadlineHours);
-
-        // ── Insert work order ────────────────────────────────────────────────
-        const [wo] = await db.insert(workOrdersTable).values({
-          externalId: externalId ?? null,
-          propertyId,
-          unitId,
-          assetId: null,
-          workflowItemId: null,
-
-          // Core
-          category,
-          description: description ?? null,
-          priority,
-          status,
-          assignedTo: assignedTo ?? null,
-          notes: notesRaw ?? null,
-
-          // Hierarchy
-          regionName: regionName ?? null,
-          propertyNameRaw: propertyNameRaw ?? null,
-          unitNumberRaw: unitNumberRaw ?? null,
-          turnId: turnId ?? null,
-
-          // Timeline
-          createdDate,
-          scheduledDate,
-          firstResponseDate,
-          completedDate,
-
-          // Labor
-          estimatedHours,
-          actualHours,
-
-          // SLA
-          slaDeadlineHours,
-          slaStatus: sla.status,
-          slaResponseDelayHours: sla.delayHours,
-
-          // Turn stage
-          stage: stage ?? null,
-          stageStatus: stageStatus ?? null,
-          daysInStage,
-
-          // Blockage
-          isBlocked,
-          delayReason: delayReason ?? null,
-          vendor: vendor ?? null,
-
-          // Bottleneck
-          bottleneckFlag,
-          bottleneckType: bottleneckType ?? null,
-          aggregationScope: aggregationScope ?? null,
-
-          // Governance
-          importMode: gov.importMode,
-          resolutionStatus: gov.resolutionStatus,
-          assignmentConfidence: gov.assignmentConfidence,
-          propertyMatchStatus: gov.propertyMatchStatus,
-          unitMatchStatus: gov.unitMatchStatus,
-          sourceFileName: gov.sourceFileName ?? null,
-          sourceRowIndex: gov.sourceRowIndex ?? null,
-          governanceNotes: gov.governanceNotes,
-          excludedFromStrictWiring: gov.excludedFromStrictWiring,
-          availableForPropertyRollup: gov.availableForPropertyRollup,
-          availableForUnitRollup: gov.availableForUnitRollup,
-
-          // Raw + import metadata
-          rawData: raw,
-          importBatchId: batchId,
-          importedAt: new Date(),
-          updatedAt: new Date(),
-        }).returning();
-
-        // ── Create workflow item ──────────────────────────────────────────────
-        let workflowItemId: number | undefined;
-        if (createWorkflowItems && wfData) {
-          const itemId = await createWorkflowItemForWorkOrder(wo, wfData);
-          if (itemId) {
-            await db.update(workOrdersTable)
-              .set({ workflowItemId: itemId })
-              .where(eq(workOrdersTable.id, wo.id));
-            workflowItemId = itemId;
-          }
-        }
-
-        importedCount++;
-        results.push({
-          row: i,
-          status: "imported",
-          workOrderId: wo.id,
-          workflowItemId,
-          unitMatched: unitId !== null,
-          propertyMatched: propertyId !== null,
-          propertyConfidence,
-          slaStatus: sla.status,
-          isBlocked,
-          bottleneckType,
-          resolutionStatus: gov.resolutionStatus,
-          assignmentConfidence: gov.assignmentConfidence,
-        });
-      } catch (err) {
-        req.log.warn({ err, row: i }, "Failed to import work order row");
-        errorCount++;
-        results.push({
-          row: i,
-          status: "error",
-          unitMatched: false,
-          propertyMatched: false,
-          slaStatus: "pending",
-          isBlocked: false,
-          resolutionStatus: "unresolved" as const,
-          assignmentConfidence: "none" as const,
-        });
-      }
-    }
-
-    const slaViolations = results.filter(r => isWoSlaViolation(r)).length;
-    const blockedCount = results.filter(r => r.isBlocked).length;
-
-    // ── Record import run ──────────────────────────────────────────────────────
-    await recordImportRun({
-      batchId,
-      mode: importMode,
+    const result = await importWorkOrderRows({
+      rows,
+      slaDeadlineHours,
+      createWorkflowItems,
+      importMode,
       sourceFileName,
-      totalRows: rows.length,
-      fullyResolvedCount,
-      partiallyResolvedCount,
-      unresolvedCount,
-      errorCount,
-      summaryData: { slaViolations, blockedCount },
+      log: req.log,
     });
 
-    req.log.info(
-      { importedCount, errorCount, batchId, blockedCount, fullyResolvedCount, partiallyResolvedCount, unresolvedCount },
-      "Work orders imported with governance classification"
-    );
-
-    // A site's true unit count is only ever known cumulatively — recheck
-    // every property this batch actually touched, not just the ones that
-    // changed today. Errors here shouldn't fail the import itself.
-    const touchedPropertyIds = [...new Set(
-      Array.from(propertyCache.values()).map((c) => c.propertyId).filter((id): id is number => id !== null),
-    )];
-    for (const propertyId of touchedPropertyIds) {
-      try {
-        await recalculateSitePricingTier(propertyId);
-      } catch (err) {
-        req.log.warn({ err, propertyId }, "Failed to recalculate site pricing tier");
-      }
-    }
-
-    // ── Governance summary ────────────────────────────────────────────────────
-    const governance = {
-      mode: importMode,
-      totalRows: rows.length,
-      fullyResolved: fullyResolvedCount,
-      partiallyResolved: partiallyResolvedCount,
-      unresolved: unresolvedCount,
-      readyForFullWiring: fullyResolvedCount,
-      needsUnitConfirmation: partiallyResolvedCount,
-      needsReview: unresolvedCount,
-      slaViolations,
-      blockedCount,
-    };
-
-    res.json({
-      batchId,
-      imported: importedCount,
-      errors: errorCount,
-      slaViolations,
-      blockedCount,
-      governance,
-      results,
-    });
+    res.json(result);
   } catch (err) {
     req.log.error({ err }, "Work order import failed");
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 // ─── GET /api/work-orders/imports/:batchId ────────────────────────────────────
 

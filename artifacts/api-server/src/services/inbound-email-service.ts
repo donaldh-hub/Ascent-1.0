@@ -1,10 +1,17 @@
 /**
  * Inbound email ingestion — Phase 2 of the connection ladder (see
  * .agents/memory/ingestion-connection-ladder.md). A customer forwards or
- * schedules a report to an Ascent-generated address; this processes it
- * through the exact same upload engine manual uploads use
- * (ingestUploadedFile), per the architectural rule that only the delivery
- * method changes, never the normalization/classification/scoring logic.
+ * schedules a report to an Ascent-generated address; this parses the CSV
+ * attachment into rows and runs them through the exact same real
+ * ingestion pipeline manual uploads use (importWorkOrderRows —
+ * per-row property/unit resolution via resolveProperty/resolveUnit,
+ * governance classification, and pricing-tier recalculation), per the
+ * architectural rule that only the delivery method changes, never the
+ * resolution/classification/scoring logic. This previously called the
+ * simpler ingestUploadedFile(), which skips per-row unit resolution and
+ * so never created real units or triggered pricing recalculation for
+ * emailed reports — fixed by routing through the same pipeline
+ * POST /work-orders/import uses.
  *
  * Provider-agnostic by design: `processInboundEmail` takes a normalized
  * shape, not a specific vendor's webhook payload. The route layer is
@@ -16,7 +23,8 @@ import { db } from "@workspace/db";
 import { inboundEmailsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserByEmail } from "./access-service.js";
-import { ingestUploadedFile } from "./upload-ingestion-service.js";
+import { parseCSV } from "./upload-ingestion-service.js";
+import { importWorkOrderRows } from "./work-order-import-service.js";
 import { sendIngestionCompleteEmail } from "./email-service.js";
 
 export interface InboundAttachment {
@@ -97,22 +105,35 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
     return { status: "rejected", reason: "No usable report attachment found." };
   }
 
-  // 4. Decode and run through the same upload engine manual uploads use.
+  // 4. Decode and parse the CSV into header-keyed rows, then run those rows
+  //    through the exact same resolution/governance pipeline manual
+  //    uploads use — not a simpler shortcut that skips per-row property/
+  //    unit resolution.
   const fileContent = Buffer.from(attachment.contentBase64, "base64").toString("utf8");
-  const ingestionResult = await ingestUploadedFile(fileContent, attachment.filename);
+  const { headers, rows } = parseCSV(fileContent);
+
+  if (headers.length === 0 || rows.length === 0) {
+    await recordEmail({ ...input, userId: user.id, status: "rejected", rejectionReason: "No data rows found in attachment." });
+    return { status: "rejected", reason: "No data rows found in attachment." };
+  }
+
+  const importResult = await importWorkOrderRows({
+    rows,
+    sourceFileName: attachment.filename,
+  });
 
   await recordEmail({
     ...input,
     userId: user.id,
     status: "processed",
-    ingestionResult: ingestionResult as unknown as Record<string, unknown>,
+    ingestionResult: importResult as unknown as Record<string, unknown>,
   });
 
   await sendIngestionCompleteEmail({
     to: user.email,
     fileName: attachment.filename,
-    totalRows: ingestionResult.totalRows,
+    totalRows: rows.length,
   });
 
-  return { status: "processed", ingestionResult: ingestionResult as unknown as Record<string, unknown> };
+  return { status: "processed", ingestionResult: importResult as unknown as Record<string, unknown> };
 }

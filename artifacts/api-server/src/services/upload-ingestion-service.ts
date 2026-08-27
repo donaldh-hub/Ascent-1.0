@@ -49,7 +49,12 @@ const COLUMN_MAP: Record<string, string> = {
   "vendor": "vendor",
 };
 
-function parseCSV(content: string): { headers: string[]; rows: Record<string, string>[] } {
+// Exported for reuse by any pathway that needs generic header-keyed CSV
+// rows (e.g. inbound-email-service.ts feeding the real import pipeline in
+// work-order-import-service.ts) without going through this file's own
+// COLUMN_MAP/normalizeStatus shortcuts, which skip per-row property/unit
+// resolution.
+export function parseCSV(content: string): { headers: string[]; rows: Record<string, string>[] } {
   const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return { headers: [], rows: [] };
 
