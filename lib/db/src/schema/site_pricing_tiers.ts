@@ -19,6 +19,11 @@ export const sitePricingTiersTable = pgTable("site_pricing_tiers", {
   dataFee: integer("data_fee").notNull(),
   monthlyTotal: integer("monthly_total").notNull(),
   lastCalculatedAt: timestamp("last_calculated_at").notNull().defaultNow(),
+  // Set once the "approaching your next tier" notice has gone out for the
+  // CURRENT tier, so re-imports don't re-notify every time. Cleared back to
+  // null whenever the tier actually changes, so the new tier gets its own
+  // fresh approach-warning later.
+  approachingNotifiedAt: timestamp("approaching_notified_at"),
 });
 
 export type SitePricingTier = typeof sitePricingTiersTable.$inferSelect;
