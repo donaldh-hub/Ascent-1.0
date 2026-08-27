@@ -27,7 +27,8 @@ import notificationsRouter from "./notifications";
 import dataQualityRouter from "./data-quality";
 import launchRouter from "./launch";
 import accountRouter from "./account";
-import landingDemoRouter from "./landing-demo";
+import authRouter from "./auth";
+import hubUsersRouter from "./hub-users";
 import shareRouter from "./share";
 
 const router: IRouter = Router();
@@ -60,7 +61,8 @@ router.use(notificationsRouter);
 router.use(dataQualityRouter);
 router.use(launchRouter);
 router.use(accountRouter);
-router.use(landingDemoRouter);
+router.use(authRouter);
+router.use(hubUsersRouter);
 router.use(shareRouter);
 
 export default router;

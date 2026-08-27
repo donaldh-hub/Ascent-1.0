@@ -32,9 +32,8 @@ import BuildAuditor from "@/pages/build-auditor";
 import UploadPage from "@/pages/upload";
 import CoachPage from "@/pages/coach";
 import AdminPage from "@/pages/admin";
-import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
-import PricingPage from "@/pages/pricing";
+import LoginPage from "@/pages/login";
 import SharedReportPage from "@/pages/shared-report";
 
 const queryClient = new QueryClient();
@@ -83,9 +82,8 @@ function Router() {
   // status — they are diagnostic tools, not customer flows.
   const isDevRoute = location.startsWith("/dev/");
   const isPreEngineRoute =
-    location === "/landing" || location.startsWith("/landing?") ||
     location === "/onboarding" || location.startsWith("/onboarding?") ||
-    location === "/pricing" || location.startsWith("/pricing?");
+    location === "/login" || location.startsWith("/login?");
   const isSharedReportRoute = location.startsWith("/shared/");
 
   const { isComplete, isLoading } = useSetupStatus();
@@ -106,13 +104,14 @@ function Router() {
     );
   }
 
-  // Pre-engine routes (marketing + onboarding) — no sidebar, no gating.
+  // Pre-engine route (first-run trial: upload/demo data -> Jordan -> subscribe)
+  // — no sidebar, no gating. Marketing/pricing lives on the public website,
+  // not inside the engine.
   if (isPreEngineRoute) {
     return (
       <Switch>
-        <Route path="/landing" component={LandingPage} />
         <Route path="/onboarding" component={OnboardingPage} />
-        <Route path="/pricing" component={PricingPage} />
+        <Route path="/login" component={LoginPage} />
         <Route component={NotFound} />
       </Switch>
     );
@@ -133,9 +132,11 @@ function Router() {
     return <SetupCheckLoader />;
   }
 
-  // Root path: show the marketing landing page until onboarding is complete.
+  // Root path: send straight into the first-run trial until onboarding is
+  // complete — visitors arrive here already pitched by the public website,
+  // so this is the trial, not a second marketing pitch.
   if (location === "/" && accountStatus && !accountStatus.onboardingCompleted) {
-    return <LandingPage />;
+    return <OnboardingPage />;
   }
 
   // Setup incomplete — gate ALL protected routes

@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./middleware/session";
+import { userAuthMiddleware } from "./middleware/user-auth";
 
 const app: Express = express();
 
@@ -32,6 +33,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(sessionMiddleware);
+app.use(userAuthMiddleware);
 
 app.use("/api", router);
 

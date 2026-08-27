@@ -521,6 +521,7 @@ router.get("/work-orders", async (req, res) => {
     } = req.query as Record<string, string>;
 
     const conditions = [];
+    if (req.accessibleSiteIds) conditions.push(inArray(workOrdersTable.propertyId, req.accessibleSiteIds));
     if (status) conditions.push(eq(workOrdersTable.status, status));
     if (category) conditions.push(eq(workOrdersTable.category, category));
     if (slaStatus) conditions.push(eq(workOrdersTable.slaStatus, slaStatus));
@@ -576,6 +577,10 @@ router.get("/work-orders/:id", async (req, res) => {
 
     const wos = await db.select().from(workOrdersTable).where(eq(workOrdersTable.id, id));
     if (wos.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+    if (req.accessibleSiteIds && (!wos[0].propertyId || !req.accessibleSiteIds.includes(wos[0].propertyId))) {
+      res.status(404).json({ error: "Not found" });
+      return;
+    }
 
     const [enriched] = await enrichWorkOrders(wos);
     res.json(enriched);

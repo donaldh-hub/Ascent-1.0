@@ -15,3 +15,6 @@ export * from "./coach_weekly_summaries";
 export * from "./account_status";
 export * from "./sessions";
 export * from "./reports";
+export * from "./users";
+export * from "./user_site_access";
+export * from "./auth";
