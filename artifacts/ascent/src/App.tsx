@@ -33,6 +33,7 @@ import UploadPage from "@/pages/upload";
 import CoachPage from "@/pages/coach";
 import AdminPage from "@/pages/admin";
 import OnboardingPage from "@/pages/onboarding";
+import LoginPage from "@/pages/login";
 import SharedReportPage from "@/pages/shared-report";
 
 const queryClient = new QueryClient();
@@ -81,7 +82,8 @@ function Router() {
   // status — they are diagnostic tools, not customer flows.
   const isDevRoute = location.startsWith("/dev/");
   const isPreEngineRoute =
-    location === "/onboarding" || location.startsWith("/onboarding?");
+    location === "/onboarding" || location.startsWith("/onboarding?") ||
+    location === "/login" || location.startsWith("/login?");
   const isSharedReportRoute = location.startsWith("/shared/");
 
   const { isComplete, isLoading } = useSetupStatus();
@@ -109,6 +111,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/onboarding" component={OnboardingPage} />
+        <Route path="/login" component={LoginPage} />
         <Route component={NotFound} />
       </Switch>
     );

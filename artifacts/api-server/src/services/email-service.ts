@@ -25,3 +25,14 @@ export async function sendReportEmail({
   );
   return { sent: false, stubbed: true };
 }
+
+export async function sendMagicLinkEmail({
+  to,
+  loginUrl,
+}: {
+  to: string;
+  loginUrl: string;
+}): Promise<{ sent: boolean; stubbed: boolean }> {
+  console.log(`[EMAIL STUB] Would send login link to ${to}: ${loginUrl}`);
+  return { sent: false, stubbed: true };
+}
