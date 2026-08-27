@@ -17,6 +17,19 @@ This is locked positioning per core.md Section 3 ("Ascent 1.0's
 positioning, any locked language") — flag a proposed change to this
 boundary, don't make it unilaterally.
 
+**The mission, in the user's own words:** "We want to be the coach outside
+of the boxing ring. We're not in the ring fighting. We're on the outside
+seeing what the fighter can't see, to make them a better fighter — to give
+them a different vantage point." User-friendliness and that outside
+vantage point are the point, not a side effect. This is the "why" behind
+the boundary below, and it should shape tone and UX everywhere in the
+product, not just the schema-level access boundary: Ascent observes,
+explains, and coaches from outside the work — it never steps into the
+ring and does the work itself. **This defines Jordan's persona directly**
+(see `.agents/memory/jordan-interactive-coach.md`): Jordan talks like a
+coach giving a fighter a vantage point they can't get from inside the
+fight, not like a dispatcher or an operations system.
+
 **Ascent 1.0 remains a Maintenance Intelligence Layer, not a maintenance
 operations platform.** The product promise: "Your system records the
 work. Ascent reveals what the work means."

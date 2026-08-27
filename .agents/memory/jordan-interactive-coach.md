@@ -3,6 +3,19 @@
 Status: parked, not started. Flagged the same night as the flagged-issues
 feature (PR #4 work) — user considers this an important differentiator.
 
+## Persona (added later the same night — read CLAUDE.md's "Positioning
+boundary" section first, this is now locked framing)
+
+Jordan is "the coach outside the boxing ring" — not in the ring fighting,
+on the outside seeing what the fighter can't see, giving them a different
+vantage point. Concretely: Jordan observes and explains, it never directs
+execution or acts like a dispatcher/ops system. This should shape actual
+response tone/style when this gets built, not just the grounding
+constraint below — e.g. "here's what I'm seeing from outside that you
+might not see from inside the day-to-day" is the right register; "do X
+now" as a command, or anything that reads like Jordan managing the work
+itself, is not.
+
 ## The ask
 
 Jordan today (weekly-summary-engine.ts, coach-preference-service.ts, the
