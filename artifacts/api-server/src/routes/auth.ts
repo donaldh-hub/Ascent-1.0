@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { getUserByEmail } from "../services/access-service.js";
+import { getUserByEmail, createUser, listHubUsers } from "../services/access-service.js";
 import { createLoginToken, verifyLoginToken, InvalidLoginTokenError } from "../services/auth-service.js";
 import { sendMagicLinkEmail } from "../services/email-service.js";
 import { USER_SESSION_COOKIE } from "../middleware/user-auth.js";
+import { getOrCreateAccountStatus } from "../services/account-status-service.js";
 
 const router: IRouter = Router();
 
@@ -14,7 +15,21 @@ router.post("/auth/request-link", async (req, res) => {
       return;
     }
 
-    const user = await getUserByEmail(email);
+    let user = await getUserByEmail(email);
+
+    // Bootstrap: a hub with zero users has no self-serve way to create one —
+    // POST /hub/users requires an existing canManageAccess user, which is
+    // exactly what doesn't exist yet. So the FIRST login-link request ever
+    // made against an empty hub creates that email as the hub's first user
+    // (admin), rather than silently no-op'ing like every request after it.
+    if (!user) {
+      const hub = await getOrCreateAccountStatus();
+      const existingUsers = await listHubUsers(hub.id);
+      if (existingUsers.length === 0) {
+        user = await createUser({ hubId: hub.id, email, canManageAccess: true });
+      }
+    }
+
     // Do not reveal whether the email is registered — same response either way.
     if (!user) {
       res.json({ sent: true });
