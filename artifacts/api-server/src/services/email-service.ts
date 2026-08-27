@@ -36,3 +36,22 @@ export async function sendMagicLinkEmail({
   console.log(`[EMAIL STUB] Would send login link to ${to}: ${loginUrl}`);
   return { sent: false, stubbed: true };
 }
+
+export async function sendPricingTierChangedEmail({
+  to,
+  previousTierLabel,
+  newTierLabel,
+  newMonthlyTotal,
+  unitCount,
+}: {
+  to: string;
+  previousTierLabel: string;
+  newTierLabel: string;
+  newMonthlyTotal: number;
+  unitCount: number;
+}): Promise<{ sent: boolean; stubbed: boolean }> {
+  console.log(
+    `[EMAIL STUB] Would notify ${to}: your site's data now covers ${unitCount} units, moving you from the ${previousTierLabel}-unit tier to ${newTierLabel} ($${newMonthlyTotal}/mo).`,
+  );
+  return { sent: false, stubbed: true };
+}
