@@ -10,5 +10,50 @@ standards, hard constraints, memory practices) that apply before any
 activity in this repo.
 
 ## Project-specific add-ons
-_(none yet — add Ascent 1.0-specific rules here as they come up, per
-core.md Section 5)_
+
+### Positioning boundary — Maintenance Intelligence Layer, not an operations platform
+
+This is locked positioning per core.md Section 3 ("Ascent 1.0's
+positioning, any locked language") — flag a proposed change to this
+boundary, don't make it unilaterally.
+
+**Ascent 1.0 remains a Maintenance Intelligence Layer, not a maintenance
+operations platform.** The product promise: "Your system records the
+work. Ascent reveals what the work means."
+
+Ascent will **not** become the place where teams:
+- Create and dispatch work orders
+- Schedule technicians
+- Communicate with residents
+- Manage vendors and invoices
+- Collect rent or maintain ledgers
+- Replace Yardi, RealPage, Voyager, AppFolio, or Entrata
+- Run daily maintenance operations
+
+Those systems manage the work. Ascent analyzes what the work reveals.
+
+**What Ascent owns** — receiving operational records and answering: what
+is happening; where performance is breaking down; why; which records
+prove it; what deserves attention first; what question leadership should
+ask next; and whether performance improved after a problem was addressed.
+This covers work-order/turn/PM/asset & warranty intelligence, staffing and
+workload signals, repeat-unit detection, bottleneck identification,
+documentation integrity, risk/trend analysis, portfolio comparisons,
+explainable recommendations, and Jordan's grounded analysis.
+
+**Uploads, emailed reports, and future APIs are just different ways of
+feeding Ascent information — none of them changes its identity** as an
+intelligence layer, not an operations system (see
+`.agents/memory/ingestion-connection-ladder.md`).
+
+**This constrains the flagged-issues feature specifically** (see
+`.agents/memory/flagged-issues-feature.md`): flagged issues must stay an
+intelligence function, not turn into a maintenance-management or team-
+communication feature. The loop is: Ascent identifies and explains the
+issue -> Ascent shares the intelligence with an authorized person -> the
+organization handles execution in its existing operating system (Yardi/
+RealPage/etc.), not inside Ascent -> Ascent later measures whether the
+underlying signals improved. Do not design an open-ended discussion/
+ticketing thread that lets Ascent become a second place to manage the
+work itself — a lighter acknowledgment/response mechanism is fine, an
+execution-tracking system is not.
