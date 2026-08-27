@@ -2,8 +2,36 @@ import { Router, type IRouter } from "express";
 import { generateCoachRecommendations } from "../services/operations-coach-service.js";
 import { generateWeeklySummary, getLastWeeklySummary } from "../services/weekly-summary-engine.js";
 import { getOrCreatePreferences, updatePreferences } from "../services/coach-preference-service.js";
+import { sendJordanMessage, JordanNotConfiguredError } from "../services/jordan-chat-service.js";
+import { requireUser } from "../middleware/user-auth.js";
 
 const router: IRouter = Router();
+
+router.post("/coach/chat", requireUser, async (req, res) => {
+  try {
+    const message = String(req.body?.message ?? "").trim();
+    if (!message) {
+      res.status(400).json({ error: "Message is required" });
+      return;
+    }
+    const conversationId = typeof req.body?.conversationId === "number" ? req.body.conversationId : undefined;
+
+    const result = await sendJordanMessage({
+      userId: req.user!.id,
+      accessibleSiteIds: req.accessibleSiteIds ?? [],
+      conversationId,
+      message,
+    });
+    res.json(result);
+  } catch (err) {
+    if (err instanceof JordanNotConfiguredError) {
+      res.status(503).json({ error: err.message });
+      return;
+    }
+    req.log.error({ err }, "Jordan chat failed");
+    res.status(500).json({ error: "Failed to get a response from Jordan", detail: err instanceof Error ? err.message : String(err) });
+  }
+});
 
 router.get("/coach/recommendations", async (req, res) => {
   try {
