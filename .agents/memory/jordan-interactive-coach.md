@@ -106,6 +106,27 @@ core text-based, grounded conversation works, not before.
   at [named site]" — the tool surface should be built around that shape
   first (by-site, by-entity-type, by-status/condition), since that's what
   real usage looks like, not abstract Q&A.
+- **Diagnostic/goal-oriented, not just lookup**: "Work Order Performance is
+  43/100 — how do we get it to 75 in the next 60 days?" This is a
+  materially different, harder capability than the count questions above:
+  Jordan needs to know the actual scoring formula (visible in Control
+  Tower: open work orders, past-24h SLA, aging >7 days, completion rate),
+  find which real records are dragging the score down, and give
+  recommendations tied to those specific records — not generic
+  "improve your SLA" advice.
+  **Important: this capability already substantially exists as
+  non-conversational engines** — `impact-recalculation-engine.ts`
+  (Build 8.0, `calculateImpactSnapshot`), `priority-action-ranker.ts`
+  (Build 8.1, `rankPriorityActions`), and `trend-pattern-analyzer.ts`
+  (Build 8.2, `analyzeTrends`) already compute ranked, real-record-backed
+  priority actions and trend/bottleneck analysis. Jordan's job for this
+  kind of question is to call these as tools and narrate/synthesize their
+  actual output conversationally — including handling a "by when" target
+  (may need a new tool: given a target score and a timeframe, which subset
+  of the already-ranked priority actions would close the gap) — NOT to
+  invent a fresh bottleneck-detection or recommendation system. Same
+  grounding rule applies: every recommendation must trace to a real
+  ranked action from these engines, never a generated-sounding platitude.
 
 ## Next step when picked up
 
