@@ -32,27 +32,67 @@ is allowed to see. Bringing an LLM dependency back in for this is
 warranted; reviving the old landing-coach-service.ts pattern wholesale is
 not — this needs its own design, not a resurrection of the deleted file.
 
+## Hard constraint: retrieval-grounded, not generative (this is the core design driver)
+
+User's own words: "Nothing is being generated. Nothing is being
+manufactured. Nothing is being invented. A question is being asked. Jordan
+is digging into the system to see what needs to be seen, and he's bringing
+back information and follow-up questions."
+
+This rules out "stuff some data into a prompt and let the model free-write
+an answer." The right architecture is tool-calling / RAG, not prompt
+stuffing: Jordan gets a defined set of tools/functions that query the real
+system (e.g. "get work orders for site X filtered by status," "get this
+asset's warranty status," "get current blocked turns") — mirroring the
+signal definitions already centralized in `operational-selectors.ts` so
+Jordan's answers use the exact same predicates as the rest of the app, not
+a second, drifting definition of "blocked" or "aging." The LLM's job is to:
+figure out which tool(s) a question needs, call them, present what actually
+came back, and ask a clarifying follow-up when the question is ambiguous
+— never fill gaps with invented specifics. Every concrete claim in a
+response should be traceable to a real tool call result, not model
+free-generation. This is the main design risk if skipped: an LLM given a
+vague "answer questions about the data" prompt without hard tool-calling
+boundaries will confidently invent plausible-sounding specifics, which is
+the opposite of what's wanted here for something managing real maintenance
+operations.
+
+## Voice interaction
+
+User asked how far-fetched a microphone/voice-conversation mode is instead
+of always typing to Jordan. Answered directly in-session: not far-fetched
+at all — it's an additive layer, not a redesign. Speech-to-text on the
+input (browser mic capture -> transcription -> same text pipeline as
+typed chat) and optionally text-to-speech on the output (Jordan speaks
+back) sit on top of the core interactive-Jordan build; they don't change
+the tool-calling/grounding architecture above. Sequence this after the
+core text-based, grounded conversation works, not before.
+
 ## Rough shape (not designed in detail yet)
 
-- A real chat endpoint: user asks a question, the backend pulls the
-  relevant slice of *their* actual accessible-sites data (current signals,
-  recent work orders, whatever's relevant) as context, and an LLM
-  generates the answer — not a template lookup.
+- A real chat endpoint: user asks a question; a tool-calling LLM decides
+  which read-only tool(s) to invoke against the user's own accessible-sites
+  data (`req.accessibleSiteIds`), calls them, and composes an answer from
+  the actual returned data — not a template lookup, not free-generation.
 - Needs conversation state — Jordan should remember what was already asked
   in the session, not treat every message as a cold start.
-- Should stay bounded by `req.accessibleSiteIds` — Jordan must never
-  reason over or mention data from a site the asking user can't see.
+- Every tool must itself be scoped by `req.accessibleSiteIds` — the
+  boundary belongs on the data-fetching tools, not just on what the model
+  is told not to say.
 - Likely reuses the coach-preferences/coach-weekly-summaries tables for
   personalization context, but the underlying generation moves from
-  templates to a real LLM call.
-- Needs a decision on which provider/SDK to reintroduce and how the system
-  prompt is constructed per-user (what data gets included, how it's kept
-  from ballooning cost/latency on every message).
+  templates to real tool-grounded LLM calls.
+- Needs a decision on which provider/SDK to reintroduce (tool-calling
+  support required) and what the tool surface looks like — probably a thin
+  wrapper per signal/entity type, reusing `operational-selectors.ts`
+  definitions rather than redefining "blocked"/"aging"/etc. a second time.
+- Voice input/output (see above) as a follow-on layer once the core
+  grounded conversation works.
 
 ## Next step when picked up
 
 Don't jump straight to code — this needs a short design pass first:
-what data actually goes into the prompt per question, how conversation
-history is stored, and how the site-access boundary is enforced on
-whatever context gets assembled (not just on the raw data queries, but on
-what ends up inside the prompt itself).
+the tool surface (what functions Jordan can call and what each returns),
+how conversation history is stored, and how the site-access boundary is
+enforced on every tool (not just on the raw data queries generally, but on
+each individual tool definition Jordan has access to).
