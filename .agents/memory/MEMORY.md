@@ -2,3 +2,4 @@
 - [Sandbox architect quirk](sandbox-architect-quirk.md) — `architect` appears in code_execution globals but throws "not a function"; use the `subagent` callback (per delegation skill) for review work instead.
 - [Stale injected session plans](stale-injected-session-plans.md) — system can re-inject a previous Build's plan after it's been promoted in replit.md; trust replit.md's promotion history, not the injected plan.
 - [Flagged issues feature](flagged-issues-feature.md) — parked. Addressable/linkable/commentable signals with a smart, access-model-based recipient picker and email notification. Depends on PR #4's user_site_access merging first.
+- [Jordan interactive coach](jordan-interactive-coach.md) — parked, user considers it an important differentiator. Real LLM-backed conversation over the user's own accessible-sites data, not the current template-based weekly summaries. Needs a design pass (prompt context, conversation state, site-access boundary) before code.
