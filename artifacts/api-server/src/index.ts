@@ -5,6 +5,8 @@ import { startOrchestratorLoop } from "./services/agent-runtime/orchestrator";
 import { registerSelfTestAgent } from "./services/agent-runtime/selftest-agent";
 import { registerDataIngestionAgent } from "./services/agent-runtime/agents/data-ingestion-agent";
 import { registerIntelligenceQualityAgent } from "./services/agent-runtime/agents/intelligence-quality-agent";
+import { registerOnboardingAgent } from "./services/agent-runtime/agents/onboarding-agent";
+import { registerBillingAgent } from "./services/agent-runtime/agents/billing-agent";
 
 const rawPort = process.env["PORT"];
 
@@ -37,10 +39,16 @@ app.listen(port, (err) => {
   // orchestrator's poll loop (non-blocking) — see .agents/memory or the PR
   // description for the "Ascent 1.0 — Executable Agent Build Specifications"
   // this implements Build-Sequence steps 1-3 of.
-  Promise.all([registerSelfTestAgent(), registerDataIngestionAgent(), registerIntelligenceQualityAgent()])
+  Promise.all([
+    registerSelfTestAgent(),
+    registerDataIngestionAgent(),
+    registerIntelligenceQualityAgent(),
+    registerOnboardingAgent(),
+    registerBillingAgent(),
+  ])
     .then(() => {
       startOrchestratorLoop();
-      logger.info("Agent runtime orchestrator started (self-test, data-ingestion, intelligence-quality)");
+      logger.info("Agent runtime orchestrator started (self-test, data-ingestion, intelligence-quality, onboarding, billing)");
     })
     .catch((agentErr) => logger.warn({ agentErr }, "Agent runtime startup failed (non-fatal)"));
 });

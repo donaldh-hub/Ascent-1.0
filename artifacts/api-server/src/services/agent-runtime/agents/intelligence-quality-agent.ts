@@ -23,7 +23,9 @@ import { workOrdersTable, propertiesTable, type AgentJob } from "@workspace/db/s
 import { eq, inArray } from "drizzle-orm";
 import { qualityReleaseDecisionsTable } from "@workspace/db/schema";
 import { registerAgent, type AgentHandlerResult } from "../orchestrator.js";
-import { logAgentAction, recordVerification, raiseException } from "../audit.js";
+import { logAgentAction, recordVerification, raiseException, createHandoff } from "../audit.js";
+import { enqueueJob } from "../job-store.js";
+import { ONBOARDING_AGENT_ID } from "./onboarding-agent.js";
 
 export const INTELLIGENCE_QUALITY_AGENT_ID = "intelligence_quality_agent";
 
@@ -156,6 +158,35 @@ async function handleIntelligenceQuality(job: AgentJob): Promise<AgentHandlerRes
     });
     return { outcome: "escalated", error: `Batch ${payload.batchId} blocked: ${failedGates.join(", ")}` };
   }
+
+  // Handoff to Onboarding — the job description's own Onboarding workflow
+  // step 10 is "wait for a quality-approved baseline." The Onboarding
+  // Agent's handler no-ops cheaply if the hub is already onboarded, so
+  // this is safe to enqueue on every released batch, not just the first.
+  const onboardingJob = await enqueueJob({
+    agentId: ONBOARDING_AGENT_ID,
+    triggerEvent: "output.released",
+    payload: { batchId: payload.batchId, qualityJobId: job.id },
+    correlationId: job.correlationId,
+    organizationId: job.organizationId ?? undefined,
+    siteIds: payload.touchedPropertyIds,
+    authorizedUserId: job.authorizedUserId ?? undefined,
+  });
+
+  await createHandoff({
+    correlationId: job.correlationId,
+    sendingAgentId: INTELLIGENCE_QUALITY_AGENT_ID,
+    receivingAgentId: ONBOARDING_AGENT_ID,
+    organizationId: job.organizationId ?? undefined,
+    siteIds: payload.touchedPropertyIds,
+    authorizedUserId: job.authorizedUserId ?? undefined,
+    sourceIds: [payload.batchId],
+    dataClassification: "quality_release_decision",
+    state: "QUEUED",
+    completedActions: ["quality.started", "calculation_reconciled", "scope_isolation", "labels_honest", "output.released"],
+    unresolvedItems: ["onboarding_baseline_check_pending"],
+    requiredNextAction: `onboarding_agent job ${onboardingJob.id} checks whether this batch completes the hub's baseline`,
+  });
 
   return { outcome: "completed", result: { batchId: payload.batchId, decision, checks } };
 }

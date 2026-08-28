@@ -39,7 +39,7 @@ import {
   resolveUnit,
 } from "./work-order-service";
 import { computeGovernanceFields, recordImportRun, type ImportMode } from "./governance-service";
-import { recalculateSitePricingTier } from "./pricing-service.js";
+import { runBillingRecalcInline } from "./agent-runtime/agents/billing-agent.js";
 
 interface MinimalLogger {
   info: (obj: Record<string, unknown>, msg?: string) => void;
@@ -333,7 +333,7 @@ export async function importWorkOrderRows({
   )];
   for (const propertyId of touchedPropertyIds) {
     try {
-      await recalculateSitePricingTier(propertyId);
+      await runBillingRecalcInline(propertyId);
     } catch (err) {
       log.warn({ err, propertyId }, "Failed to recalculate site pricing tier");
     }
