@@ -3,15 +3,15 @@
  * .agents/memory/ingestion-connection-ladder.md). A customer forwards or
  * schedules a report to an Ascent-generated address; this parses the CSV
  * attachment into rows and runs them through the exact same real
- * ingestion pipeline manual uploads use (importWorkOrderRows —
- * per-row property/unit resolution via resolveProperty/resolveUnit,
- * governance classification, and pricing-tier recalculation), per the
- * architectural rule that only the delivery method changes, never the
- * resolution/classification/scoring logic. This previously called the
- * simpler ingestUploadedFile(), which skips per-row unit resolution and
- * so never created real units or triggered pricing recalculation for
- * emailed reports — fixed by routing through the same pipeline
- * POST /work-orders/import uses.
+ * ingestion pipeline manual uploads use — the Data-Ingestion Agent
+ * (runDataIngestionInline), which wraps importWorkOrderRows with formal
+ * job tracking, an audit trail, and a handoff to the Intelligence-Quality
+ * Agent — per the architectural rule that only the delivery method
+ * changes, never the resolution/classification/scoring logic. This
+ * previously called the simpler ingestUploadedFile(), which skips
+ * per-row unit resolution and so never created real units or triggered
+ * pricing recalculation for emailed reports — fixed by routing through
+ * the same pipeline POST /work-orders/import uses.
  *
  * Provider-agnostic by design: `processInboundEmail` takes a normalized
  * shape, not a specific vendor's webhook payload. The route layer is
@@ -24,7 +24,7 @@ import { inboundEmailsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserByEmail } from "./access-service.js";
 import { parseCSV } from "./upload-ingestion-service.js";
-import { importWorkOrderRows } from "./work-order-import-service.js";
+import { runDataIngestionInline, IngestionNotCompletedError } from "./agent-runtime/agents/data-ingestion-agent.js";
 import { sendIngestionCompleteEmail } from "./email-service.js";
 
 export interface InboundAttachment {
@@ -41,7 +41,7 @@ export interface InboundEmailInput {
 }
 
 export interface InboundEmailResult {
-  status: "processed" | "rejected" | "duplicate";
+  status: "processed" | "rejected" | "duplicate" | "processing";
   reason?: string;
   ingestionResult?: Record<string, unknown>;
 }
@@ -61,7 +61,7 @@ async function recordEmail(input: {
   fromEmail: string;
   subject?: string;
   userId: number | null;
-  status: "processed" | "rejected" | "duplicate";
+  status: "processed" | "rejected" | "duplicate" | "processing";
   rejectionReason?: string;
   ingestionResult?: Record<string, unknown>;
 }) {
@@ -117,10 +117,20 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
     return { status: "rejected", reason: "No data rows found in attachment." };
   }
 
-  const importResult = await importWorkOrderRows({
-    rows,
-    sourceFileName: attachment.filename,
-  });
+  let importResult;
+  try {
+    importResult = await runDataIngestionInline({
+      payload: { rows, sourceFileName: attachment.filename },
+      organizationId: user.hubId,
+      authorizedUserId: user.id,
+    });
+  } catch (err) {
+    if (err instanceof IngestionNotCompletedError) {
+      await recordEmail({ ...input, userId: user.id, status: "processing" });
+      return { status: "processing", reason: "Ingestion accepted and is finishing in the background." };
+    }
+    throw err;
+  }
 
   await recordEmail({
     ...input,

@@ -10,7 +10,7 @@ import { logger } from "../../lib/logger.js";
 import { db } from "@workspace/db";
 import { agentDefinitionsTable, type AgentJob } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
-import { claimDueJobs, transitionJob } from "./job-store.js";
+import { claimDueJobs, transitionJob, enqueueJob, type EnqueueJobInput } from "./job-store.js";
 import { logAgentAction, raiseException } from "./audit.js";
 import { PolicyViolationError } from "./policy.js";
 
@@ -53,13 +53,12 @@ function backoffMs(attempt: number): number {
   return Math.min(10 * 60_000, 30_000 * 2 ** attempt);
 }
 
-async function runOne(job: AgentJob): Promise<void> {
+async function runOne(job: AgentJob): Promise<AgentJob> {
   const agent = registry.get(job.agentId);
   const nextAttempt = job.attempt + 1;
 
   if (!agent) {
-    await transitionJob(job, "FAILED_FINAL", { attempt: nextAttempt, lastError: `No handler registered for agent "${job.agentId}"` }, "no handler registered");
-    return;
+    return transitionJob(job, "FAILED_FINAL", { attempt: nextAttempt, lastError: `No handler registered for agent "${job.agentId}"` }, "no handler registered");
   }
 
   const running = await transitionJob(job, "RUNNING", { attempt: nextAttempt }, "orchestrator claimed job");
@@ -69,7 +68,7 @@ async function runOne(job: AgentJob): Promise<void> {
 
     switch (result.outcome) {
       case "completed": {
-        await transitionJob(running, "COMPLETED", { result: result.result as object | undefined }, "handler completed");
+        const completed = await transitionJob(running, "COMPLETED", { result: result.result as object | undefined }, "handler completed");
         await logAgentAction({
           jobId: running.id,
           agentId: running.agentId,
@@ -79,41 +78,35 @@ async function runOne(job: AgentJob): Promise<void> {
           siteIds: running.siteIds,
           output: result.result,
         });
-        break;
+        return completed;
       }
       case "retry": {
         if (nextAttempt >= running.maxAttempts) {
-          await failFinal(running, result.error);
-        } else {
-          await transitionJob(
-            running,
-            "RETRY_SCHEDULED",
-            { lastError: result.error, nextRunAt: new Date(Date.now() + backoffMs(nextAttempt)) },
-            result.error,
-          );
+          return failFinal(running, result.error);
         }
-        break;
+        return transitionJob(
+          running,
+          "RETRY_SCHEDULED",
+          { lastError: result.error, nextRunAt: new Date(Date.now() + backoffMs(nextAttempt)) },
+          result.error,
+        );
       }
       case "failed_final": {
-        await failFinal(running, result.error);
-        break;
+        return failFinal(running, result.error);
       }
       case "escalated": {
-        await transitionJob(running, "ESCALATED", { lastError: result.error }, result.error);
-        break;
+        return transitionJob(running, "ESCALATED", { lastError: result.error }, result.error);
       }
     }
   } catch (err) {
     if (err instanceof PolicyViolationError) {
-      await transitionJob(running, "BLOCKED_BY_POLICY", { lastError: err.message }, err.message);
-      return;
+      return transitionJob(running, "BLOCKED_BY_POLICY", { lastError: err.message }, err.message);
     }
     const message = err instanceof Error ? err.message : String(err);
     if (nextAttempt >= running.maxAttempts) {
-      await failFinal(running, message);
-    } else {
-      await transitionJob(running, "RETRY_SCHEDULED", { lastError: message, nextRunAt: new Date(Date.now() + backoffMs(nextAttempt)) }, message);
+      return failFinal(running, message);
     }
+    return transitionJob(running, "RETRY_SCHEDULED", { lastError: message, nextRunAt: new Date(Date.now() + backoffMs(nextAttempt)) }, message);
   }
 }
 
@@ -124,8 +117,8 @@ async function runOne(job: AgentJob): Promise<void> {
  * Agent (once built) has something concrete to consolidate and rank,
  * instead of the failure only existing as a row nobody is looking at.
  */
-async function failFinal(job: AgentJob, error: string): Promise<void> {
-  await transitionJob(job, "FAILED_FINAL", { lastError: error }, error);
+async function failFinal(job: AgentJob, error: string): Promise<AgentJob> {
+  const failed = await transitionJob(job, "FAILED_FINAL", { lastError: error }, error);
   await raiseException({
     jobId: job.id,
     agentId: job.agentId,
@@ -140,6 +133,27 @@ async function failFinal(job: AgentJob, error: string): Promise<void> {
     availableOptions: ["Re-enqueue the job after investigating the error", "Dismiss if the underlying condition is no longer relevant"],
     decisionRequested: "Re-enqueue or dismiss this failed job.",
   });
+  return failed;
+}
+
+/**
+ * Runs an agent job to completion synchronously within the caller's own
+ * request, instead of waiting for the poll loop — for callers that need
+ * the result immediately (e.g. an HTTP upload route that has always
+ * returned its import result in the same response). Still goes through
+ * the exact same job row, state transitions, audit log, and exception
+ * queue as an async job; the only difference is WHEN it runs, not HOW.
+ *
+ * If the handler's first attempt doesn't complete (a transient "retry"
+ * outcome, or a policy block), this does NOT block waiting out the
+ * backoff delay — it returns the job in whatever state it landed in
+ * (e.g. RETRY_SCHEDULED), and the background poll loop picks up any
+ * remaining attempts from there. Callers must check job.state, not
+ * assume COMPLETED.
+ */
+export async function runAgentInline(input: EnqueueJobInput): Promise<AgentJob> {
+  const job = await enqueueJob(input);
+  return runOne(job);
 }
 
 let ticking = false;
