@@ -3,6 +3,7 @@ import { BrainCircuit, X, ChevronUp, Send, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useJordanVoiceInput } from "@/hooks/use-jordan-voice-input";
+import { EmailDraftCard, type EmailDraft } from "@/components/coach/email-draft-card";
 
 interface Message {
   id: number;
@@ -219,6 +220,9 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
       } else {
         setConversationId(data.conversationId);
         await pushMessage("jordan", data.reply, 400);
+        if (data.emailDraft) {
+          await pushMessage("jordan", <EmailDraftCard draft={data.emailDraft as EmailDraft} />, 300);
+        }
       }
     } catch {
       await pushMessage("jordan", "I couldn't reach the server just now — try again in a moment.", 400);

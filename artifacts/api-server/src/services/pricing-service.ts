@@ -8,9 +8,10 @@
  * property in the same band).
  */
 import { db } from "@workspace/db";
-import { unitsTable, sitePricingTiersTable, userSiteAccessTable, usersTable } from "@workspace/db/schema";
+import { unitsTable, sitePricingTiersTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { sendPricingTierChangedEmail, sendApproachingTierEmail } from "./email-service.js";
+import { getSiteContacts } from "./access-service.js";
 
 const BASE_SUBSCRIPTION = 40;
 
@@ -55,15 +56,8 @@ function nextBillingCycleLabel(): string {
 }
 
 async function getSiteContactEmails(propertyId: number): Promise<string[]> {
-  const grants = await db
-    .select({ userId: userSiteAccessTable.userId })
-    .from(userSiteAccessTable)
-    .where(eq(userSiteAccessTable.siteId, propertyId));
-  if (grants.length === 0) return [];
-
-  const userIds = [...new Set(grants.map((g) => g.userId))];
-  const users = await db.select().from(usersTable);
-  return users.filter((u) => userIds.includes(u.id)).map((u) => u.email);
+  const contacts = await getSiteContacts([propertyId]);
+  return contacts.map((c) => c.email);
 }
 
 /**

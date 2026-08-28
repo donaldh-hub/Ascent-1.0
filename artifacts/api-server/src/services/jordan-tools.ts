@@ -34,6 +34,7 @@ import {
 import { runAllAnalysesWithRecords } from "./reporting-analysis-service.js";
 import { calculateImpactSnapshot } from "./impact-recalculation-engine.js";
 import { analyzeTrends } from "./trend-pattern-analyzer.js";
+import { getSiteContacts } from "./access-service.js";
 
 const NEAR_COMPLETION_THRESHOLD_PERCENT = 80;
 
@@ -111,6 +112,38 @@ export async function getTurnSummary(accessibleSiteIds: number[], siteId?: numbe
     notRentReady: notReadyRows.length,
     nearCompletion: nearCompletionCount,
     nearCompletionThresholdPercent: NEAR_COMPLETION_THRESHOLD_PERCENT,
+  };
+}
+
+export interface EmailDraftResult {
+  subject: string;
+  body: string;
+  suggestedRecipients: { name: string | null; email: string }[];
+}
+
+/**
+ * Drafts an email for the user to review and send themselves — Jordan
+ * composes the subject/body from what its other tool calls already
+ * returned, and this tool's only real job is resolving who else has
+ * access to the site in question (so the user doesn't have to type
+ * addresses). It never sends anything: Ascent stays the intelligence
+ * layer, not the communication channel — see core.md's "never send
+ * messages on the user's behalf" rule, which applies to Jordan's output
+ * exactly as it applies to Claude's.
+ */
+export async function draftEmail(
+  accessibleSiteIds: number[],
+  requestingUserId: number,
+  args: { subject: string; body: string; siteId?: number },
+): Promise<EmailDraftResult> {
+  const scope = siteScope(accessibleSiteIds, args.siteId);
+  const siteIds = scope ?? [];
+  const contacts = siteIds.length > 0 ? await getSiteContacts(siteIds, requestingUserId) : [];
+
+  return {
+    subject: args.subject,
+    body: args.body,
+    suggestedRecipients: contacts.map((c) => ({ name: c.name, email: c.email })),
   };
 }
 
