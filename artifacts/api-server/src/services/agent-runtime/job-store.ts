@@ -85,3 +85,20 @@ export async function getJob(jobId: number): Promise<AgentJob | undefined> {
   const [row] = await db.select().from(agentJobsTable).where(eq(agentJobsTable.id, jobId)).limit(1);
   return row;
 }
+
+/**
+ * True if this agent already has a job that's queued, retrying, or
+ * currently running. Self-rescheduling recurring agents (health checks,
+ * periodic reviews) should check this before enqueueing their first run
+ * at server startup — otherwise every restart spawns a duplicate,
+ * indefinitely-multiplying recurring chain alongside whatever chain the
+ * previous process instance already had in flight.
+ */
+export async function hasPendingJob(agentId: string): Promise<boolean> {
+  const [existing] = await db
+    .select({ id: agentJobsTable.id })
+    .from(agentJobsTable)
+    .where(and(eq(agentJobsTable.agentId, agentId), inArray(agentJobsTable.state, [...DUE_STATES, "RUNNING"])))
+    .limit(1);
+  return !!existing;
+}
