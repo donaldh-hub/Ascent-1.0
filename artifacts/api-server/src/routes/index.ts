@@ -32,6 +32,7 @@ import hubUsersRouter from "./hub-users";
 import inboundEmailRouter from "./inbound-email";
 import shareRouter from "./share";
 import agentOpsRouter from "./agent-ops";
+import supportRouter from "./support";
 
 const router: IRouter = Router();
 
@@ -68,5 +69,6 @@ router.use(hubUsersRouter);
 router.use(inboundEmailRouter);
 router.use(shareRouter);
 router.use(agentOpsRouter);
+router.use(supportRouter);
 
 export default router;

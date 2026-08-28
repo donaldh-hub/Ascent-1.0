@@ -7,6 +7,8 @@ import { registerDataIngestionAgent } from "./services/agent-runtime/agents/data
 import { registerIntelligenceQualityAgent } from "./services/agent-runtime/agents/intelligence-quality-agent";
 import { registerOnboardingAgent } from "./services/agent-runtime/agents/onboarding-agent";
 import { registerBillingAgent } from "./services/agent-runtime/agents/billing-agent";
+import { registerJordanAgent } from "./services/agent-runtime/agents/jordan-agent";
+import { registerCustomerSupportAgent } from "./services/agent-runtime/agents/customer-support-agent";
 
 const rawPort = process.env["PORT"];
 
@@ -45,10 +47,12 @@ app.listen(port, (err) => {
     registerIntelligenceQualityAgent(),
     registerOnboardingAgent(),
     registerBillingAgent(),
+    registerJordanAgent(),
+    registerCustomerSupportAgent(),
   ])
     .then(() => {
       startOrchestratorLoop();
-      logger.info("Agent runtime orchestrator started (self-test, data-ingestion, intelligence-quality, onboarding, billing)");
+      logger.info("Agent runtime orchestrator started (self-test, data-ingestion, intelligence-quality, onboarding, billing, jordan, customer-support)");
     })
     .catch((agentErr) => logger.warn({ agentErr }, "Agent runtime startup failed (non-fatal)"));
 });
