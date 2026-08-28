@@ -89,6 +89,31 @@ export async function getAccessibleSites(userId: number) {
   return db.select().from(propertiesTable).where(inArray(propertiesTable.id, siteIds));
 }
 
+export interface SiteContact {
+  id: number;
+  name: string | null;
+  email: string;
+}
+
+/**
+ * Everyone with access to any of the given sites — the shared basis for
+ * "who else should see this," used both for pricing-change notifications
+ * and for Jordan's email-drafting tool (jordan-tools.ts). Optionally
+ * excludes one user (e.g. the person asking, so Jordan doesn't suggest
+ * emailing yourself).
+ */
+export async function getSiteContacts(siteIds: number[], excludeUserId?: number): Promise<SiteContact[]> {
+  if (siteIds.length === 0) return [];
+  const grants = await db
+    .select({ userId: userSiteAccessTable.userId })
+    .from(userSiteAccessTable)
+    .where(inArray(userSiteAccessTable.siteId, siteIds));
+  const userIds = [...new Set(grants.map((g) => g.userId))].filter((id) => id !== excludeUserId);
+  if (userIds.length === 0) return [];
+  const users = await db.select().from(usersTable).where(inArray(usersTable.id, userIds));
+  return users.map((u) => ({ id: u.id, name: u.name, email: u.email }));
+}
+
 export class AccessDeniedError extends Error {
   constructor(message: string) {
     super(message);

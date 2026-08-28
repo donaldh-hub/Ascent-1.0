@@ -15,6 +15,8 @@ import {
   getWorkOrderSummary,
   getTurnSummary,
   getImpactAndTrends,
+  draftEmail,
+  type EmailDraftResult,
 } from "./jordan-tools.js";
 
 const SYSTEM_PROMPT = `You are Jordan, the operations coach inside Ascent 1.0.
@@ -24,6 +26,8 @@ Your role: Ascent is the coach outside the boxing ring. The maintenance team is 
 You are NOT a dispatcher or maintenance supervisor. You never say things like "I completed that work order" or issue commands. You say things like: "This unit has generated four plumbing-related work orders in 60 days. Three were closed without a documented cause. Before treating the latest request as isolated, review the repair history..." — evidence, a pattern, and a pointed question back to the human.
 
 Hard rule: you have tools that query the real system. You must call a tool to get any concrete number, count, or fact before stating it. Never state a specific count, percentage, or record detail that didn't come from a tool result in this conversation. If a question needs data you don't have a tool for, say so plainly rather than estimating or inventing a plausible-sounding answer. If a question is ambiguous (e.g. which site), ask a clarifying question or call list_accessible_sites first.
+
+If the user wants to share what you've found with someone else — a colleague, another site contact — you can draft an email with draft_email. Compose the subject and body yourself, grounded only in what your tool calls already returned in this conversation. That tool never sends anything; it only resolves who else has access to that site so the user doesn't have to type addresses, and hands back a draft for them to review and send themselves. You are never the one who sends it — you are icing on the cake sitting on top of however they already communicate, not a communication channel yourself.
 
 Keep responses concise and grounded. Cite what the tool actually returned.`;
 
@@ -63,9 +67,22 @@ const TOOLS: Anthropic.Tool[] = [
       },
     },
   },
+  {
+    name: "draft_email",
+    description: "Draft an email so the user can share operational intelligence with a colleague — e.g. summarizing a bottleneck for someone else who has access to the same site. You write the subject and body yourself, grounded in tool results already returned in this conversation. This tool does NOT send anything; it only resolves suggested recipients (other users with access to the given site) and returns the draft for the human to review and send themselves.",
+    input_schema: {
+      type: "object",
+      properties: {
+        subject: { type: "string", description: "Email subject line." },
+        body: { type: "string", description: "Plain-text email body, grounded in real data already surfaced in this conversation." },
+        siteId: { type: "number", description: "The site this concerns, used to suggest recipients who also have access to it. From list_accessible_sites." },
+      },
+      required: ["subject", "body"],
+    },
+  },
 ];
 
-async function runTool(name: string, input: Record<string, unknown>, accessibleSiteIds: number[]) {
+async function runTool(name: string, input: Record<string, unknown>, accessibleSiteIds: number[], userId: number) {
   const siteId = typeof input.siteId === "number" ? input.siteId : undefined;
   switch (name) {
     case "list_accessible_sites":
@@ -76,6 +93,12 @@ async function runTool(name: string, input: Record<string, unknown>, accessibleS
       return getTurnSummary(accessibleSiteIds, siteId);
     case "get_impact_and_trends":
       return getImpactAndTrends(accessibleSiteIds, siteId);
+    case "draft_email":
+      return draftEmail(accessibleSiteIds, userId, {
+        subject: String(input.subject ?? ""),
+        body: String(input.body ?? ""),
+        siteId,
+      });
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -101,6 +124,12 @@ async function getOrCreateConversation(userId: number, conversationId?: number) 
   return created;
 }
 
+/** The most recent draft_email tool result in this turn, if Jordan drafted one — surfaced to the frontend so it can render a review/send card instead of plain text. */
+function extractEmailDraft(toolCallLog: { name: string; input: unknown; result: unknown }[]): EmailDraftResult | undefined {
+  const call = [...toolCallLog].reverse().find((c) => c.name === "draft_email");
+  return call?.result as EmailDraftResult | undefined;
+}
+
 async function loadHistory(conversationId: number): Promise<Anthropic.MessageParam[]> {
   const rows = await db
     .select()
@@ -123,7 +152,7 @@ export async function sendJordanMessage({
   accessibleSiteIds: number[];
   conversationId?: number;
   message: string;
-}): Promise<{ conversationId: number; reply: string }> {
+}): Promise<{ conversationId: number; reply: string; emailDraft?: EmailDraftResult }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new JordanNotConfiguredError();
 
@@ -170,14 +199,14 @@ export async function sendJordanMessage({
         .set({ updatedAt: new Date() })
         .where(eq(jordanConversationsTable.id, conversation.id));
 
-      return { conversationId: conversation.id, reply };
+      return { conversationId: conversation.id, reply, emailDraft: extractEmailDraft(toolCallLog) };
     }
 
     messages.push({ role: "assistant", content: response.content });
 
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const block of toolUseBlocks) {
-      const result = await runTool(block.name, block.input as Record<string, unknown>, accessibleSiteIds);
+      const result = await runTool(block.name, block.input as Record<string, unknown>, accessibleSiteIds, userId);
       toolCallLog.push({ name: block.name, input: block.input, result });
       toolResults.push({
         type: "tool_result",
