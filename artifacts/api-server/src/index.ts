@@ -11,6 +11,7 @@ import { registerJordanAgent } from "./services/agent-runtime/agents/jordan-agen
 import { registerCustomerSupportAgent } from "./services/agent-runtime/agents/customer-support-agent";
 import { registerInfrastructureAgent, scheduleInitialHealthCheck } from "./services/agent-runtime/agents/infrastructure-agent";
 import { registerSecurityAccessAgent, scheduleInitialGrantReview } from "./services/agent-runtime/agents/security-access-agent";
+import { registerSalesAgent } from "./services/agent-runtime/agents/sales-agent";
 
 const rawPort = process.env["PORT"];
 
@@ -53,6 +54,7 @@ app.listen(port, (err) => {
     registerCustomerSupportAgent(),
     registerInfrastructureAgent(),
     registerSecurityAccessAgent(),
+    registerSalesAgent(),
   ])
     .then(async () => {
       startOrchestratorLoop();
@@ -60,7 +62,7 @@ app.listen(port, (err) => {
       // see each agent's scheduleInitial*() doc comment.
       await Promise.all([scheduleInitialHealthCheck(), scheduleInitialGrantReview()]);
       logger.info(
-        "Agent runtime orchestrator started (self-test, data-ingestion, intelligence-quality, onboarding, billing, jordan, customer-support, infrastructure, security-access)",
+        "Agent runtime orchestrator started (self-test, data-ingestion, intelligence-quality, onboarding, billing, jordan, customer-support, infrastructure, security-access, sales)",
       );
     })
     .catch((agentErr) => logger.warn({ agentErr }, "Agent runtime startup failed (non-fatal)"));

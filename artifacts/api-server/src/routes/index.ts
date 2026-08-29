@@ -33,6 +33,7 @@ import inboundEmailRouter from "./inbound-email";
 import shareRouter from "./share";
 import agentOpsRouter from "./agent-ops";
 import supportRouter from "./support";
+import salesRouter from "./sales";
 
 const router: IRouter = Router();
 
@@ -70,5 +71,6 @@ router.use(inboundEmailRouter);
 router.use(shareRouter);
 router.use(agentOpsRouter);
 router.use(supportRouter);
+router.use(salesRouter);
 
 export default router;

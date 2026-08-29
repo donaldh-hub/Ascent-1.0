@@ -21,6 +21,7 @@ export * from "./auth";
 export * from "./agent_runtime";
 export * from "./quality_gate";
 export * from "./support";
+export * from "./sales";
 export * from "./inbound_emails";
 export * from "./jordan_conversations";
 export * from "./site_pricing_tiers";
