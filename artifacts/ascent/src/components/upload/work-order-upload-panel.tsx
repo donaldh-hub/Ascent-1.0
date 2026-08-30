@@ -1,14 +1,24 @@
 import { useRef, useState } from "react";
-import { Upload, FileText, CheckCircle2, AlertTriangle, X } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertTriangle, X, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
+interface UnrecognizedPropertyGroup {
+  identifier: string;
+  addressLines?: string[];
+  workOrderCount: number;
+}
+
 interface IngestionResult {
   totalRows: number;
-  inserted: number;
-  updated: number;
-  skipped: number;
-  errors: string[];
+  imported: number;
+  errors: number;
+  governance: {
+    fullyResolved: number;
+    partiallyResolved: number;
+    unresolved: number;
+  };
+  unrecognizedProperties: UnrecognizedPropertyGroup[];
 }
 
 export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) {
@@ -49,8 +59,8 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
 
   const handleFile = (file: File | null) => {
     if (!file) return;
-    if (!file.name.match(/\.(csv|txt)$/i)) {
-      setError("Only CSV or TXT files are supported.");
+    if (!file.name.match(/\.(csv|txt|pdf)$/i)) {
+      setError("Only CSV, TXT, or PDF files are supported.");
       return;
     }
     upload(file);
@@ -80,13 +90,13 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
         <input
           ref={inputRef}
           type="file"
-          accept=".csv,.txt"
+          accept=".csv,.txt,.pdf"
           className="hidden"
           onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
         />
         <FileText className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-sm font-medium">Drop a CSV file here, or click to browse</p>
-        <p className="text-xs text-muted-foreground mt-1">Accepts .csv exports from your work order system</p>
+        <p className="text-sm font-medium">Drop a CSV or PDF file here, or click to browse</p>
+        <p className="text-xs text-muted-foreground mt-1">Accepts .csv exports or PDF work order reports from your system</p>
       </div>
 
       {uploading && (
@@ -118,23 +128,41 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
         <div className="mt-3 rounded-md border border-status-green/40 bg-status-green/5 p-3 space-y-1" data-testid="upload-result">
           <div className="flex items-center gap-2 text-sm font-medium text-status-green">
             <CheckCircle2 className="w-4 h-4" />
-            Upload complete — {result.totalRows} rows processed
+            Upload complete — {result.totalRows} work orders processed
           </div>
           <div className="text-xs text-muted-foreground grid grid-cols-3 gap-2 mt-2">
-            <span>{result.inserted} inserted</span>
-            <span>{result.updated} updated</span>
-            <span>{result.skipped} skipped</span>
+            <span>{result.governance.fullyResolved} fully matched</span>
+            <span>{result.governance.partiallyResolved} needs unit review</span>
+            <span>{result.errors} error(s)</span>
           </div>
-          {result.errors.length > 0 && (
-            <details className="mt-2">
-              <summary className="text-xs text-amber-600 cursor-pointer">{result.errors.length} row error(s)</summary>
-              <ul className="mt-1 space-y-0.5">
-                {result.errors.slice(0, 5).map((e, i) => (
-                  <li key={i} className="text-xs text-muted-foreground">{e}</li>
-                ))}
-              </ul>
-            </details>
+
+          {result.unrecognizedProperties.length > 0 && (
+            <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-sm text-amber-700">
+              <div className="flex items-start gap-2">
+                <Building2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">
+                    This report includes {result.unrecognizedProperties.length} propert
+                    {result.unrecognizedProperties.length === 1 ? "y" : "ies"} not set up in your Ascent account yet
+                  </p>
+                  <p className="text-xs mt-1">
+                    These work orders weren't added to your dashboard. Add the property under{" "}
+                    <Link href="/properties" className="underline underline-offset-2">Properties</Link> if you want Ascent to track it too.
+                  </p>
+                  <ul className="mt-1.5 space-y-0.5">
+                    {result.unrecognizedProperties.map((p) => (
+                      <li key={p.identifier} className="text-xs">
+                        <span className="font-medium">{p.identifier}</span>
+                        {p.addressLines && p.addressLines.length > 0 && <span> ({p.addressLines.join(", ")})</span>}
+                        {" — "}{p.workOrderCount} work order{p.workOrderCount === 1 ? "" : "s"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
           )}
+
           <Button
             variant="ghost"
             size="sm"
