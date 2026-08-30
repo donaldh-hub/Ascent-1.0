@@ -14,12 +14,13 @@
 import { Router, type IRouter } from "express";
 import { requireUser } from "../middleware/user-auth.js";
 import { db } from "@workspace/db";
-import { agentJobsTable, agentJobAttemptsTable, agentExceptionsTable } from "@workspace/db/schema";
+import { agentJobsTable, agentJobAttemptsTable, agentExceptionsTable, agentIncidentsTable } from "@workspace/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { enqueueJob } from "../services/agent-runtime/job-store.js";
 import { runDueJobs } from "../services/agent-runtime/orchestrator.js";
 import { resolveException, listOpenExceptions } from "../services/agent-runtime/audit.js";
 import { SELFTEST_AGENT_ID, type SelfTestMode } from "../services/agent-runtime/selftest-agent.js";
+import { getOperatingHealth, getFounderBriefing, recordFounderDecision } from "../services/agent-runtime/agents/chief-operating-agent.js";
 
 const router: IRouter = Router();
 
@@ -87,6 +88,56 @@ router.post("/agent-ops/exceptions/:id/resolve", requireUser, async (req, res) =
     res.json({ exception: updated });
   } catch (err) {
     req.log.error({ err }, "Failed to resolve exception");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ─── Founder Control Center (spec: "Minimum Control Center") ────────────────
+
+router.get("/agent-ops/health", requireUser, async (req, res) => {
+  try {
+    const health = await getOperatingHealth();
+    res.json(health);
+  } catch (err) {
+    req.log.error({ err }, "Failed to compute operating health");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/agent-ops/briefing", requireUser, async (req, res) => {
+  try {
+    const briefing = await getFounderBriefing();
+    res.json(briefing);
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate founder briefing");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/agent-ops/incidents", requireUser, async (req, res) => {
+  const openOnly = req.query.status !== "all";
+  const incidents = openOnly
+    ? await db.select().from(agentIncidentsTable).where(eq(agentIncidentsTable.status, "open")).orderBy(desc(agentIncidentsTable.id))
+    : await db.select().from(agentIncidentsTable).orderBy(desc(agentIncidentsTable.id));
+  res.json({ incidents });
+});
+
+router.post("/agent-ops/founder-decisions", requireUser, async (req, res) => {
+  try {
+    const exceptionId = Number(req.body?.exceptionId);
+    const decision = String(req.body?.decision ?? "").trim();
+    if (!Number.isFinite(exceptionId) || !decision) {
+      res.status(400).json({ error: "exceptionId and decision are required" });
+      return;
+    }
+    const { record, exception } = await recordFounderDecision({ exceptionId, decision, decidedByUserId: req.user!.id });
+    if (!exception) {
+      res.status(404).json({ error: "Exception not found" });
+      return;
+    }
+    res.json({ record, exception });
+  } catch (err) {
+    req.log.error({ err }, "Failed to record founder decision");
     res.status(500).json({ error: "Internal server error" });
   }
 });

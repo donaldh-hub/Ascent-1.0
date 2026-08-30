@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck, Upload, BrainCircuit } from "lucide-react";
+import { Activity, LayoutDashboard, Server, TrendingUp, FileText, FileBarChart, ClipboardCheck, MapPin, Wrench, Layers, Radar, ShieldCheck, Upload, BrainCircuit, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { JordanChatBubble } from "@/components/coach/jordan-chat-bubble";
@@ -25,6 +25,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     { href: "/governance", label: "Governance", icon: ShieldCheck },
     { href: "/coach", label: "Coach", icon: BrainCircuit },
     { href: "/admin", label: "Admin", icon: Server },
+    { href: "/agent-ops", label: "Agent Ops", icon: Bot },
   ];
 
   return (
