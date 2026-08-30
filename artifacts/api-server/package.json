@@ -12,6 +12,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "@google-cloud/storage": "^7.19.0",
+    "@napi-rs/canvas": "^1.0.8",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cookie-parser": "^1.4.7",
