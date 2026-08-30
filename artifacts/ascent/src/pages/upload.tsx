@@ -16,7 +16,7 @@ export default function UploadPage() {
         <div>
           <h1 className="text-xl font-semibold">Upload Work Orders</h1>
           <p className="text-sm text-muted-foreground">
-            Upload a CSV export from your work order system. Ascent learns from each upload — weekly uploads give the best results.
+            Upload a CSV export or a PDF work order report from your system. Ascent learns from each upload — weekly uploads give the best results.
           </p>
         </div>
       </div>
