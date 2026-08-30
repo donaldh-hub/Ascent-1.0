@@ -32,6 +32,7 @@ import BuildAuditor from "@/pages/build-auditor";
 import UploadPage from "@/pages/upload";
 import CoachPage from "@/pages/coach";
 import AdminPage from "@/pages/admin";
+import AgentOpsPage from "@/pages/agent-ops";
 import OnboardingPage from "@/pages/onboarding";
 import LoginPage from "@/pages/login";
 import SharedReportPage from "@/pages/shared-report";
@@ -176,6 +177,7 @@ function Router() {
         <Route path="/upload" component={UploadPage} />
         <Route path="/coach" component={CoachPage} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/agent-ops" component={AgentOpsPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

@@ -2,7 +2,8 @@ import { Router, type IRouter } from "express";
 import { generateCoachRecommendations } from "../services/operations-coach-service.js";
 import { generateWeeklySummary, getLastWeeklySummary } from "../services/weekly-summary-engine.js";
 import { getOrCreatePreferences, updatePreferences } from "../services/coach-preference-service.js";
-import { sendJordanMessage, JordanNotConfiguredError } from "../services/jordan-chat-service.js";
+import { JordanNotConfiguredError } from "../services/jordan-chat-service.js";
+import { runJordanMessageInline, JordanJobNotCompletedError } from "../services/agent-runtime/agents/jordan-agent.js";
 import { requireUser } from "../middleware/user-auth.js";
 
 const router: IRouter = Router();
@@ -16,7 +17,7 @@ router.post("/coach/chat", requireUser, async (req, res) => {
     }
     const conversationId = typeof req.body?.conversationId === "number" ? req.body.conversationId : undefined;
 
-    const result = await sendJordanMessage({
+    const result = await runJordanMessageInline({
       userId: req.user!.id,
       accessibleSiteIds: req.accessibleSiteIds ?? [],
       conversationId,
@@ -26,6 +27,10 @@ router.post("/coach/chat", requireUser, async (req, res) => {
   } catch (err) {
     if (err instanceof JordanNotConfiguredError) {
       res.status(503).json({ error: err.message });
+      return;
+    }
+    if (err instanceof JordanJobNotCompletedError) {
+      res.status(202).json({ status: "processing", detail: err.message });
       return;
     }
     req.log.error({ err }, "Jordan chat failed");

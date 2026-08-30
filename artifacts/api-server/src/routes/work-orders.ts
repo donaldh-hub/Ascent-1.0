@@ -33,7 +33,7 @@ import {
   WO_WORKFLOW_TITLE,
 } from "../services/work-order-service";
 import { buildImpactAnalysis } from "../services/work-order-impact-service";
-import { importWorkOrderRows } from "../services/work-order-import-service.js";
+import { runDataIngestionInline, IngestionNotCompletedError } from "../services/agent-runtime/agents/data-ingestion-agent.js";
 import {
   getImportSummary,
   type ImportMode,
@@ -160,17 +160,21 @@ router.post("/work-orders/import", async (req, res) => {
       return;
     }
 
-    const result = await importWorkOrderRows({
-      rows,
-      slaDeadlineHours,
-      createWorkflowItems,
-      importMode,
-      sourceFileName,
-      log: req.log,
+    const result = await runDataIngestionInline({
+      payload: { rows, slaDeadlineHours, createWorkflowItems, importMode, sourceFileName },
+      organizationId: req.user?.hubId,
+      authorizedUserId: req.user?.id,
     });
 
     res.json(result);
   } catch (err) {
+    if (err instanceof IngestionNotCompletedError) {
+      // The agent hit a transient failure on its first attempt and is now
+      // retrying in the background rather than blocking this request —
+      // still a real, tracked job, just not done synchronously.
+      res.status(202).json({ status: "processing", detail: err.message });
+      return;
+    }
     req.log.error({ err }, "Work order import failed");
     res.status(500).json({ error: "Internal server error" });
   }

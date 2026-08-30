@@ -34,6 +34,7 @@ import {
 import { runAllAnalysesWithRecords } from "./reporting-analysis-service.js";
 import { calculateImpactSnapshot } from "./impact-recalculation-engine.js";
 import { analyzeTrends } from "./trend-pattern-analyzer.js";
+import { getBlockedBatchIds, excludeBlockedBatches } from "./agent-runtime/quality-enforcement.js";
 
 const NEAR_COMPLETION_THRESHOLD_PERCENT = 80;
 
@@ -59,7 +60,15 @@ export async function getWorkOrderSummary(accessibleSiteIds: number[], siteId?: 
   if (scope === null) return { error: "You don't have access to that site." };
   if (scope.length === 0) return { totalOpen: 0, slaViolations: 0, agingOverSevenDays: 0, blocked: 0 };
 
-  const propertyFilter = inArray(workOrdersTable.propertyId, scope);
+  // Jordan is the first real enforcement point for Intelligence-Quality's
+  // release decisions: a batch that failed release never gets cited in
+  // an answer. Only explicitly blocked batches are excluded (see
+  // quality-enforcement.ts) — data never evaluated is unaffected.
+  const blockedBatchIds = await getBlockedBatchIds();
+  const qualityFilter = excludeBlockedBatches(workOrdersTable.importBatchId, blockedBatchIds);
+  const propertyFilter = qualityFilter
+    ? and(inArray(workOrdersTable.propertyId, scope), qualityFilter)
+    : inArray(workOrdersTable.propertyId, scope);
   const openFilter = and(propertyFilter, eq(workOrdersTable.status, "in_progress"));
 
   const [openRows, slaRows, agingRows, blockedRows] = await Promise.all([
@@ -82,7 +91,11 @@ export async function getTurnSummary(accessibleSiteIds: number[], siteId?: numbe
   if (scope === null) return { error: "You don't have access to that site." };
   if (scope.length === 0) return { total: 0, blocked: 0, rework: 0, notRentReady: 0, nearCompletion: 0 };
 
-  const propertyFilter = inArray(turnsTable.propertyId, scope);
+  const blockedBatchIds = await getBlockedBatchIds();
+  const turnQualityFilter = excludeBlockedBatches(turnsTable.importBatchId, blockedBatchIds);
+  const propertyFilter = turnQualityFilter
+    ? and(inArray(turnsTable.propertyId, scope), turnQualityFilter)
+    : inArray(turnsTable.propertyId, scope);
 
   const [allRows, blockedRows, reworkRows, notReadyRows, activeRows] = await Promise.all([
     db.select({ id: turnsTable.id }).from(turnsTable).where(propertyFilter),
@@ -118,6 +131,10 @@ export async function getImpactAndTrends(accessibleSiteIds: number[], siteId?: n
   const scope = siteScope(accessibleSiteIds, siteId);
   if (scope === null) return { error: "You don't have access to that site." };
 
+  // Known gap, same shape as the unscoped-pipeline note in this file's
+  // header comment: NormalizedReportingRecord carries no importBatchId,
+  // so this tool can't apply the blocked-batch filter getWorkOrderSummary/
+  // getTurnSummary use. Not filtered here rather than faking a check.
   const bundle = await runAllAnalysesWithRecords();
   const scoped = scope.length === 0
     ? []
