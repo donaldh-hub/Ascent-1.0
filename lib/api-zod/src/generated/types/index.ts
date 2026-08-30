@@ -99,6 +99,7 @@ export * from "./unit";
 export * from "./unitMetadata";
 export * from "./updateAssetBody";
 export * from "./updateAssetBodyStatus";
+export * from "./updatePropertyBody";
 export * from "./updateStageBody";
 export * from "./updateStageBodyStatus";
 export * from "./updateWorkflowBody";

@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
 import { parseCSV } from "../services/upload-ingestion-service.js";
-import { parseWorkOrderPdf, type ParsedSite } from "../services/work-order-pdf-parser.js";
+import { parseWorkOrderReportPdf, PdfExtractionNotConfiguredError } from "../services/pdf-report-registry.js";
+import type { ParsedSite } from "../services/work-order-pdf-parser.js";
 import { getOrCreateReportForSession, incrementUploadCount } from "../services/report-service.js";
 import { getOrCreateAccountStatus } from "../services/account-status-service.js";
 import {
@@ -96,11 +97,26 @@ router.post("/upload/work-orders", upload.single("file"), async (req, res) => {
 
     let rows: Record<string, string>[];
     let sites: ParsedSite[] | undefined;
+    let detectedSystem: string | undefined;
 
     if (isPdf) {
-      const parsed = await parseWorkOrderPdf(file.buffer);
+      let parsed;
+      try {
+        parsed = await parseWorkOrderReportPdf(file.buffer);
+      } catch (err) {
+        if (err instanceof PdfExtractionNotConfiguredError) {
+          res.status(400).json({
+            error: "unrecognized_format",
+            message:
+              "This doesn't match a report format we recognize yet, and AI-assisted extraction for unrecognized formats isn't configured yet. Try a CSV export instead, or let us know what system this report came from.",
+          });
+          return;
+        }
+        throw err;
+      }
       rows = parsed.rows;
       sites = parsed.sites;
+      detectedSystem = parsed.systemLabel;
       if (rows.length === 0) {
         res.status(400).json({
           error: "no_data_parsed",
@@ -146,6 +162,7 @@ router.post("/upload/work-orders", upload.single("file"), async (req, res) => {
       errors: result.errors,
       governance: result.governance,
       unrecognizedProperties,
+      detectedSystem,
     });
   } catch (err) {
     req.log.error({ err }, "upload/work-orders failed");

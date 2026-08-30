@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreatePropertyBody {
-  name: string;
+export interface UpdatePropertyBody {
+  name?: string;
   address?: string | null;
   supervisorName?: string | null;
   supervisorEmail?: string | null;

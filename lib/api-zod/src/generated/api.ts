@@ -1361,6 +1361,9 @@ export const ListPropertiesResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   address: zod.string().nullish(),
+  supervisorName: zod.string().nullish(),
+  supervisorEmail: zod.string().nullish(),
+  pmSystem: zod.string().nullish(),
   createdAt: zod.string(),
 });
 export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem);
@@ -1371,6 +1374,34 @@ export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem);
 export const CreatePropertyBody = zod.object({
   name: zod.string(),
   address: zod.string().nullish(),
+  supervisorName: zod.string().nullish(),
+  supervisorEmail: zod.string().nullish(),
+  pmSystem: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a property's fields (name, address, report contact, PM system)
+ */
+export const UpdatePropertyParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdatePropertyBody = zod.object({
+  name: zod.string().optional(),
+  address: zod.string().nullish(),
+  supervisorName: zod.string().nullish(),
+  supervisorEmail: zod.string().nullish(),
+  pmSystem: zod.string().nullish(),
+});
+
+export const UpdatePropertyResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  address: zod.string().nullish(),
+  supervisorName: zod.string().nullish(),
+  supervisorEmail: zod.string().nullish(),
+  pmSystem: zod.string().nullish(),
+  createdAt: zod.string(),
 });
 
 /**

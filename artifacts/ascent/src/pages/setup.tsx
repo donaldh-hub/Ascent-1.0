@@ -59,6 +59,8 @@ export default function Setup() {
   const [step, setStep] = useState<Step>("welcome");
   const [propertyName, setPropertyName] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
+  const [pmSystem, setPmSystem] = useState("");
+  const [reportContactEmail, setReportContactEmail] = useState("");
   const [createdPropertyId, setCreatedPropertyId] = useState<number | null>(null);
   const [createdPropertyName, setCreatedPropertyName] = useState("");
 
@@ -88,7 +90,12 @@ export default function Setup() {
     if (!propertyName.trim()) return;
     try {
       const prop = await createProperty.mutateAsync({
-        data: { name: propertyName.trim(), address: propertyAddress.trim() || undefined },
+        data: {
+          name: propertyName.trim(),
+          address: propertyAddress.trim() || undefined,
+          pmSystem: pmSystem.trim() || undefined,
+          supervisorEmail: reportContactEmail.trim() || undefined,
+        },
       });
       setCreatedPropertyId(prop.id);
       setCreatedPropertyName(prop.name);
@@ -272,6 +279,32 @@ export default function Setup() {
                     placeholder="e.g. 123 Main Street, Springfield"
                     value={propertyAddress}
                     onChange={(e) => setPropertyAddress(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateProperty()}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Which system do you pull work order reports from? <span className="text-muted-foreground font-normal">(optional)</span>
+                  </label>
+                  <Input
+                    placeholder="e.g. Yardi, RealPage, AppFolio"
+                    value={pmSystem}
+                    onChange={(e) => setPmSystem(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateProperty()}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Helps Ascent read your reports correctly — any system works, this just helps us route it.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Who sends the report each period? <span className="text-muted-foreground font-normal">(optional)</span>
+                  </label>
+                  <Input
+                    type="email"
+                    placeholder="e.g. manager@yourproperty.com"
+                    value={reportContactEmail}
+                    onChange={(e) => setReportContactEmail(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleCreateProperty()}
                   />
                 </div>

@@ -93,12 +93,21 @@ export async function getJob(jobId: number): Promise<AgentJob | undefined> {
  * at server startup — otherwise every restart spawns a duplicate,
  * indefinitely-multiplying recurring chain alongside whatever chain the
  * previous process instance already had in flight.
+ *
+ * Pass `triggerEvent` when an agent handles more than one recurring job
+ * type under the same agentId (see Data-Ingestion's report-reminder
+ * chain, which shares an agentId with ordinary per-upload ingestion
+ * jobs) — otherwise routine traffic on one job type would make this
+ * always return true and silently starve the other's own chain from ever
+ * getting (re)scheduled at startup.
  */
-export async function hasPendingJob(agentId: string): Promise<boolean> {
+export async function hasPendingJob(agentId: string, triggerEvent?: string): Promise<boolean> {
+  const conditions = [eq(agentJobsTable.agentId, agentId), inArray(agentJobsTable.state, [...DUE_STATES, "RUNNING"])];
+  if (triggerEvent) conditions.push(eq(agentJobsTable.triggerEvent, triggerEvent));
   const [existing] = await db
     .select({ id: agentJobsTable.id })
     .from(agentJobsTable)
-    .where(and(eq(agentJobsTable.agentId, agentId), inArray(agentJobsTable.state, [...DUE_STATES, "RUNNING"])))
+    .where(and(...conditions))
     .limit(1);
   return !!existing;
 }

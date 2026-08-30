@@ -67,6 +67,20 @@ export async function sendApproachingTierEmail({
   return { sent: false, stubbed: true };
 }
 
+export async function sendReportReminderEmail({
+  to,
+  propertyName,
+}: {
+  to: string;
+  propertyName: string;
+}): Promise<{ sent: boolean; stubbed: boolean }> {
+  console.log(
+    `[EMAIL STUB] Would send to ${to}: it's time to send this month's work order report for ${propertyName} — ` +
+      `reply to this email with the export from your system attached (CSV or PDF).`,
+  );
+  return { sent: false, stubbed: true };
+}
+
 export async function sendPricingTierChangedEmail({
   to,
   previousTierLabel,
