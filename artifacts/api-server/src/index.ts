@@ -3,7 +3,7 @@ import { logger } from "./lib/logger";
 import { evaluateAlerts } from "./engine/alerts";
 import { startOrchestratorLoop } from "./services/agent-runtime/orchestrator";
 import { registerSelfTestAgent } from "./services/agent-runtime/selftest-agent";
-import { registerDataIngestionAgent } from "./services/agent-runtime/agents/data-ingestion-agent";
+import { registerDataIngestionAgent, scheduleInitialReportReminder } from "./services/agent-runtime/agents/data-ingestion-agent";
 import { registerIntelligenceQualityAgent } from "./services/agent-runtime/agents/intelligence-quality-agent";
 import { registerOnboardingAgent } from "./services/agent-runtime/agents/onboarding-agent";
 import { registerBillingAgent } from "./services/agent-runtime/agents/billing-agent";
@@ -62,7 +62,12 @@ app.listen(port, (err) => {
       startOrchestratorLoop();
       // Recurring self-scheduling monitors — idempotent against restarts,
       // see each agent's scheduleInitial*() doc comment.
-      await Promise.all([scheduleInitialHealthCheck(), scheduleInitialGrantReview(), scheduleInitialConsolidation()]);
+      await Promise.all([
+        scheduleInitialHealthCheck(),
+        scheduleInitialGrantReview(),
+        scheduleInitialConsolidation(),
+        scheduleInitialReportReminder(),
+      ]);
       logger.info(
         "Agent runtime orchestrator started — all 9 department agents + Chief Operating Agent registered",
       );

@@ -32,15 +32,67 @@ router.get("/properties", async (req, res) => {
 
 router.post("/properties", async (req, res) => {
   try {
-    const { name, address } = req.body as { name: string; address?: string };
+    const { name, address, supervisorName, supervisorEmail, pmSystem } = req.body as {
+      name: string;
+      address?: string | null;
+      supervisorName?: string | null;
+      supervisorEmail?: string | null;
+      pmSystem?: string | null;
+    };
     if (!name || typeof name !== "string" || !name.trim()) {
       res.status(400).json({ error: "Property name is required" });
       return;
     }
-    const [prop] = await db.insert(propertiesTable).values({ name: name.trim(), address: address?.trim() ?? null }).returning();
+    const [prop] = await db
+      .insert(propertiesTable)
+      .values({
+        name: name.trim(),
+        address: address?.trim() || null,
+        supervisorName: supervisorName?.trim() || null,
+        supervisorEmail: supervisorEmail?.trim() || null,
+        pmSystem: pmSystem?.trim() || null,
+      })
+      .returning();
     res.status(201).json(enrichProperty(prop));
   } catch (err) {
     req.log.error({ err }, "Failed to create property");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.patch("/properties/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) { res.status(400).json({ error: "Invalid property id" }); return; }
+
+    const { name, address, supervisorName, supervisorEmail, pmSystem } = req.body as {
+      name?: string;
+      address?: string | null;
+      supervisorName?: string | null;
+      supervisorEmail?: string | null;
+      pmSystem?: string | null;
+    };
+
+    const updates: Partial<typeof propertiesTable.$inferInsert> = {};
+    if (name !== undefined) {
+      if (!name.trim()) { res.status(400).json({ error: "Property name cannot be empty" }); return; }
+      updates.name = name.trim();
+    }
+    if (address !== undefined) updates.address = address?.trim() || null;
+    if (supervisorName !== undefined) updates.supervisorName = supervisorName?.trim() || null;
+    if (supervisorEmail !== undefined) updates.supervisorEmail = supervisorEmail?.trim() || null;
+    if (pmSystem !== undefined) updates.pmSystem = pmSystem?.trim() || null;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    const [updated] = await db.update(propertiesTable).set(updates).where(eq(propertiesTable.id, id)).returning();
+    if (!updated) { res.status(404).json({ error: "Property not found" }); return; }
+    res.json(enrichProperty(updated));
+  } catch (err) {
+    req.log.error({ err }, "Failed to update property");
     res.status(500).json({ error: "Internal server error" });
   }
 });

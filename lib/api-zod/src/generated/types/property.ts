@@ -10,5 +10,8 @@ export interface Property {
   id: number;
   name: string;
   address?: string | null;
+  supervisorName?: string | null;
+  supervisorEmail?: string | null;
+  pmSystem?: string | null;
   createdAt: string;
 }

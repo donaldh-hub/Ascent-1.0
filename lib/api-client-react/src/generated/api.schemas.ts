@@ -776,12 +776,26 @@ export interface Property {
   id: number;
   name: string;
   address?: string | null;
+  supervisorName?: string | null;
+  supervisorEmail?: string | null;
+  pmSystem?: string | null;
   createdAt: string;
 }
 
 export interface CreatePropertyBody {
   name: string;
   address?: string | null;
+  supervisorName?: string | null;
+  supervisorEmail?: string | null;
+  pmSystem?: string | null;
+}
+
+export interface UpdatePropertyBody {
+  name?: string;
+  address?: string | null;
+  supervisorName?: string | null;
+  supervisorEmail?: string | null;
+  pmSystem?: string | null;
 }
 
 export type UnitMetadata = { [key: string]: unknown } | null;

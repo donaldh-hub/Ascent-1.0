@@ -60,6 +60,7 @@ import type {
   TrendData,
   Unit,
   UpdateAssetBody,
+  UpdatePropertyBody,
   UpdateStageBody,
   UpdateWorkflowBody,
   UpdateWorkflowItemBody,
@@ -4336,6 +4337,93 @@ export const useCreateProperty = <
   TContext
 > => {
   return useMutation(getCreatePropertyMutationOptions(options));
+};
+
+/**
+ * @summary Update a property's fields (name, address, report contact, PM system)
+ */
+export const getUpdatePropertyUrl = (id: number) => {
+  return `/api/properties/${id}`;
+};
+
+export const updateProperty = async (
+  id: number,
+  updatePropertyBody: UpdatePropertyBody,
+  options?: RequestInit,
+): Promise<Property> => {
+  return customFetch<Property>(getUpdatePropertyUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updatePropertyBody),
+  });
+};
+
+export const getUpdatePropertyMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProperty>>,
+    TError,
+    { id: number; data: BodyType<UpdatePropertyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProperty>>,
+  TError,
+  { id: number; data: BodyType<UpdatePropertyBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProperty"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProperty>>,
+    { id: number; data: BodyType<UpdatePropertyBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProperty(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdatePropertyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProperty>>
+>;
+export type UpdatePropertyMutationBody = BodyType<UpdatePropertyBody>;
+export type UpdatePropertyMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a property's fields (name, address, report contact, PM system)
+ */
+export const useUpdateProperty = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProperty>>,
+    TError,
+    { id: number; data: BodyType<UpdatePropertyBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProperty>>,
+  TError,
+  { id: number; data: BodyType<UpdatePropertyBody> },
+  TContext
+> => {
+  return useMutation(getUpdatePropertyMutationOptions(options));
 };
 
 /**

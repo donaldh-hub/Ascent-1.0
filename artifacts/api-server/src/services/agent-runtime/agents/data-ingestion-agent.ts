@@ -14,13 +14,22 @@
  * requires, an independent-of-the-pipeline verification gate (row totals
  * actually reconcile), and a handoff to the Intelligence-Quality Agent
  * once ingestion completes — none of which existed before this agent.
+ *
+ * This agent also owns soliciting the next report, on a fixed monthly
+ * schedule (scheduled_report_reminder trigger, branched on below) — it's
+ * the natural upstream half of "convert uploads into records": getting a
+ * report to arrive at all. One property with no designated report
+ * contact (properties.supervisorEmail) is simply skipped, not an error —
+ * that's normal for a property mid-setup, not a system failure.
  */
-import type { AgentJob } from "@workspace/db/schema";
+import { db } from "@workspace/db";
+import { propertiesTable, type AgentJob } from "@workspace/db/schema";
 import type { ImportMode } from "../../governance-service.js";
 import { importWorkOrderRows, type ImportWorkOrderRowsResult } from "../../work-order-import-service.js";
+import { sendReportReminderEmail } from "../../email-service.js";
 import { registerAgent, runAgentInline, type AgentHandlerResult } from "../orchestrator.js";
 import { logAgentAction, recordVerification, raiseException, createHandoff } from "../audit.js";
-import { enqueueJob } from "../job-store.js";
+import { enqueueJob, hasPendingJob } from "../job-store.js";
 import { INTELLIGENCE_QUALITY_AGENT_ID } from "./intelligence-quality-agent.js";
 
 export const DATA_INGESTION_AGENT_ID = "data_ingestion_agent";
@@ -33,7 +42,53 @@ export interface DataIngestionPayload {
   importMode?: ImportMode;
 }
 
+const REPORT_REMINDER_TRIGGER = "scheduled_report_reminder";
+
+/** Midnight UTC on the 1st of the month after `from`. */
+function nextMonthStartUTC(from: Date): Date {
+  return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + 1, 1));
+}
+
+async function handleReportReminder(job: AgentJob): Promise<AgentHandlerResult> {
+  const properties = await db.select().from(propertiesTable);
+
+  let sent = 0;
+  let skippedNoContact = 0;
+  for (const property of properties) {
+    if (!property.supervisorEmail) {
+      skippedNoContact++;
+      continue;
+    }
+    await sendReportReminderEmail({ to: property.supervisorEmail, propertyName: property.name });
+    sent++;
+  }
+
+  await logAgentAction({
+    jobId: job.id,
+    agentId: DATA_INGESTION_AGENT_ID,
+    correlationId: job.correlationId,
+    action: "report_reminder.sent",
+    output: { propertiesReminded: sent, propertiesSkippedNoContact: skippedNoContact },
+  });
+
+  // Fixed calendar schedule — self-reschedule for the 1st of next month
+  // regardless of this run's outcome, rather than adding a second
+  // scheduling mechanism next to the orchestrator's own poll loop.
+  await enqueueJob({
+    agentId: DATA_INGESTION_AGENT_ID,
+    triggerEvent: REPORT_REMINDER_TRIGGER,
+    payload: {},
+    runAt: nextMonthStartUTC(new Date()),
+  });
+
+  return { outcome: "completed", result: { propertiesReminded: sent, propertiesSkippedNoContact: skippedNoContact } };
+}
+
 async function handleDataIngestion(job: AgentJob): Promise<AgentHandlerResult> {
+  if (job.triggerEvent === REPORT_REMINDER_TRIGGER) {
+    return handleReportReminder(job);
+  }
+
   const payload = job.payload as DataIngestionPayload;
 
   await logAgentAction({
@@ -161,6 +216,25 @@ export async function registerDataIngestionAgent(): Promise<void> {
     "Converts customer uploads and approved inbound emails into normalized, traceable Ascent records while protecting the truth layer from incomplete, duplicated, or misassigned data.",
     handleDataIngestion,
   );
+}
+
+/**
+ * Enqueues the first monthly report-reminder run, for the 1st of next
+ * month — call once at server startup, after registerDataIngestionAgent().
+ * Idempotent against restarts: checks for a pending job of specifically
+ * this trigger event, not just any Data-Ingestion job — ordinary
+ * per-upload ingestion traffic (a different trigger event, same
+ * agentId) must never make this look "already scheduled" and silently
+ * starve the monthly reminder chain from ever getting set up.
+ */
+export async function scheduleInitialReportReminder(): Promise<void> {
+  if (await hasPendingJob(DATA_INGESTION_AGENT_ID, REPORT_REMINDER_TRIGGER)) return;
+  await enqueueJob({
+    agentId: DATA_INGESTION_AGENT_ID,
+    triggerEvent: REPORT_REMINDER_TRIGGER,
+    payload: {},
+    runAt: nextMonthStartUTC(new Date()),
+  });
 }
 
 /**

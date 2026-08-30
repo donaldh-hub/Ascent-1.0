@@ -21,6 +21,7 @@ export type {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   UpdateAssetBody,
+  UpdatePropertyBody,
   UpdateStageBody,
   UpdateWorkflowBody,
   UpdateWorkflowItemBody,

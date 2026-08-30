@@ -2,8 +2,9 @@
  * Inbound email ingestion — Phase 2 of the connection ladder (see
  * .agents/memory/ingestion-connection-ladder.md). A customer forwards or
  * schedules a report to an Ascent-generated address; this parses the CSV
- * attachment into rows and runs them through the exact same real
- * ingestion pipeline manual uploads use — the Data-Ingestion Agent
+ * or PDF attachment into rows (via pdf-report-registry.ts for PDFs — the
+ * same registry the manual Upload page uses) and runs them through the
+ * exact same real ingestion pipeline manual uploads use — the Data-Ingestion Agent
  * (runDataIngestionInline), which wraps importWorkOrderRows with formal
  * job tracking, an audit trail, and a handoff to the Intelligence-Quality
  * Agent — per the architectural rule that only the delivery method
@@ -24,6 +25,7 @@ import { inboundEmailsTable } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserByEmail } from "./access-service.js";
 import { parseCSV } from "./upload-ingestion-service.js";
+import { parseWorkOrderReportPdf, PdfExtractionNotConfiguredError } from "./pdf-report-registry.js";
 import { runDataIngestionInline, IngestionNotCompletedError } from "./agent-runtime/agents/data-ingestion-agent.js";
 import { sendIngestionCompleteEmail } from "./email-service.js";
 
@@ -47,11 +49,14 @@ export interface InboundEmailResult {
 }
 
 const CSV_LIKE_TYPES = ["text/csv", "application/csv", "application/vnd.ms-excel", "text/plain"];
+const PDF_TYPES = ["application/pdf"];
 
 function findReportAttachment(attachments: InboundAttachment[]): InboundAttachment | null {
   return (
     attachments.find((a) => CSV_LIKE_TYPES.includes(a.contentType.toLowerCase())) ??
     attachments.find((a) => /\.csv$/i.test(a.filename)) ??
+    attachments.find((a) => PDF_TYPES.includes(a.contentType.toLowerCase())) ??
+    attachments.find((a) => /\.pdf$/i.test(a.filename)) ??
     null
   );
 }
@@ -105,14 +110,36 @@ export async function processInboundEmail(input: InboundEmailInput): Promise<Inb
     return { status: "rejected", reason: "No usable report attachment found." };
   }
 
-  // 4. Decode and parse the CSV into header-keyed rows, then run those rows
-  //    through the exact same resolution/governance pipeline manual
-  //    uploads use — not a simpler shortcut that skips per-row property/
-  //    unit resolution.
-  const fileContent = Buffer.from(attachment.contentBase64, "base64").toString("utf8");
-  const { headers, rows } = parseCSV(fileContent);
+  // 4. Decode and parse the attachment (CSV or PDF) into header-keyed rows,
+  //    then run those rows through the exact same resolution/governance
+  //    pipeline manual uploads use — not a simpler shortcut that skips
+  //    per-row property/unit resolution.
+  const isPdf = attachment.contentType.toLowerCase() === "application/pdf" || /\.pdf$/i.test(attachment.filename);
+  const attachmentBuffer = Buffer.from(attachment.contentBase64, "base64");
 
-  if (headers.length === 0 || rows.length === 0) {
+  let rows: Record<string, string>[];
+  if (isPdf) {
+    try {
+      const parsed = await parseWorkOrderReportPdf(attachmentBuffer);
+      rows = parsed.rows;
+    } catch (err) {
+      if (err instanceof PdfExtractionNotConfiguredError) {
+        await recordEmail({ ...input, userId: user.id, status: "rejected", rejectionReason: "Unrecognized PDF format and AI-assisted extraction isn't configured." });
+        return { status: "rejected", reason: "Unrecognized PDF format and AI-assisted extraction isn't configured." };
+      }
+      throw err;
+    }
+  } else {
+    const fileContent = attachmentBuffer.toString("utf8");
+    const { headers, rows: csvRows } = parseCSV(fileContent);
+    if (headers.length === 0) {
+      await recordEmail({ ...input, userId: user.id, status: "rejected", rejectionReason: "No data rows found in attachment." });
+      return { status: "rejected", reason: "No data rows found in attachment." };
+    }
+    rows = csvRows;
+  }
+
+  if (rows.length === 0) {
     await recordEmail({ ...input, userId: user.id, status: "rejected", rejectionReason: "No data rows found in attachment." });
     return { status: "rejected", reason: "No data rows found in attachment." };
   }

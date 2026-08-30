@@ -1,19 +1,28 @@
 /**
- * Work Order PDF Parser
+ * Yardi Work Order PDF Parser
  *
- * Parses the common property-management "work order detail report" PDF
- * export format — one work order per form, each a label/value block
- * (confirmed against real customer exports: MP KofP/More Management,
- * single-property and multi-property reports alike). Text-based PDFs
- * only (selectable text) — scanned/image PDFs are not supported; that
- * would need OCR, a separate, heavier addition not built here.
+ * Parses Yardi's "work order detail report" PDF export format — one work
+ * order per form, each a label/value block (confirmed against a real
+ * customer's exports: 697 real work orders across three months and four
+ * properties). Text-based PDFs only (selectable text) — scanned/image
+ * PDFs are not supported; that would need OCR, a separate, heavier
+ * addition not built here.
+ *
+ * The record-boundary anchor ("Work Order No.") is Yardi's own fixed
+ * template label, NOT the customer's company letterhead that also
+ * appears on the page (e.g. "MP KofP Management LLC / DBA More
+ * Management" in the confirmed sample) — a different Yardi customer's
+ * export will show a different company name in that position, so this
+ * deliberately does not key on it. This is registered under "Yardi" in
+ * pdf-report-registry.ts; a different PM system's export would need its
+ * own parser validated against a real sample from that system, not a
+ * guess at what it might look like.
  *
  * Records are NOT one-per-page: a long problem description can push the
  * rest of a work order's fields onto a continuation page with no header
  * of its own, and short work orders can share a page. This parser works
  * off the full extracted document text and finds record boundaries by
- * the recurring "MP KofP Management LLC Work Order No." anchor, not by
- * page breaks.
+ * the recurring "Work Order No." anchor, not by page breaks.
  *
  * A further extraction quirk (confirmed against real files, not a
  * theoretical worry): a record's own "Problem Description:" text is
@@ -49,7 +58,7 @@ export interface WorkOrderPdfParseResult {
   unparsedRecords: { workOrderId?: string; reason: string }[];
 }
 
-const WORK_ORDER_HEADER = /MP KofP Management LLC Work Order No\.\s*\d+/g;
+const WORK_ORDER_HEADER = /Work Order No\.\s*\d+/g;
 
 function match1(text: string, re: RegExp): string | undefined {
   const m = text.match(re);
@@ -94,7 +103,7 @@ function extractRecord(
   // PRECEDING record's block (the normal case) — see file header.
   let description: string | undefined;
   const ownDesc = headerBlock.match(
-    /Problem Description:\s*([\s\S]*?)(?=\nCategory:|\nMP KofP Management LLC|\nParts & Labor|$)/,
+    /Problem Description:\s*([\s\S]*?)(?=\nCategory:|\nParts & Labor|$)/,
   );
   if (ownDesc) {
     description = ownDesc[1].replace(/\s+/g, " ").trim();

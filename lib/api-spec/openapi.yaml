@@ -1010,6 +1010,29 @@ paths:
                 $ref: "#/components/schemas/Property"
 
   /properties/{id}:
+    patch:
+      operationId: updateProperty
+      tags: [properties]
+      summary: Update a property's fields (name, address, report contact, PM system)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePropertyBody"
+      responses:
+        "200":
+          description: Updated property
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Property"
     delete:
       operationId: deleteProperty
       tags: [properties]
@@ -2635,6 +2658,15 @@ components:
         address:
           type: string
           nullable: true
+        supervisorName:
+          type: string
+          nullable: true
+        supervisorEmail:
+          type: string
+          nullable: true
+        pmSystem:
+          type: string
+          nullable: true
         createdAt:
           type: string
       required:
@@ -2650,8 +2682,35 @@ components:
         address:
           type: string
           nullable: true
+        supervisorName:
+          type: string
+          nullable: true
+        supervisorEmail:
+          type: string
+          nullable: true
+        pmSystem:
+          type: string
+          nullable: true
       required:
         - name
+
+    UpdatePropertyBody:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+          nullable: true
+        supervisorName:
+          type: string
+          nullable: true
+        supervisorEmail:
+          type: string
+          nullable: true
+        pmSystem:
+          type: string
+          nullable: true
 
     Unit:
       type: object

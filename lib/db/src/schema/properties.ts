@@ -8,6 +8,12 @@ export const propertiesTable = pgTable("properties", {
   address: text("address"),
   supervisorName: text("supervisor_name"),
   supervisorEmail: text("supervisor_email"),
+  // Free text, not a fixed enum — whatever the customer's own PM system is
+  // called (Yardi, RealPage, AppFolio, ...). Used to pick a report parser
+  // (see pdf-report-registry.ts); a system with no matching deterministic
+  // parser yet still works via the AI-assisted fallback, so this is
+  // informational/routing metadata, never a gate on whether upload works.
+  pmSystem: text("pm_system"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
