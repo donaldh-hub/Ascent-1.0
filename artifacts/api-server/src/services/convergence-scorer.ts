@@ -33,7 +33,7 @@ export async function scoreConvergence(): Promise<ConvergenceResult> {
       propertyId: workOrdersTable.propertyId,
       propertyName: propertiesTable.name,
       count: sql<number>`count(*)::int`,
-      hasAging: sql<boolean>`bool_or(${workOrdersTable.createdAt} < ${fourteenDaysAgo.toISOString()}::timestamp)`,
+      hasAging: sql<boolean>`bool_or(${workOrdersTable.createdDate} < ${fourteenDaysAgo.toISOString()}::timestamp)`,
     })
     .from(workOrdersTable)
     .leftJoin(propertiesTable, sql`${workOrdersTable.propertyId} = ${propertiesTable.id}`)
