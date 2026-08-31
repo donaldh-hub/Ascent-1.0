@@ -172,6 +172,7 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
     await pushMessage("user", "What's my weekly summary?", 100);
     try {
       const r = await fetch("/api/coach/weekly-summary");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const summary: WeeklySummary = await r.json();
       await pushMessage("jordan", summary.openingStatement, 600);
       await pushMessage("jordan", summary.oneRecommendation, 800);
@@ -186,6 +187,7 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
     await pushMessage("user", "What should I focus on this week?", 100);
     try {
       const r = await fetch("/api/coach/recommendations");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const rec: Recommendation = await r.json();
       const top = rec.topPriority?.description ?? rec.insights?.[0]?.description ?? "Nothing urgent is flagged right now — keep the upload cadence going.";
       await pushMessage("jordan", top, 600);
