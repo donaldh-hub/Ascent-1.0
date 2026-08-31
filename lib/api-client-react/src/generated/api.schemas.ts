@@ -783,7 +783,7 @@ export interface Property {
 }
 
 export interface CreatePropertyBody {
-  name: string;
+  name?: string | null;
   address?: string | null;
   supervisorName?: string | null;
   supervisorEmail?: string | null;

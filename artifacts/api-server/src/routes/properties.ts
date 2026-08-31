@@ -33,20 +33,23 @@ router.get("/properties", async (req, res) => {
 router.post("/properties", async (req, res) => {
   try {
     const { name, address, supervisorName, supervisorEmail, pmSystem } = req.body as {
-      name: string;
+      name?: string | null;
       address?: string | null;
       supervisorName?: string | null;
       supervisorEmail?: string | null;
       pmSystem?: string | null;
     };
-    if (!name || typeof name !== "string" || !name.trim()) {
-      res.status(400).json({ error: "Property name is required" });
-      return;
-    }
+    // A name is no longer required — manually pre-configuring a property
+    // is an optional path now, not a mandatory gate. Real property
+    // identity is expected to come from an uploaded report's own site
+    // code (see resolveProperty()); this default just keeps the column's
+    // NOT NULL constraint satisfied for someone using this form without
+    // one.
+    const resolvedName = typeof name === "string" && name.trim() ? name.trim() : "New Property";
     const [prop] = await db
       .insert(propertiesTable)
       .values({
-        name: name.trim(),
+        name: resolvedName,
         address: address?.trim() || null,
         supervisorName: supervisorName?.trim() || null,
         supervisorEmail: supervisorEmail?.trim() || null,

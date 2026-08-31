@@ -77,7 +77,7 @@ function useAccountStatus() {
 // ─── Router ───────────────────────────────────────────────────────────────────
 
 function Router() {
-  const [location, navigate] = useLocation();
+  const [location] = useLocation();
   const isSetupRoute = location === "/setup" || location.startsWith("/setup?");
   // Internal /dev/* routes (e.g. Build Auditor) must work regardless of setup
   // status — they are diagnostic tools, not customer flows.
@@ -87,7 +87,7 @@ function Router() {
     location === "/login" || location.startsWith("/login?");
   const isSharedReportRoute = location.startsWith("/shared/");
 
-  const { isComplete, isLoading } = useSetupStatus();
+  const { isLoading } = useSetupStatus();
   const { status: accountStatus, isLoading: isAccountLoading } = useAccountStatus();
 
   // /setup is always accessible
@@ -140,11 +140,12 @@ function Router() {
     return <OnboardingPage />;
   }
 
-  // Setup incomplete — gate ALL protected routes
-  if (!isComplete) {
-    // Use an effect-based redirect to avoid render-phase side effects
-    return <SetupRedirect navigate={navigate} />;
-  }
+  // Manually pre-configuring a property is now optional, not a mandatory
+  // gate — uploading a real report is the primary path, and the ingestion
+  // pipeline creates whatever properties/units it needs directly from that
+  // report's own content (see resolveProperty()/resolveUnit()). The Setup
+  // wizard stays reachable at /setup for anyone who wants to configure a
+  // property before they have any data, but nothing here forces it.
 
   return (
     <Layout>
@@ -182,13 +183,6 @@ function Router() {
       </Switch>
     </Layout>
   );
-}
-
-function SetupRedirect({ navigate }: { navigate: (path: string) => void }) {
-  useEffect(() => {
-    navigate("/setup");
-  }, [navigate]);
-  return <SetupCheckLoader />;
 }
 
 function ControlTowerRedirect() {

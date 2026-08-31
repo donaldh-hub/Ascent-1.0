@@ -90,11 +90,10 @@ export default function Setup() {
   // ── Step: Create property ──────────────────────────────────────────────────
 
   async function handleCreateProperty() {
-    if (!propertyName.trim()) return;
     try {
       const prop = await createProperty.mutateAsync({
         data: {
-          name: propertyName.trim(),
+          name: propertyName.trim() || undefined,
           address: propertyAddress.trim() || undefined,
           pmSystem: pmSystem.trim() || undefined,
           supervisorEmail: reportContactEmail.trim() || undefined,
@@ -316,10 +315,10 @@ export default function Setup() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">
-                    Property name <span className="text-destructive">*</span>
+                    Property name <span className="text-muted-foreground font-normal">(optional)</span>
                   </label>
                   <Input
-                    placeholder="e.g. Riverside Apartments"
+                    placeholder="e.g. Riverside Apartments — or leave blank, an uploaded report can identify it"
                     value={propertyName}
                     onChange={(e) => setPropertyName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleCreateProperty()}
@@ -367,7 +366,7 @@ export default function Setup() {
               <Button
                 size="lg"
                 className="w-full mt-6"
-                disabled={!propertyName.trim() || createProperty.isPending}
+                disabled={createProperty.isPending}
                 onClick={handleCreateProperty}
               >
                 {createProperty.isPending ? "Creating..." : "Continue"}
