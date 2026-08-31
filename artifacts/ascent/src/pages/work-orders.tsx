@@ -17,7 +17,7 @@ import {
   Wrench, Upload, FileText, CheckCircle2, AlertTriangle,
   Clock, RefreshCw, ChevronRight, X, Filter, TrendingDown,
   AlertCircle, BarChart2, ChevronDown, ArrowRight, ShieldAlert,
-  Layers, RotateCcw,
+  Layers, RotateCcw, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -561,6 +561,21 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
                       </p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {importResult.jordanSummary && (
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-[10px] font-semibold text-primary">Jordan's take</p>
+                  </div>
+                  <p className="text-[11px] text-foreground/90 mb-1.5">{importResult.jordanSummary.headline}</p>
+                  <ol className="space-y-1 list-decimal list-inside">
+                    {importResult.jordanSummary.recommendations.map((rec, i) => (
+                      <li key={i} className="text-[10px] text-muted-foreground">{rec}</li>
+                    ))}
+                  </ol>
                 </div>
               )}
 

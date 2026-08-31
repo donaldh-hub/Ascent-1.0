@@ -1,5 +1,8 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
+import { db } from "@workspace/db";
+import { workOrdersTable } from "@workspace/db/schema";
+import { eq } from "drizzle-orm";
 import { parseCSV } from "../services/upload-ingestion-service.js";
 import { parseWorkOrderReportPdf, PdfExtractionNotConfiguredError } from "../services/pdf-report-registry.js";
 import type { ParsedSite } from "../services/work-order-pdf-parser.js";
@@ -10,6 +13,7 @@ import {
   IngestionNotCompletedError,
 } from "../services/agent-runtime/agents/data-ingestion-agent.js";
 import type { ImportRowResult, ImportWorkOrderRowsResult } from "../services/work-order-import-service.js";
+import { generateIngestionSummary } from "../services/jordan-ingestion-summary.js";
 
 const router: IRouter = Router();
 
@@ -27,16 +31,13 @@ export interface UnrecognizedPropertyGroup {
 }
 
 /**
- * A resolveProperty() "created" or "none" confidence means the row's
- * property identifier didn't match anything already in the account —
- * resolveProperty() still auto-creates a placeholder row for it (so the
- * import doesn't fail), but the existing governance layer (see
- * governance-service.ts) already excludes those rows from dashboard
- * rollups. This just makes that fact legible to a non-technical customer
- * instead of leaving it as an internal "unresolved" governance label —
- * per the explicit ask: they won't know what "unmatched property" means,
- * only that some of the report's properties aren't the location(s)
- * they've set up in Ascent.
+ * A resolveProperty() "none" confidence means the row had no usable
+ * property identifier at all — genuinely unattributable, so it's excluded
+ * from dashboard rollups (see governance-service.ts). A "created"
+ * confidence, by contrast, is now the primary intended path for a first
+ * real upload: the report itself stood up a new property/unit from its
+ * own site code, and that data is fully wired into the dashboard, not
+ * held back — so it's deliberately NOT flagged here as "unrecognized."
  */
 function summarizeUnrecognizedProperties(
   rows: Record<string, string>[],
@@ -50,7 +51,7 @@ function summarizeUnrecognizedProperties(
     const res = rowResults[i];
     const identifier = rows[i]?.property_name;
     if (!res || !identifier) continue;
-    if (res.propertyConfidence !== "created" && res.propertyConfidence !== "none") continue;
+    if (res.propertyConfidence !== "none") continue;
 
     const existing = groups.get(identifier);
     if (existing) {
@@ -293,6 +294,26 @@ router.post("/upload/work-orders", upload.single("file"), async (req, res) => {
 
     const unrecognizedProperties = summarizeUnrecognizedProperties(rows, result.results, sites);
 
+    // Jordan's take on this upload — grounded synthesis, not a hard
+    // dependency of the import itself. A missing API key or a model
+    // hiccup should never turn a successful import into a failed
+    // response; it just means no summary this time.
+    let jordanSummary: { headline: string; recommendations: string[] } | null = null;
+    try {
+      const touchedProperties = await db
+        .selectDistinct({ propertyId: workOrdersTable.propertyId })
+        .from(workOrdersTable)
+        .where(eq(workOrdersTable.importBatchId, result.batchId));
+      const propertyIds = touchedProperties
+        .map((r) => r.propertyId)
+        .filter((id): id is number => id != null);
+      if (propertyIds.length > 0) {
+        jordanSummary = await generateIngestionSummary({ batchId: result.batchId, propertyIds });
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Jordan ingestion summary failed — continuing without it");
+    }
+
     res.json({
       batchId: result.batchId,
       totalRows: rows.length,
@@ -301,6 +322,7 @@ router.post("/upload/work-orders", upload.single("file"), async (req, res) => {
       governance: result.governance,
       unrecognizedProperties,
       detectedSystem,
+      jordanSummary,
     });
   } catch (err) {
     req.log.error({ err }, "upload/work-orders failed");

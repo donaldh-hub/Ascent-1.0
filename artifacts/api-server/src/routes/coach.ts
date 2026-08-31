@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { generateCoachRecommendations } from "../services/operations-coach-service.js";
 import { generateWeeklySummary, getLastWeeklySummary } from "../services/weekly-summary-engine.js";
+import { getLatestIngestionSummary } from "../services/jordan-ingestion-summary.js";
 import { getOrCreatePreferences, updatePreferences } from "../services/coach-preference-service.js";
 import { JordanNotConfiguredError } from "../services/jordan-chat-service.js";
 import { runJordanMessageInline, JordanJobNotCompletedError } from "../services/agent-runtime/agents/jordan-agent.js";
@@ -84,6 +85,16 @@ router.get("/coach/weekly-summary/last", async (_req, res) => {
     res.json(last);
   } catch (err) {
     res.status(500).json({ error: "Failed to retrieve last summary", detail: String(err) });
+  }
+});
+
+router.get("/coach/ingestion-summary/latest", async (_req, res) => {
+  try {
+    const latest = await getLatestIngestionSummary();
+    if (!latest) return res.status(404).json({ error: "No upload summary found yet" });
+    res.json(latest);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to retrieve latest upload summary", detail: String(err) });
   }
 });
 

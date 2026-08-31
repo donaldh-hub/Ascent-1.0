@@ -150,6 +150,7 @@ export interface WorkOrderImportResult {
     resolutionStatus?: "fully_resolved" | "partially_resolved" | "unresolved";
     assignmentConfidence?: "high" | "medium" | "low" | "none";
   }[];
+  jordanSummary: { headline: string; recommendations: string[] } | null;
 }
 
 export interface WorkOrderFilters {
