@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 
 interface IngestionSummary {
@@ -6,6 +6,18 @@ interface IngestionSummary {
   recommendations: string[];
   createdAt: string;
 }
+
+/**
+ * Fired once an upload's response (including its Jordan summary
+ * generation, which can take several seconds) has actually completed.
+ * Ingestion summary generation runs synchronously inside the import
+ * request, so a user who navigates to Control Tower while that request
+ * is still in flight will mount this card before the row exists, get a
+ * 404, and never see it — this event is how the card learns to check
+ * again once the upload that was running actually finishes, regardless
+ * of which page the user has since moved to.
+ */
+export const JORDAN_SUMMARY_UPDATED_EVENT = "ascent:jordan-summary-updated";
 
 /**
  * Jordan's explanation of the most recent report upload — persisted
@@ -18,12 +30,18 @@ interface IngestionSummary {
 export function IngestionSummaryCard() {
   const [data, setData] = useState<IngestionSummary | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch("/api/coach/ingestion-summary/latest")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: IngestionSummary | null) => setData(d))
       .catch(() => setData(null));
   }, []);
+
+  useEffect(() => {
+    load();
+    window.addEventListener(JORDAN_SUMMARY_UPDATED_EVENT, load);
+    return () => window.removeEventListener(JORDAN_SUMMARY_UPDATED_EVENT, load);
+  }, [load]);
 
   if (!data) return null;
 

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Upload, FileText, CheckCircle2, AlertTriangle, X, Building2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { JORDAN_SUMMARY_UPDATED_EVENT } from "@/components/coach/ingestion-summary-card";
 
 interface UnrecognizedPropertyGroup {
   identifier: string;
@@ -55,6 +56,7 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
         throw new Error(data.error ?? "Upload failed");
       }
       setResult(data as IngestionResult);
+      window.dispatchEvent(new Event(JORDAN_SUMMARY_UPDATED_EVENT));
       onSuccess?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
