@@ -72,6 +72,9 @@ export default function Setup() {
   const [csvFileName, setCsvFileName] = useState("");
   const [csvPreviewConfirmed, setCsvPreviewConfirmed] = useState(false);
   const [unitsCreatedCount, setUnitsCreatedCount] = useState(0);
+  const [parsingFile, setParsingFile] = useState(false);
+  const [pdfSites, setPdfSites] = useState<{ siteCode: string; addressLines: string[]; unitNumbers: string[] }[]>([]);
+  const [pdfParseError, setPdfParseError] = useState<string | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -109,10 +112,62 @@ export default function Setup() {
 
   // ── Step: CSV import ───────────────────────────────────────────────────────
 
+  function applySiteUnits(site: { siteCode: string; unitNumbers: string[] }) {
+    setCsvHeaders(["unit_number"]);
+    setCsvRows(site.unitNumbers.map((u) => ({ unit_number: u })));
+    setCsvMapping("unit_number");
+    setCsvPreviewConfirmed(false);
+    setPdfSites([]);
+  }
+
+  async function handlePdfFile(file: File) {
+    setParsingFile(true);
+    setPdfParseError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const r = await fetch("/api/upload/parse-report-units", { method: "POST", body: form });
+      const data = await r.json();
+      if (!r.ok) {
+        setPdfParseError(data.message ?? data.error ?? "Couldn't read this PDF.");
+        return;
+      }
+      const sites: { siteCode: string; addressLines: string[]; unitNumbers: string[] }[] = data.sites ?? [];
+      if (sites.length === 0) {
+        setPdfParseError("No units found in this report.");
+        return;
+      }
+      if (sites.length === 1) {
+        applySiteUnits(sites[0]);
+        return;
+      }
+      // Multiple properties in one report (e.g. a regional manager's
+      // combined export) — auto-select if the property name matches a
+      // site code exactly, otherwise let the person pick which one this
+      // property is.
+      const nameMatch = sites.find((s) => s.siteCode.toLowerCase() === createdPropertyName.trim().toLowerCase());
+      if (nameMatch) {
+        applySiteUnits(nameMatch);
+      } else {
+        setPdfSites(sites);
+      }
+    } catch {
+      setPdfParseError("Couldn't read this PDF. Please try again.");
+    } finally {
+      setParsingFile(false);
+    }
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCsvFileName(file.name);
+
+    if (/\.pdf$/i.test(file.name)) {
+      handlePdfFile(file);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
@@ -343,8 +398,8 @@ export default function Setup() {
                     className="border border-border rounded-lg p-4 text-left hover:border-primary/50 hover:bg-primary/5 transition-colors group"
                   >
                     <Upload className="h-5 w-5 text-muted-foreground group-hover:text-primary mb-2 transition-colors" />
-                    <div className="font-medium text-sm">Upload CSV</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Import a spreadsheet or roster</div>
+                    <div className="font-medium text-sm">Upload a report</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">CSV, spreadsheet, or a PDF work order report</div>
                   </button>
                   <button
                     onClick={() => setUnitMethod("manual")}
@@ -357,36 +412,70 @@ export default function Setup() {
                 </div>
               )}
 
-              {/* CSV flow */}
+              {/* CSV/PDF flow */}
               {unitMethod === "csv" && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <button
-                      onClick={() => { setUnitMethod(null); setCsvRows([]); setCsvHeaders([]); }}
+                      onClick={() => { setUnitMethod(null); setCsvRows([]); setCsvHeaders([]); setPdfSites([]); setPdfParseError(null); }}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <X className="h-4 w-4" />
                     </button>
-                    <span className="text-sm font-medium">CSV Upload</span>
+                    <span className="text-sm font-medium">Upload a report</span>
                   </div>
 
-                  {csvRows.length === 0 ? (
+                  {parsingFile && (
+                    <div className="border border-border rounded-lg p-8 text-center text-sm text-muted-foreground animate-pulse">
+                      Reading {csvFileName}…
+                    </div>
+                  )}
+
+                  {!parsingFile && pdfParseError && (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm text-amber-700">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{pdfParseError}</span>
+                    </div>
+                  )}
+
+                  {!parsingFile && pdfSites.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">
+                        This report covers {pdfSites.length} properties — which one is {createdPropertyName}?
+                      </p>
+                      {pdfSites.map((site) => (
+                        <button
+                          key={site.siteCode}
+                          onClick={() => applySiteUnits(site)}
+                          className="w-full border border-border rounded-lg p-3 text-left hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                        >
+                          <div className="font-medium text-sm">{site.siteCode}</div>
+                          {site.addressLines.length > 0 && (
+                            <div className="text-xs text-muted-foreground">{site.addressLines.join(", ")}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground mt-0.5">{site.unitNumbers.length} units</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!parsingFile && pdfSites.length === 0 && csvRows.length === 0 ? (
                     <div
                       onClick={() => fileRef.current?.click()}
                       className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
                     >
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm font-medium">Click to upload a CSV file</p>
-                      <p className="text-xs text-muted-foreground mt-1">Accepts any CSV or spreadsheet export</p>
+                      <p className="text-sm font-medium">Click to upload a CSV or PDF report</p>
+                      <p className="text-xs text-muted-foreground mt-1">Accepts a spreadsheet export or the work order report PDF you already have</p>
                       <input
                         ref={fileRef}
                         type="file"
-                        accept=".csv,.txt"
+                        accept=".csv,.txt,.pdf"
                         className="hidden"
                         onChange={handleFileChange}
                       />
                     </div>
-                  ) : (
+                  ) : csvRows.length > 0 ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <FileText className="h-4 w-4" />
@@ -451,7 +540,7 @@ export default function Setup() {
                         </Button>
                       )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
 

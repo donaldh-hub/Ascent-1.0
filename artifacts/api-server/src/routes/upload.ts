@@ -67,6 +67,87 @@ function summarizeUnrecognizedProperties(
   return [...groups.values()];
 }
 
+export interface ParsedUnitSite {
+  siteCode: string;
+  addressLines: string[];
+  unitNumbers: string[];
+}
+
+/**
+ * Setup-only utility: pulls the distinct unit numbers per property/site
+ * out of a work order report PDF, so the initial unit-roster step can
+ * take the exact same report file a customer already has — not a
+ * separately-prepared CSV — same as the ask that a PDF is what people
+ * will actually have, not something they should need to convert first.
+ *
+ * Deliberately does NOT run the ingestion pipeline, increment the free-
+ * upload count, or create any work orders — this only extracts a unit
+ * list for setup. The real report upload (with all its governance/
+ * pricing/agent-runtime effects) still happens later at
+ * POST /upload/work-orders.
+ */
+router.post("/upload/parse-report-units", upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ error: "No file provided. Send multipart/form-data with a 'file' field." });
+      return;
+    }
+    if (!/\.pdf$/i.test(file.originalname || "")) {
+      res.status(400).json({ error: "This endpoint only parses PDF reports." });
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = await parseWorkOrderReportPdf(file.buffer);
+    } catch (err) {
+      if (err instanceof PdfExtractionNotConfiguredError) {
+        res.status(400).json({
+          error: "unrecognized_format",
+          message:
+            "This doesn't match a report format we recognize yet, and AI-assisted extraction for unrecognized formats isn't configured yet. Try a CSV export instead.",
+        });
+        return;
+      }
+      throw err;
+    }
+
+    if (parsed.rows.length === 0) {
+      res.status(400).json({
+        error: "no_data_parsed",
+        message:
+          "Couldn't find any work orders in this PDF. This importer expects a text-based work order detail report (not a scanned or image-only PDF).",
+      });
+      return;
+    }
+
+    const unitsBySite = new Map<string, Set<string>>();
+    for (const row of parsed.rows) {
+      const siteCode = row.property_name;
+      if (!siteCode || !row.unit_number) continue;
+      const set = unitsBySite.get(siteCode) ?? new Set<string>();
+      set.add(row.unit_number.trim());
+      unitsBySite.set(siteCode, set);
+    }
+
+    const sitesByCode = new Map(parsed.sites.map((s) => [s.siteCode, s]));
+    const sites: ParsedUnitSite[] = [...unitsBySite.entries()].map(([siteCode, units]) => ({
+      siteCode,
+      addressLines: sitesByCode.get(siteCode)?.addressLines ?? [],
+      unitNumbers: [...units].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    }));
+
+    res.json({ systemLabel: parsed.systemLabel, sites });
+  } catch (err) {
+    req.log.error({ err }, "upload/parse-report-units failed");
+    res.status(500).json({
+      error: "Failed to parse report",
+      detail: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
 router.post("/upload/work-orders", upload.single("file"), async (req, res) => {
   try {
     const report = await getOrCreateReportForSession(req.sessionToken);
