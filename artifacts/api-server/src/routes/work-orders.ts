@@ -38,6 +38,7 @@ import {
   getImportSummary,
   type ImportMode,
 } from "../services/governance-service";
+import { generateIngestionSummary } from "../services/jordan-ingestion-summary.js";
 
 const router = Router();
 
@@ -166,7 +167,26 @@ router.post("/work-orders/import", async (req, res) => {
       authorizedUserId: req.user?.id,
     });
 
-    res.json(result);
+    // See upload.ts's POST /upload/work-orders for the rationale — same
+    // best-effort synthesis, wired here too since this route is the other
+    // real ingestion path (the Work Orders page's own import panel).
+    let jordanSummary: { headline: string; recommendations: string[] } | null = null;
+    try {
+      const touchedProperties = await db
+        .selectDistinct({ propertyId: workOrdersTable.propertyId })
+        .from(workOrdersTable)
+        .where(eq(workOrdersTable.importBatchId, result.batchId));
+      const propertyIds = touchedProperties
+        .map((r) => r.propertyId)
+        .filter((id): id is number => id != null);
+      if (propertyIds.length > 0) {
+        jordanSummary = await generateIngestionSummary({ batchId: result.batchId, propertyIds });
+      }
+    } catch (err) {
+      req.log.warn({ err }, "Jordan ingestion summary failed — continuing without it");
+    }
+
+    res.json({ ...result, jordanSummary });
   } catch (err) {
     if (err instanceof IngestionNotCompletedError) {
       // The agent hit a transient failure on its first attempt and is now

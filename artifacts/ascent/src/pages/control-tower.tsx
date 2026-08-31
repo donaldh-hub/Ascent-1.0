@@ -24,6 +24,7 @@ import { useSignalDrill, type SignalType, type DrillRow } from "@/hooks/use-sign
 import { isAssetWarrantyExpired } from "@/lib/operational-predicates";
 import { useReportingMode } from "@/components/reports/use-reporting-mode";
 import { TurnReportingModeBanner } from "@/components/reports/turn-reporting-mode-banner";
+import { IngestionSummaryCard } from "@/components/coach/ingestion-summary-card";
 import { ShareReportPanel } from "@/components/reports/share-report-panel";
 import {
   TURN_PERFORMANCE_LABEL,
@@ -948,6 +949,8 @@ export default function ControlTower() {
       <div className="mb-4">
         <TurnReportingModeBanner surface="control-tower" />
       </div>
+
+      <IngestionSummaryCard />
 
       {/* Tile row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Upload, FileText, CheckCircle2, AlertTriangle, X, Building2 } from "lucide-react";
+import { Upload, FileText, CheckCircle2, AlertTriangle, X, Building2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
@@ -7,6 +7,11 @@ interface UnrecognizedPropertyGroup {
   identifier: string;
   addressLines?: string[];
   workOrderCount: number;
+}
+
+interface JordanSummary {
+  headline: string;
+  recommendations: string[];
 }
 
 interface IngestionResult {
@@ -19,6 +24,7 @@ interface IngestionResult {
     unresolved: number;
   };
   unrecognizedProperties: UnrecognizedPropertyGroup[];
+  jordanSummary: JordanSummary | null;
 }
 
 export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) {
@@ -135,6 +141,23 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
             <span>{result.governance.partiallyResolved} needs unit review</span>
             <span>{result.errors} error(s)</span>
           </div>
+
+          {result.jordanSummary && (
+            <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-sm">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                <div>
+                  <p className="font-medium">Jordan's take</p>
+                  <p className="text-xs mt-1 text-foreground/90">{result.jordanSummary.headline}</p>
+                  <ol className="mt-1.5 space-y-1 list-decimal list-inside">
+                    {result.jordanSummary.recommendations.map((rec, i) => (
+                      <li key={i} className="text-xs text-foreground/90">{rec}</li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
 
           {result.unrecognizedProperties.length > 0 && (
             <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2.5 text-sm text-amber-700">
