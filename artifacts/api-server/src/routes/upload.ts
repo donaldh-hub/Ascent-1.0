@@ -86,6 +86,63 @@ export interface ParsedUnitSite {
  * pricing/agent-runtime effects) still happens later at
  * POST /upload/work-orders.
  */
+/**
+ * Parse-only utility for the Work Orders page's own import panel
+ * (work-orders.tsx's CSVUploadPanel, which predates the PDF work and
+ * only ever sent pre-parsed CSV rows as JSON to POST /work-orders/import).
+ * Returns the full per-work-order rows a PDF parses into — same shape
+ * client-side CSV parsing already produces — so that panel can keep its
+ * existing preview/column-mapping/import flow for a PDF too, instead of
+ * needing a second, PDF-specific results UI. Does NOT run ingestion
+ * itself; the panel still calls POST /work-orders/import afterward with
+ * these rows, same as it does for a CSV today.
+ */
+router.post("/upload/parse-report-rows", upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      res.status(400).json({ error: "No file provided. Send multipart/form-data with a 'file' field." });
+      return;
+    }
+    if (!/\.pdf$/i.test(file.originalname || "")) {
+      res.status(400).json({ error: "This endpoint only parses PDF reports." });
+      return;
+    }
+
+    let parsed;
+    try {
+      parsed = await parseWorkOrderReportPdf(file.buffer);
+    } catch (err) {
+      if (err instanceof PdfExtractionNotConfiguredError) {
+        res.status(400).json({
+          error: "unrecognized_format",
+          message:
+            "This doesn't match a report format we recognize yet, and AI-assisted extraction for unrecognized formats isn't configured yet. Try a CSV export instead.",
+        });
+        return;
+      }
+      throw err;
+    }
+
+    if (parsed.rows.length === 0) {
+      res.status(400).json({
+        error: "no_data_parsed",
+        message:
+          "Couldn't find any work orders in this PDF. This importer expects a text-based work order detail report (not a scanned or image-only PDF).",
+      });
+      return;
+    }
+
+    res.json({ systemLabel: parsed.systemLabel, rows: parsed.rows });
+  } catch (err) {
+    req.log.error({ err }, "upload/parse-report-rows failed");
+    res.status(500).json({
+      error: "Failed to parse report",
+      detail: err instanceof Error ? err.message : String(err),
+    });
+  }
+});
+
 router.post("/upload/parse-report-units", upload.single("file"), async (req, res) => {
   try {
     const file = req.file;
