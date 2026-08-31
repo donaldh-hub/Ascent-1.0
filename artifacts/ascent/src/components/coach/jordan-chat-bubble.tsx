@@ -231,7 +231,13 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
     const next = !open;
     setOpen(next);
     setHasNew(false);
-    if (next && prefs?.activationCompleted) {
+    // toggleOpen is only reachable here in the floating-bubble embedding
+    // (forceOpen is false) — the modal onboarding walkthrough on the
+    // dedicated onboarding page has no toggle button at all. So this
+    // doesn't need to gate on activationCompleted: an account that never
+    // ran that separate walkthrough should still get a working chat from
+    // the floating bubble, not a permanently empty panel.
+    if (next) {
       beginOngoing();
     }
   };
