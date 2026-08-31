@@ -81,6 +81,11 @@ export async function generateIngestionSummary(params: {
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 1024,
+    // Fixed schema, bounded input, no open-ended reasoning needed — a
+    // one-shot synthesis over a handful of counts doesn't benefit from
+    // deep thinking, so keep this cheap rather than paying for effort
+    // this task can't use.
+    output_config: { effort: "low" },
     system: SYSTEM_PROMPT,
     tools: [RECORD_TOOL],
     tool_choice: { type: "tool", name: "record_ingestion_summary" },
