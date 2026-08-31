@@ -63,9 +63,9 @@ export async function generateWeeklySummary(): Promise<WeeklySummary> {
   const [[totalRow], [openRow], [openedRow], [closedRow], [agingRow]] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable),
     db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable).where(sql`status in ('submitted','assigned','in_progress')`),
-    db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable).where(sql`${workOrdersTable.createdAt} >= ${sevenDaysAgo.toISOString()}::timestamp`),
+    db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable).where(sql`${workOrdersTable.createdDate} >= ${sevenDaysAgo.toISOString()}::timestamp`),
     db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable).where(sql`status = 'completed' and ${workOrdersTable.updatedAt} >= ${sevenDaysAgo.toISOString()}::timestamp`),
-    db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable).where(sql`status in ('submitted','assigned','in_progress') and ${workOrdersTable.createdAt} < ${fourteenDaysAgo.toISOString()}::timestamp`),
+    db.select({ count: sql<number>`count(*)::int` }).from(workOrdersTable).where(sql`status in ('submitted','assigned','in_progress') and ${workOrdersTable.createdDate} < ${fourteenDaysAgo.toISOString()}::timestamp`),
   ]);
 
   const workOrderCount = totalRow?.count ?? 0;
