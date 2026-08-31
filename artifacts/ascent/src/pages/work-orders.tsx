@@ -162,9 +162,61 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
   const OPTIONAL_FIELDS = ["priority", "status", "first_response_date", "completed_date", "property_name", "unit_number"];
   const ALL_FIELDS = [...REQUIRED_FIELDS, ...OPTIONAL_FIELDS];
 
+  const autoMapColumns = useCallback((headers: string[]) => {
+    const autoMap: Record<string, string> = {};
+    const fieldAliases: Record<string, string[]> = {
+      work_order_id: ["work_order_id", "wo_id", "id", "order_id", "ticket_id", "wo#"],
+      property_name: ["property_name", "property", "building", "site"],
+      unit_number: ["unit_number", "unit", "apt", "apartment"],
+      category: ["category", "type", "issue_type", "work_type"],
+      description: ["description", "desc", "notes", "details", "summary"],
+      priority: ["priority", "urgency", "severity"],
+      created_date: ["created_date", "created_at", "date_created", "submitted_date", "date"],
+      first_response_date: ["first_response_date", "response_date", "assigned_date"],
+      completed_date: ["completed_date", "closed_date", "completion_date", "resolved_date"],
+      status: ["status", "state", "wo_status"],
+    };
+    for (const [field, aliases] of Object.entries(fieldAliases)) {
+      const match = headers.find(h =>
+        aliases.includes(h.toLowerCase().trim().replace(/[\s-]+/g, "_"))
+      );
+      if (match) autoMap[field] = match;
+    }
+    return autoMap;
+  }, []);
+
+  const handlePdfFile = useCallback(async (file: File) => {
+    setFileName(file.name);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const r = await fetch("/api/upload/parse-report-rows", { method: "POST", body: form });
+      const data = await r.json();
+      if (!r.ok) {
+        toast({ title: "Couldn't read this PDF", description: data.message ?? data.error ?? "Please try again.", variant: "destructive" });
+        return;
+      }
+      const rows: Record<string, string>[] = data.rows ?? [];
+      if (rows.length === 0) {
+        toast({ title: "Empty report", description: "No work orders found in this PDF.", variant: "destructive" });
+        return;
+      }
+      const headers = Object.keys(rows[0]);
+      setParsedData({ headers, rows });
+      setColumnMapping(autoMapColumns(headers));
+      setStep("preview");
+    } catch {
+      toast({ title: "Couldn't read this PDF", description: "Please try again.", variant: "destructive" });
+    }
+  }, [toast, autoMapColumns]);
+
   const handleFile = useCallback((file: File) => {
+    if (/\.pdf$/i.test(file.name)) {
+      handlePdfFile(file);
+      return;
+    }
     if (!file.name.match(/\.(csv|txt)$/i)) {
-      toast({ title: "Invalid file type", description: "Please upload a CSV file.", variant: "destructive" });
+      toast({ title: "Invalid file type", description: "Please upload a CSV or PDF file.", variant: "destructive" });
       return;
     }
     setFileName(file.name);
@@ -177,32 +229,11 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
         return;
       }
       setParsedData(parsed);
-
-      // Auto-detect column mapping
-      const autoMap: Record<string, string> = {};
-      const fieldAliases: Record<string, string[]> = {
-        work_order_id: ["work_order_id", "wo_id", "id", "order_id", "ticket_id", "wo#"],
-        property_name: ["property_name", "property", "building", "site"],
-        unit_number: ["unit_number", "unit", "apt", "apartment"],
-        category: ["category", "type", "issue_type", "work_type"],
-        description: ["description", "desc", "notes", "details", "summary"],
-        priority: ["priority", "urgency", "severity"],
-        created_date: ["created_date", "created_at", "date_created", "submitted_date", "date"],
-        first_response_date: ["first_response_date", "response_date", "assigned_date"],
-        completed_date: ["completed_date", "closed_date", "completion_date", "resolved_date"],
-        status: ["status", "state", "wo_status"],
-      };
-      for (const [field, aliases] of Object.entries(fieldAliases)) {
-        const match = parsed.headers.find(h =>
-          aliases.includes(h.toLowerCase().trim().replace(/[\s-]+/g, "_"))
-        );
-        if (match) autoMap[field] = match;
-      }
-      setColumnMapping(autoMap);
+      setColumnMapping(autoMapColumns(parsed.headers));
       setStep("preview");
     };
     reader.readAsText(file);
-  }, [toast]);
+  }, [toast, handlePdfFile, autoMapColumns]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -262,7 +293,7 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Upload className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold">Import Work Orders via CSV</span>
+            <span className="text-sm font-semibold">Import Work Orders</span>
           </div>
           <div className="flex items-center gap-2">
             {step !== "upload" && (
@@ -299,8 +330,8 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
                   <Upload className="h-6 w-6 text-primary" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-foreground">Drop your CSV file here</p>
-                  <p className="text-xs text-muted-foreground mt-1">or click to browse — supports work order exports from any system</p>
+                  <p className="text-sm font-semibold text-foreground">Drop your CSV or PDF report here</p>
+                  <p className="text-xs text-muted-foreground mt-1">or click to browse — supports work order exports from any system, or the PDF report you already have</p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2 mt-1">
                   {["work_order_id", "category", "description", "created_date"].map(f => (
@@ -309,7 +340,7 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
                   <span className="text-[10px] text-muted-foreground px-2 py-0.5">+ optional fields</span>
                 </div>
               </div>
-              <input ref={fileInputRef} type="file" accept=".csv,.txt" className="hidden"
+              <input ref={fileInputRef} type="file" accept=".csv,.txt,.pdf" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
 
               {/* Import mode selector */}
