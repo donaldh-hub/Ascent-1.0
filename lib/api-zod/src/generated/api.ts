@@ -1372,7 +1372,7 @@ export const ListPropertiesResponse = zod.array(ListPropertiesResponseItem);
  * @summary Create a property
  */
 export const CreatePropertyBody = zod.object({
-  name: zod.string(),
+  name: zod.string().nullish(),
   address: zod.string().nullish(),
   supervisorName: zod.string().nullish(),
   supervisorEmail: zod.string().nullish(),

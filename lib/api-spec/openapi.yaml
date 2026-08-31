@@ -2679,6 +2679,7 @@ components:
       properties:
         name:
           type: string
+          nullable: true
         address:
           type: string
           nullable: true
@@ -2691,8 +2692,6 @@ components:
         pmSystem:
           type: string
           nullable: true
-      required:
-        - name
 
     UpdatePropertyBody:
       type: object

@@ -231,6 +231,14 @@ export async function resolveProperty(
 
 // ─── Unit matching within a property ─────────────────────────────────────────
 
+/**
+ * Resolves a unit number to a real unit row, auto-creating one if nothing
+ * matches yet — mirroring resolveProperty()'s own auto-create behavior.
+ * The report itself is the source of truth for which units exist: a
+ * customer's first upload is the primary way a unit roster gets built now,
+ * not a prerequisite manual step (see App.tsx's routing — Setup is no
+ * longer a mandatory gate before real data can come in).
+ */
 export async function resolveUnit(
   unitNumberRaw: string | undefined,
   propertyId: number | null
@@ -253,7 +261,11 @@ export async function resolveUnit(
     if (numMatch) return numMatch.id;
   }
 
-  return null;
+  // No existing match — create it. A real unit number in a real report IS
+  // a real unit; there's no separate "review this unit" queue to hold it
+  // in instead.
+  const [created] = await db.insert(unitsTable).values({ propertyId, unitNumber: needle }).returning();
+  return created.id;
 }
 
 // ─── System workflow provisioning ─────────────────────────────────────────────

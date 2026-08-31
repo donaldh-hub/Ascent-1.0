@@ -80,22 +80,30 @@ export interface ImportRunSummary {
 export function classifyResolutionState(ctx: ImportRowContext): ResolutionStatus {
   const { propertyId, unitId, propertyConfidence } = ctx;
 
-  // A "created" property is not a real match — treat as unresolved
-  // (resolveProperty auto-creates properties for unknown names)
-  if (propertyConfidence === "created" || propertyConfidence === "none" || !propertyId) {
+  // No property identifier at all in the row — genuinely unattributable,
+  // nothing for resolveProperty() to create from. This is the only case
+  // treated as unresolved regardless of mode.
+  if (propertyConfidence === "none" || !propertyId) {
     return "unresolved";
   }
 
-  // FULLY RESOLVED: property confidently matched AND unit resolved
+  // FULLY RESOLVED: property and unit both resolved — matched OR freshly
+  // auto-created. Auto-creation (resolveProperty/resolveUnit) is the
+  // primary, intended path for a first real upload now, not an anomaly to
+  // exclude from rollups — the report itself is the source of truth for
+  // which properties and units exist. Strict mode is specifically for
+  // wiring audits of verified imports, so it keeps a higher bar there:
+  // an unconfirmed fuzzy match or a freshly-created record is only
+  // partial until someone's actually reviewed it.
   if (propertyId && unitId) {
-    // In strict mode, fuzzy property matches are only partial
-    if (ctx.mode === "strict" && propertyConfidence === "fuzzy") {
+    if (ctx.mode === "strict" && (propertyConfidence === "fuzzy" || propertyConfidence === "created")) {
       return "partially_resolved";
     }
     return "fully_resolved";
   }
 
-  // PARTIALLY RESOLVED: property matched but unit didn't resolve
+  // PARTIALLY RESOLVED: property resolved but unit didn't (e.g. no unit
+  // number was present in the row at all — a building-level work order).
   return "partially_resolved";
 }
 
