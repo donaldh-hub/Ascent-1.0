@@ -201,7 +201,12 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
         toast({ title: "Empty report", description: "No work orders found in this PDF.", variant: "destructive" });
         return;
       }
-      const headers = Object.keys(rows[0]);
+      // Optional fields (unit_number, notes, scheduled_date, ...) are only
+      // present on rows that actually have them — reading keys from just
+      // the first row would miss any field absent there but present later.
+      const headerSet = new Set<string>();
+      for (const row of rows) for (const key of Object.keys(row)) headerSet.add(key);
+      const headers = [...headerSet];
       setParsedData({ headers, rows });
       setColumnMapping(autoMapColumns(headers));
       setStep("preview");
