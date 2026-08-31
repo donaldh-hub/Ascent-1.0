@@ -24,9 +24,17 @@ interface WeeklySummary {
   };
 }
 
+interface CoachInsight {
+  title: string;
+  finding: string;
+  recommendation: string;
+}
+
 interface Recommendation {
-  topPriority?: { description: string };
-  insights?: { description: string }[];
+  coachUnlocked: boolean;
+  summary: string;
+  topPriority?: CoachInsight | null;
+  insights?: CoachInsight[];
 }
 
 interface JordanChatBubbleProps {
@@ -189,8 +197,9 @@ export function JordanChatBubble({ forceOpen = false, onOnboardingComplete }: Jo
       const r = await fetch("/api/coach/recommendations");
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const rec: Recommendation = await r.json();
-      const top = rec.topPriority?.description ?? rec.insights?.[0]?.description ?? "Nothing urgent is flagged right now — keep the upload cadence going.";
-      await pushMessage("jordan", top, 600);
+      const top = rec.topPriority ?? rec.insights?.[0] ?? null;
+      const reply = top ? `${top.finding} ${top.recommendation}` : rec.summary;
+      await pushMessage("jordan", reply, 600);
     } catch {
       await pushMessage("jordan", "I couldn't pull recommendations just now — try again in a moment.", 600);
     }
