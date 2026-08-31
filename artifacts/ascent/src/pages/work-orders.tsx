@@ -31,6 +31,7 @@ import {
   type WorkOrder, type WorkOrderImportResult, type ImpactTier,
 } from "@/hooks/use-work-orders";
 import { cn } from "@/lib/utils";
+import { JORDAN_SUMMARY_UPDATED_EVENT } from "@/components/coach/ingestion-summary-card";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -273,6 +274,7 @@ function CSVUploadPanel({ onImportComplete }: { onImportComplete: () => void }) 
       });
       setImportResult(result);
       setStep("results");
+      window.dispatchEvent(new Event(JORDAN_SUMMARY_UPDATED_EVENT));
       onImportComplete();
       toast({ title: "Import complete", description: `${result.imported} work orders imported.` });
     } catch (err) {
