@@ -44,6 +44,7 @@ Call record_ingestion_summary exactly once with your headline and exactly three 
 const RECORD_TOOL: Anthropic.Tool = {
   name: "record_ingestion_summary",
   description: "Record the headline explanation and top three recommendations for this upload.",
+  strict: true,
   input_schema: {
     type: "object",
     properties: {
@@ -60,8 +61,21 @@ const RECORD_TOOL: Anthropic.Tool = {
       },
     },
     required: ["headline", "recommendations"],
+    additionalProperties: false,
   },
 };
+
+function isValidSummaryInput(input: unknown): input is { headline: string; recommendations: string[] } {
+  if (typeof input !== "object" || input === null) return false;
+  const { headline, recommendations } = input as Record<string, unknown>;
+  return (
+    typeof headline === "string" &&
+    headline.trim().length > 0 &&
+    Array.isArray(recommendations) &&
+    recommendations.length === 3 &&
+    recommendations.every((r) => typeof r === "string" && r.trim().length > 0)
+  );
+}
 
 export async function generateIngestionSummary(params: {
   batchId: string;
@@ -81,11 +95,6 @@ export async function generateIngestionSummary(params: {
   const response = await client.messages.create({
     model: "claude-sonnet-5",
     max_tokens: 1024,
-    // Fixed schema, bounded input, no open-ended reasoning needed — a
-    // one-shot synthesis over a handful of counts doesn't benefit from
-    // deep thinking, so keep this cheap rather than paying for effort
-    // this task can't use.
-    output_config: { effort: "low" },
     system: SYSTEM_PROMPT,
     tools: [RECORD_TOOL],
     tool_choice: { type: "tool", name: "record_ingestion_summary" },
@@ -100,7 +109,14 @@ export async function generateIngestionSummary(params: {
   const toolUse = response.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
   if (!toolUse) throw new Error("Jordan did not return a summary for this upload.");
 
-  const input = toolUse.input as { headline: string; recommendations: string[] };
+  // Never trust tool_use.input blindly and render it straight to a
+  // customer — a malformed or truncated response (stray tags, a
+  // recommendations field that isn't really 3 clean strings) must fail
+  // here and produce no card, not get persisted and shown as-is.
+  if (!isValidSummaryInput(toolUse.input)) {
+    throw new Error(`Jordan's ingestion summary had an unexpected shape: ${JSON.stringify(toolUse.input)}`);
+  }
+  const input = toolUse.input;
 
   const [saved] = await db
     .insert(jordanIngestionSummariesTable)
