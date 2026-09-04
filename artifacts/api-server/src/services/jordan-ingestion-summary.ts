@@ -55,8 +55,10 @@ const RECORD_TOOL: Anthropic.Tool = {
       recommendations: {
         type: "array",
         items: { type: "string" },
-        minItems: 3,
-        maxItems: 3,
+        // strict:true rejects minItems/maxItems on arrays outside 0/1
+        // ("minItems values other than 0 or 1 are not supported") — the
+        // "exactly 3" requirement is enforced below in
+        // isValidSummaryInput() instead, at the application layer.
         description: "Exactly three evidence-backed recommendations, each naming what to examine and why, in Jordan's coaching voice.",
       },
     },
