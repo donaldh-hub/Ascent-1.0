@@ -5,11 +5,11 @@ import { getLatestIngestionSummary } from "../services/jordan-ingestion-summary.
 import { getOrCreatePreferences, updatePreferences } from "../services/coach-preference-service.js";
 import { JordanNotConfiguredError } from "../services/jordan-chat-service.js";
 import { runJordanMessageInline, JordanJobNotCompletedError } from "../services/agent-runtime/agents/jordan-agent.js";
-import { requireUser } from "../middleware/user-auth.js";
+import { getOrCreateDefaultUser } from "../services/access-service.js";
 
 const router: IRouter = Router();
 
-router.post("/coach/chat", requireUser, async (req, res) => {
+router.post("/coach/chat", async (req, res) => {
   try {
     const message = String(req.body?.message ?? "").trim();
     if (!message) {
@@ -18,9 +18,17 @@ router.post("/coach/chat", requireUser, async (req, res) => {
     }
     const conversationId = typeof req.body?.conversationId === "number" ? req.body.conversationId : undefined;
 
+    // No real login flow exists yet (see session.ts) — a real logged-in
+    // user gets their own granted-sites scope as before; anyone else
+    // (today, everyone) falls back to this single-tenant deployment's
+    // one default identity with unrestricted access, rather than a 401
+    // that permanently blocks the feature this app actually advertises.
+    const userId = req.user ? req.user.id : (await getOrCreateDefaultUser()).id;
+    const accessibleSiteIds = req.user ? (req.accessibleSiteIds ?? []) : undefined;
+
     const result = await runJordanMessageInline({
-      userId: req.user!.id,
-      accessibleSiteIds: req.accessibleSiteIds ?? [],
+      userId,
+      accessibleSiteIds,
       conversationId,
       message,
     });

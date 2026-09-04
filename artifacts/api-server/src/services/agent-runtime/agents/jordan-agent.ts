@@ -41,7 +41,10 @@ const KNOWLEDGE_GAP_FALLBACK = "I'm having trouble narrowing this down — could
 
 interface JordanJobPayload {
   userId: number;
-  accessibleSiteIds: number[];
+  // undefined = no restriction (single-tenant default-user path, see
+  // coach.ts) — a real logged-in user's granted sites are always a
+  // concrete array, even an empty one.
+  accessibleSiteIds: number[] | undefined;
   conversationId?: number;
   message: string;
 }

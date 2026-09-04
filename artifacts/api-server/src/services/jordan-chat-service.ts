@@ -65,7 +65,7 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
-async function runTool(name: string, input: Record<string, unknown>, accessibleSiteIds: number[]) {
+async function runTool(name: string, input: Record<string, unknown>, accessibleSiteIds: number[] | undefined) {
   const siteId = typeof input.siteId === "number" ? input.siteId : undefined;
   switch (name) {
     case "list_accessible_sites":
@@ -120,7 +120,7 @@ export async function sendJordanMessage({
   message,
 }: {
   userId: number;
-  accessibleSiteIds: number[];
+  accessibleSiteIds: number[] | undefined;
   conversationId?: number;
   message: string;
 }): Promise<{ conversationId: number; reply: string }> {

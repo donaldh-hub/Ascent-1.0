@@ -38,25 +38,37 @@ import { getBlockedBatchIds, excludeBlockedBatches } from "./agent-runtime/quali
 
 const NEAR_COMPLETION_THRESHOLD_PERCENT = 80;
 
-function siteScope(accessibleSiteIds: number[] | undefined, siteId?: number): number[] | null {
+/**
+ * Resolves which property IDs a call is scoped to. `accessibleSiteIds`
+ * being `undefined` means "no restriction" (internal/admin/default-user
+ * use, see coach.ts) — every property in the account. A concrete list
+ * means "restricted to exactly these." `null` is returned only when a
+ * specific `siteId` was asked for and it isn't in that allowlist —
+ * genuinely denied, not "no data."
+ */
+async function resolveScope(accessibleSiteIds: number[] | undefined, siteId?: number): Promise<number[] | null> {
   if (siteId != null) {
-    if (accessibleSiteIds && !accessibleSiteIds.includes(siteId)) return null; // not accessible
+    if (accessibleSiteIds && !accessibleSiteIds.includes(siteId)) return null;
     return [siteId];
   }
-  return accessibleSiteIds ?? null; // null means "no restriction" (internal/admin use only)
+  if (accessibleSiteIds) return accessibleSiteIds;
+  const rows = await db.select({ id: propertiesTable.id }).from(propertiesTable);
+  return rows.map((r) => r.id);
 }
 
-export async function listAccessibleSites(accessibleSiteIds: number[]) {
-  if (accessibleSiteIds.length === 0) return { sites: [] };
-  const rows = await db
-    .select({ id: propertiesTable.id, name: propertiesTable.name })
-    .from(propertiesTable)
-    .where(inArray(propertiesTable.id, accessibleSiteIds));
+export async function listAccessibleSites(accessibleSiteIds: number[] | undefined) {
+  if (accessibleSiteIds && accessibleSiteIds.length === 0) return { sites: [] };
+  const rows = accessibleSiteIds
+    ? await db
+        .select({ id: propertiesTable.id, name: propertiesTable.name })
+        .from(propertiesTable)
+        .where(inArray(propertiesTable.id, accessibleSiteIds))
+    : await db.select({ id: propertiesTable.id, name: propertiesTable.name }).from(propertiesTable);
   return { sites: rows };
 }
 
-export async function getWorkOrderSummary(accessibleSiteIds: number[], siteId?: number) {
-  const scope = siteScope(accessibleSiteIds, siteId);
+export async function getWorkOrderSummary(accessibleSiteIds: number[] | undefined, siteId?: number) {
+  const scope = await resolveScope(accessibleSiteIds, siteId);
   if (scope === null) return { error: "You don't have access to that site." };
   if (scope.length === 0) return { totalOpen: 0, slaViolations: 0, agingOverSevenDays: 0, blocked: 0 };
 
@@ -86,8 +98,8 @@ export async function getWorkOrderSummary(accessibleSiteIds: number[], siteId?: 
   };
 }
 
-export async function getTurnSummary(accessibleSiteIds: number[], siteId?: number) {
-  const scope = siteScope(accessibleSiteIds, siteId);
+export async function getTurnSummary(accessibleSiteIds: number[] | undefined, siteId?: number) {
+  const scope = await resolveScope(accessibleSiteIds, siteId);
   if (scope === null) return { error: "You don't have access to that site." };
   if (scope.length === 0) return { total: 0, blocked: 0, rework: 0, notRentReady: 0, nearCompletion: 0 };
 
@@ -127,8 +139,8 @@ export async function getTurnSummary(accessibleSiteIds: number[], siteId?: numbe
   };
 }
 
-export async function getImpactAndTrends(accessibleSiteIds: number[], siteId?: number) {
-  const scope = siteScope(accessibleSiteIds, siteId);
+export async function getImpactAndTrends(accessibleSiteIds: number[] | undefined, siteId?: number) {
+  const scope = await resolveScope(accessibleSiteIds, siteId);
   if (scope === null) return { error: "You don't have access to that site." };
 
   // Known gap, same shape as the unscoped-pipeline note in this file's
