@@ -1,6 +1,7 @@
 import { db } from "@workspace/db";
 import { usersTable, userSiteAccessTable, propertiesTable } from "@workspace/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
+import { getOrCreateAccountStatus } from "./account-status-service.js";
 
 export async function getAccessibleSiteIds(userId: number): Promise<number[]> {
   const rows = await db
@@ -27,6 +28,22 @@ export async function createUser(input: { hubId: number; email: string; name?: s
 
 export async function listHubUsers(hubId: number) {
   return db.select().from(usersTable).where(eq(usersTable.hubId, hubId));
+}
+
+/**
+ * A real login flow doesn't exist yet (see session.ts's anonymous-session
+ * comment) — this is the stand-in identity for the single-tenant hub's
+ * conversations/audit trail until one does. Gets or creates one user row
+ * tied to the singleton account_status hub; callers using this path pass
+ * `accessibleSiteIds: undefined` to jordan-tools.ts rather than granting
+ * this user explicit userSiteAccess rows, since "the one deployment owner"
+ * is meant to see everything, not a scoped subset.
+ */
+export async function getOrCreateDefaultUser() {
+  const hub = await getOrCreateAccountStatus();
+  const existing = await db.select().from(usersTable).where(eq(usersTable.hubId, hub.id)).limit(1);
+  if (existing[0]) return existing[0];
+  return createUser({ hubId: hub.id, email: `owner+hub-${hub.id}@ascent.local`, name: "Account Owner" });
 }
 
 /**
