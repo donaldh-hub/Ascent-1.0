@@ -63,7 +63,7 @@ router.get("/agent-ops/jobs", requireUser, async (_req, res) => {
 });
 
 router.get("/agent-ops/jobs/:id", requireUser, async (req, res) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid job id" }); return; }
   const [job] = await db.select().from(agentJobsTable).where(eq(agentJobsTable.id, id)).limit(1);
   if (!job) { res.status(404).json({ error: "Job not found" }); return; }
@@ -79,7 +79,7 @@ router.get("/agent-ops/exceptions", requireUser, async (req, res) => {
 
 router.post("/agent-ops/exceptions/:id/resolve", requireUser, async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) { res.status(400).json({ error: "Invalid exception id" }); return; }
     const decision = String(req.body?.decision ?? "").trim();
     if (!decision) { res.status(400).json({ error: "decision is required" }); return; }

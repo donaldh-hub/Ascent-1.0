@@ -318,6 +318,7 @@ router.post("/upload/work-orders", upload.single("file"), async (req, res) => {
       batchId: result.batchId,
       totalRows: rows.length,
       imported: result.imported,
+      duplicates: result.duplicates,
       errors: result.errors,
       governance: result.governance,
       unrecognizedProperties,

@@ -18,6 +18,7 @@ interface JordanSummary {
 interface IngestionResult {
   totalRows: number;
   imported: number;
+  duplicates: number;
   errors: number;
   governance: {
     fullyResolved: number;
@@ -143,6 +144,17 @@ export function WorkOrderUploadPanel({ onSuccess }: { onSuccess?: () => void }) 
             <span>{result.governance.partiallyResolved} needs unit review</span>
             <span>{result.errors} error(s)</span>
           </div>
+
+          {result.duplicates > 0 && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-700">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                {result.duplicates} work order{result.duplicates === 1 ? "" : "s"} in this file
+                {result.duplicates === 1 ? " was" : " were"} already on file for the matching
+                {result.duplicates === 1 ? " property" : " properties"} and {result.duplicates === 1 ? "wasn't" : "weren't"} re-added.
+              </span>
+            </div>
+          )}
 
           {result.jordanSummary && (
             <div className="mt-2 rounded-md border border-primary/30 bg-primary/5 p-2.5 text-sm">

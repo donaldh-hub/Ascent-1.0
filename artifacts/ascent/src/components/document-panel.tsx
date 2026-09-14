@@ -162,7 +162,7 @@ function UploadForm({
 }: {
   entityType: string;
   entityId: number;
-  workflowId: number;
+  workflowId?: number;
   stageId?: number;
   onUploaded: () => void;
   onCancel: () => void;
@@ -210,7 +210,7 @@ function UploadForm({
           documentType: docType,
           linkedEntityType: entityType,
           linkedEntityId: entityId,
-          linkedWorkflowId: workflowId,
+          linkedWorkflowId: workflowId ?? null,
           linkedStageId: stageId ?? null,
           notes: notes.trim() || null,
           uploadedBy: "Ops Director",
@@ -378,7 +378,7 @@ function UploadForm({
 export interface DocumentPanelProps {
   entityType: string;
   entityId: number;
-  workflowId: number;
+  workflowId?: number;
   stageId?: number;
   compact?: boolean;
 }

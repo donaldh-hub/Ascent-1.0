@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { db } from "@workspace/db";
 import {
   workflowItemsTable,
@@ -10,6 +10,12 @@ import { eq, and, sql, desc } from "drizzle-orm";
 import { onWorkflowItemEvent } from "../engine/system-integration";
 
 const router = Router({ mergeParams: true });
+
+// This router is always mounted at /workflows/:id/items (mergeParams
+// merges the parent's :id in), so every handler here also sees the
+// workflow id — Express's own types don't carry that through, so it's
+// declared explicitly per handler below.
+type WorkflowItemsParams = { id: string; itemId?: string };
 
 function daysAgo(date: Date): number {
   return (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
@@ -29,7 +35,7 @@ async function enrichItem(item: typeof workflowItemsTable.$inferSelect, stage?: 
 }
 
 // GET /workflows/:id/items
-router.get("/", async (req, res) => {
+router.get("/", async (req: Request<WorkflowItemsParams>, res) => {
   const workflowId = Number(req.params.id);
   const { stageId, priority, status } = req.query;
 
@@ -55,7 +61,7 @@ router.get("/", async (req, res) => {
 });
 
 // POST /workflows/:id/items
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request<WorkflowItemsParams>, res) => {
   const workflowId = Number(req.params.id);
   const body = req.body;
 
@@ -69,7 +75,8 @@ router.post("/", async (req, res) => {
       .orderBy(stagesTable.order)
       .limit(1);
     if (!firstStage) {
-      return res.status(400).json({ error: "Workflow has no stages" });
+      res.status(400).json({ error: "Workflow has no stages" });
+      return;
     }
     stageId = firstStage.id;
   }
@@ -103,7 +110,7 @@ router.post("/", async (req, res) => {
 });
 
 // GET /workflows/:id/items/:itemId
-router.get("/:itemId", async (req, res) => {
+router.get("/:itemId", async (req: Request<WorkflowItemsParams>, res) => {
   const itemId = Number(req.params.itemId);
   const workflowId = Number(req.params.id);
 
@@ -112,7 +119,7 @@ router.get("/:itemId", async (req, res) => {
     .from(workflowItemsTable)
     .where(and(eq(workflowItemsTable.id, itemId), eq(workflowItemsTable.workflowId, workflowId)));
 
-  if (!item) return res.status(404).json({ error: "Item not found" });
+  if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
   const [stage] = await db.select().from(stagesTable).where(eq(stagesTable.id, item.stageId));
 
@@ -141,7 +148,7 @@ router.get("/:itemId", async (req, res) => {
 });
 
 // PUT /workflows/:id/items/:itemId
-router.put("/:itemId", async (req, res) => {
+router.put("/:itemId", async (req: Request<WorkflowItemsParams>, res) => {
   const itemId = Number(req.params.itemId);
   const workflowId = Number(req.params.id);
   const body = req.body;
@@ -162,7 +169,7 @@ router.put("/:itemId", async (req, res) => {
     .where(and(eq(workflowItemsTable.id, itemId), eq(workflowItemsTable.workflowId, workflowId)))
     .returning();
 
-  if (!item) return res.status(404).json({ error: "Item not found" });
+  if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
   await onWorkflowItemEvent("workflow_item_updated", workflowId, itemId);
 
@@ -171,7 +178,7 @@ router.put("/:itemId", async (req, res) => {
 });
 
 // DELETE /workflows/:id/items/:itemId
-router.delete("/:itemId", async (req, res) => {
+router.delete("/:itemId", async (req: Request<WorkflowItemsParams>, res) => {
   const itemId = Number(req.params.itemId);
   const workflowId = Number(req.params.id);
 
@@ -184,25 +191,25 @@ router.delete("/:itemId", async (req, res) => {
     .where(and(eq(workflowItemsTable.id, itemId), eq(workflowItemsTable.workflowId, workflowId)))
     .returning();
 
-  if (!deleted) return res.status(404).json({ error: "Item not found" });
+  if (!deleted) { res.status(404).json({ error: "Item not found" }); return; }
   await onWorkflowItemEvent("workflow_item_deleted", workflowId);
   res.status(204).send();
 });
 
 // POST /workflows/:id/items/:itemId/move
-router.post("/:itemId/move", async (req, res) => {
+router.post("/:itemId/move", async (req: Request<WorkflowItemsParams>, res) => {
   const itemId = Number(req.params.itemId);
   const workflowId = Number(req.params.id);
   const { toStageId, notes, movedBy } = req.body;
 
-  if (!toStageId) return res.status(400).json({ error: "toStageId is required" });
+  if (!toStageId) { res.status(400).json({ error: "toStageId is required" }); return; }
 
   const [item] = await db
     .select()
     .from(workflowItemsTable)
     .where(and(eq(workflowItemsTable.id, itemId), eq(workflowItemsTable.workflowId, workflowId)));
 
-  if (!item) return res.status(404).json({ error: "Item not found" });
+  if (!item) { res.status(404).json({ error: "Item not found" }); return; }
 
   // Verify target stage exists in this workflow
   const [targetStage] = await db
@@ -210,7 +217,7 @@ router.post("/:itemId/move", async (req, res) => {
     .from(stagesTable)
     .where(and(eq(stagesTable.id, toStageId), eq(stagesTable.workflowId, workflowId)));
 
-  if (!targetStage) return res.status(400).json({ error: "Target stage not found in this workflow" });
+  if (!targetStage) { res.status(400).json({ error: "Target stage not found in this workflow" }); return; }
 
   // Get all stages to check if this is the final stage
   const allStages = await db
@@ -248,7 +255,7 @@ router.post("/:itemId/move", async (req, res) => {
 });
 
 // GET /workflows/:id/items/:itemId/history
-router.get("/:itemId/history", async (req, res) => {
+router.get("/:itemId/history", async (req: Request<WorkflowItemsParams>, res) => {
   const itemId = Number(req.params.itemId);
   const workflowId = Number(req.params.id);
 

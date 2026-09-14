@@ -479,6 +479,10 @@ async function slaViolationsDrill(propertyId?: number): Promise<DrillRow[]> {
       id: wo.id,
       title: wo.description?.slice(0, 60) ?? wo.category ?? "Work Order",
       subtitle,
+      detail: [
+        wo.assignedTo ? `Assigned to ${wo.assignedTo}` : "Unassigned",
+        wo.vendor ? `Vendor: ${wo.vendor}` : null,
+      ].filter(Boolean).join(" · "),
       rowType: "item" as DrillRowType,
       badge: `${Math.round(delayHours)}h late`,
       badgeColor: delayHours > 48 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
@@ -532,6 +536,10 @@ async function agingWorkOrdersDrill(propertyId?: number): Promise<DrillRow[]> {
       id: wo.id,
       title: wo.description?.slice(0, 60) ?? wo.category ?? "Work Order",
       subtitle,
+      detail: [
+        wo.assignedTo ? `Assigned to ${wo.assignedTo}` : "Unassigned",
+        wo.vendor ? `Vendor: ${wo.vendor}` : null,
+      ].filter(Boolean).join(" · "),
       rowType: "item" as DrillRowType,
       badge: `${daysOpen}d open`,
       badgeColor: daysOpen > 14 ? ("red" as BadgeColor) : ("yellow" as BadgeColor),
@@ -594,6 +602,10 @@ async function categorySpikesDrill(propertyId?: number): Promise<DrillRow[]> {
       id: wo.id,
       title: wo.description?.slice(0, 60) ?? topCat,
       subtitle: unitNumber ? `Unit ${unitNumber}` : (wo.status ?? "open"),
+      detail: [
+        wo.assignedTo ? `Assigned to ${wo.assignedTo}` : "Unassigned",
+        wo.vendor ? `Vendor: ${wo.vendor}` : null,
+      ].filter(Boolean).join(" · "),
       rowType: "item" as DrillRowType,
       badge: topCat,
       badgeColor: "blue" as BadgeColor,

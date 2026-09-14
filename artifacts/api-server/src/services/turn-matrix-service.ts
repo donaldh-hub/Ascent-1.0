@@ -412,7 +412,7 @@ export async function buildTurnMatrix(): Promise<TurnMatrixResult> {
 
   // Enrich all turns
   const enriched: EnrichedTurn[] = rawTurns.map(t => {
-    const propertyName = (t.propertyId && propertyNameMap.get(t.propertyId))
+    const propertyName = (t.propertyId != null ? propertyNameMap.get(t.propertyId) : undefined)
       ?? t.propertyNameRaw
       ?? "Unknown Property";
     return enrichTurn(t, propertyName);

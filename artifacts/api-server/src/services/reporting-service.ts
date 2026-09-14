@@ -713,19 +713,19 @@ export async function buildOperationalReport(filter: ReportFilter): Promise<Repo
       {
         title: "Bottleneck Analysis",
         type: "analysis",
-        data: bottleneck,
+        data: { ...bottleneck },
         emptyMessage: "No bottleneck data available — all items are progressing normally.",
       },
       {
         title: "Risk Concentration",
         type: "analysis",
-        data: risk,
+        data: { ...risk },
         emptyMessage: "No significant risk signals detected.",
       },
       {
         title: "Timing Analysis",
         type: "analysis",
-        data: timing,
+        data: { ...timing },
         emptyMessage: "No open items with extended aging.",
       },
     ],

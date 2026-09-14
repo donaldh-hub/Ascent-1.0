@@ -145,6 +145,56 @@ export interface TrendSignal {
   available: boolean;
 }
 
+export interface TurnStats {
+  totalTurns: number;
+  activeTurns: number;
+  completedTurns: number;
+  blockedTurns: number;
+  reworkTurns: number;
+  notRentReadyCount: number;
+  avgCompletionPct: number;
+  primaryBottleneckStage: string | null;
+  bottleneckSeverity: number;
+  bottleneckExplanation: string | null;
+  propertyCount: number;
+  hasData: boolean;
+  dataQuality: string;
+}
+
+export interface CategoryStat {
+  category: string;
+  count: number;
+  slaViolations: number;
+  avgResponseHours: number | null;
+  topUnit: string | null;
+  blockedCount: number;
+}
+
+export interface StageCongestion {
+  stage: string;
+  blockedCount: number;
+  avgDaysInStage: number;
+  properties: string[];
+}
+
+export interface WorkOrderStats {
+  total: number;
+  open: number;
+  completed: number;
+  slaMetCount: number;
+  slaMissedCount: number;
+  slaPendingCount: number;
+  slaComplianceRate: number;
+  agingCount: number;
+  blockedCount: number;
+  blockedTurnCount: number;
+  topCategory: string | null;
+  topBottleneckStage: string | null;
+  topBottleneckType: string | null;
+  categories: CategoryStat[];
+  stageCongestion: StageCongestion[];
+}
+
 export interface DashboardIntelligence {
   executiveSnapshot: ExecutiveSnapshot;
   actions: IntelligenceAction[];
@@ -153,6 +203,8 @@ export interface DashboardIntelligence {
   workflowSpotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
   generatedAt: string;
+  turnStats?: TurnStats | null;
+  workOrderStats?: WorkOrderStats | null;
 }
 
 export interface DashboardSummary {
@@ -467,12 +519,16 @@ export interface Asset {
   installDate?: string | null;
   warrantyStart?: string | null;
   warrantyExpiration?: string | null;
-  warrantyDaysRemaining?: number | null;
+  warrantyDaysRemaining: number | null;
   lifeExpectancyYears?: number | null;
   maintenanceSchedule?: string | null;
   healthScore: number;
   stoplight: Stoplight;
   location?: string | null;
+  unitId: number | null;
+  propertyId: number | null;
+  assetType: string | null;
+  linkageStatus: string;
   createdAt: string;
 }
 
@@ -753,12 +809,12 @@ export type WorkflowBottleneckAnalysisOldestItem = {
 } | null;
 
 export type WorkflowBottleneckAnalysisStageSummaryItem = {
-  stageId?: number;
-  stageName?: string;
-  stageOrder?: number;
-  itemCount?: number;
-  avgDaysInStage?: number;
-  oldestItemDays?: number;
+  stageId: number;
+  stageName: string;
+  stageOrder: number;
+  itemCount: number;
+  avgDaysInStage: number;
+  oldestItemDays: number;
 };
 
 export interface WorkflowBottleneckAnalysis {

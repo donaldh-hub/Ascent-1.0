@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import {
   useListProperties, useCreateProperty,
   useListUnits, useCreateUnit, useImportUnits,
+  getListUnitsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -84,7 +85,12 @@ export default function Setup() {
 
   const { data: allUnits } = useListUnits(
     { propertyId: createdPropertyId ?? undefined },
-    { query: { enabled: step === "complete" && createdPropertyId !== null } }
+    {
+      query: {
+        queryKey: getListUnitsQueryKey({ propertyId: createdPropertyId ?? undefined }),
+        enabled: step === "complete" && createdPropertyId !== null,
+      },
+    }
   );
 
   // ── Step: Create property ──────────────────────────────────────────────────

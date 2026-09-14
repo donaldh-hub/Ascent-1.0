@@ -429,9 +429,10 @@ router.get("/assets/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const [asset] = await db.select().from(assetsTable).where(eq(assetsTable.id, id));
-    if (!asset) return res.status(404).json({ error: "Not found" });
+    if (!asset) { res.status(404).json({ error: "Not found" }); return; }
     if (req.accessibleSiteIds && (!asset.propertyId || !req.accessibleSiteIds.includes(asset.propertyId))) {
-      return res.status(404).json({ error: "Not found" });
+      res.status(404).json({ error: "Not found" });
+      return;
     }
     res.json(enrichAsset(asset));
   } catch (err) {
@@ -447,7 +448,7 @@ router.put("/assets/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const body = UpdateAssetBody.parse(req.body);
     const [asset] = await db.update(assetsTable).set(body).where(eq(assetsTable.id, id)).returning();
-    if (!asset) return res.status(404).json({ error: "Not found" });
+    if (!asset) { res.status(404).json({ error: "Not found" }); return; }
     res.json(enrichAsset(asset));
   } catch (err) {
     req.log.error({ err }, "Failed to update asset");

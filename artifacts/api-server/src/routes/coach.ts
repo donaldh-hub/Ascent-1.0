@@ -89,7 +89,7 @@ router.get("/coach/weekly-summary", async (req, res) => {
 router.get("/coach/weekly-summary/last", async (_req, res) => {
   try {
     const last = await getLastWeeklySummary();
-    if (!last) return res.status(404).json({ error: "No prior summary found" });
+    if (!last) { res.status(404).json({ error: "No prior summary found" }); return; }
     res.json(last);
   } catch (err) {
     res.status(500).json({ error: "Failed to retrieve last summary", detail: String(err) });
@@ -99,7 +99,7 @@ router.get("/coach/weekly-summary/last", async (_req, res) => {
 router.get("/coach/ingestion-summary/latest", async (_req, res) => {
   try {
     const latest = await getLatestIngestionSummary();
-    if (!latest) return res.status(404).json({ error: "No upload summary found yet" });
+    if (!latest) { res.status(404).json({ error: "No upload summary found yet" }); return; }
     res.json(latest);
   } catch (err) {
     res.status(500).json({ error: "Failed to retrieve latest upload summary", detail: String(err) });

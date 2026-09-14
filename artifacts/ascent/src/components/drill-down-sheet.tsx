@@ -147,6 +147,13 @@ export function DrillDownSheet({
     bottleneck_items: <Activity className="h-4 w-4 text-blue-400" />,
     stale_items: <Clock className="h-4 w-4 text-amber-400" />,
     at_risk_workflows: <ShieldAlert className="h-4 w-4 text-red-400" />,
+    sla_violations: <AlertTriangle className="h-4 w-4 text-red-400" />,
+    aging_work_orders: <Clock className="h-4 w-4 text-amber-400" />,
+    category_spike: <Package className="h-4 w-4 text-blue-400" />,
+    blocked_turns: <ShieldAlert className="h-4 w-4 text-red-400" />,
+    stage_congestion: <Workflow className="h-4 w-4 text-amber-400" />,
+    rework_loop: <Activity className="h-4 w-4 text-amber-400" />,
+    not_rent_ready: <AlertTriangle className="h-4 w-4 text-amber-400" />,
   };
 
   return (

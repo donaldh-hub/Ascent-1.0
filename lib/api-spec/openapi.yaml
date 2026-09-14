@@ -1261,6 +1261,12 @@ components:
             $ref: "#/components/schemas/TrendSignal"
         generatedAt:
           type: string
+        turnStats:
+          $ref: "#/components/schemas/TurnStats"
+          nullable: true
+        workOrderStats:
+          $ref: "#/components/schemas/WorkOrderStats"
+          nullable: true
       required:
         - executiveSnapshot
         - actions
@@ -1268,6 +1274,153 @@ components:
         - workflowSpotlight
         - trends
         - generatedAt
+
+    TurnStats:
+      type: object
+      properties:
+        totalTurns:
+          type: integer
+        activeTurns:
+          type: integer
+        completedTurns:
+          type: integer
+        blockedTurns:
+          type: integer
+        reworkTurns:
+          type: integer
+        notRentReadyCount:
+          type: integer
+        avgCompletionPct:
+          type: number
+        primaryBottleneckStage:
+          type: string
+          nullable: true
+        bottleneckSeverity:
+          type: number
+        bottleneckExplanation:
+          type: string
+          nullable: true
+        propertyCount:
+          type: integer
+        hasData:
+          type: boolean
+        dataQuality:
+          type: string
+      required:
+        - totalTurns
+        - activeTurns
+        - completedTurns
+        - blockedTurns
+        - reworkTurns
+        - notRentReadyCount
+        - avgCompletionPct
+        - primaryBottleneckStage
+        - bottleneckSeverity
+        - bottleneckExplanation
+        - propertyCount
+        - hasData
+        - dataQuality
+
+    CategoryStat:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+        slaViolations:
+          type: integer
+        avgResponseHours:
+          type: number
+          nullable: true
+        topUnit:
+          type: string
+          nullable: true
+        blockedCount:
+          type: integer
+      required:
+        - category
+        - count
+        - slaViolations
+        - avgResponseHours
+        - topUnit
+        - blockedCount
+
+    StageCongestion:
+      type: object
+      properties:
+        stage:
+          type: string
+        blockedCount:
+          type: integer
+        avgDaysInStage:
+          type: number
+        properties:
+          type: array
+          items:
+            type: string
+      required:
+        - stage
+        - blockedCount
+        - avgDaysInStage
+        - properties
+
+    WorkOrderStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        open:
+          type: integer
+        completed:
+          type: integer
+        slaMetCount:
+          type: integer
+        slaMissedCount:
+          type: integer
+        slaPendingCount:
+          type: integer
+        slaComplianceRate:
+          type: number
+        agingCount:
+          type: integer
+        blockedCount:
+          type: integer
+        blockedTurnCount:
+          type: integer
+        topCategory:
+          type: string
+          nullable: true
+        topBottleneckStage:
+          type: string
+          nullable: true
+        topBottleneckType:
+          type: string
+          nullable: true
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/CategoryStat"
+        stageCongestion:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageCongestion"
+      required:
+        - total
+        - open
+        - completed
+        - slaMetCount
+        - slaMissedCount
+        - slaPendingCount
+        - slaComplianceRate
+        - agingCount
+        - blockedCount
+        - blockedTurnCount
+        - topCategory
+        - topBottleneckStage
+        - topBottleneckType
+        - categories
+        - stageCongestion
 
     ExecutiveSnapshot:
       type: object
@@ -1916,14 +2069,30 @@ components:
         location:
           type: string
           nullable: true
+        unitId:
+          type: integer
+          nullable: true
+        propertyId:
+          type: integer
+          nullable: true
+        assetType:
+          type: string
+          nullable: true
+        linkageStatus:
+          type: string
         createdAt:
           type: string
       required:
         - id
         - name
         - status
+        - warrantyDaysRemaining
         - healthScore
         - stoplight
+        - unitId
+        - propertyId
+        - assetType
+        - linkageStatus
         - createdAt
 
     WarrantyStatus:
@@ -2641,6 +2810,13 @@ components:
                 type: number
               oldestItemDays:
                 type: number
+            required:
+              - stageId
+              - stageName
+              - stageOrder
+              - itemCount
+              - avgDaysInStage
+              - oldestItemDays
       required:
         - workflowId
         - hasBottleneck

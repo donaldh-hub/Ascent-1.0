@@ -74,6 +74,53 @@ export async function runDataQualityCheck(): Promise<DataQualityReport> {
     });
   }
 
+  // ── Duplicate work orders (same external id + property) ──────────────────
+  const dupeGroups = await db
+    .select({
+      externalId: workOrdersTable.externalId,
+      propertyId: workOrdersTable.propertyId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(workOrdersTable)
+    .where(sql`${workOrdersTable.externalId} is not null and ${workOrdersTable.externalId} != '' and ${workOrdersTable.propertyId} is not null`)
+    .groupBy(workOrdersTable.externalId, workOrdersTable.propertyId)
+    .having(sql`count(*) > 1`);
+
+  const duplicateExtraRows = dupeGroups.reduce((sum, g) => sum + (g.count - 1), 0);
+  if (duplicateExtraRows > 0) {
+    issues.push({
+      issueId: randomUUID(),
+      severity: "warning",
+      category: "work_orders",
+      title: "Duplicate work orders detected",
+      detail: `${dupeGroups.length} work order${dupeGroups.length > 1 ? "s" : ""} on ${dupeGroups.length > 1 ? "have" : "has"} the same external ID recorded more than once for the same property (${duplicateExtraRows} redundant record${duplicateExtraRows > 1 ? "s" : ""} total). This can double-count work in portfolio metrics.`,
+      count: duplicateExtraRows,
+      resolution: "Review and remove the redundant records on the Work Orders page. New uploads are now checked for this automatically.",
+    });
+  }
+
+  // ── Work orders with reversed/impossible dates ────────────────────────────
+  const [reversedDatesRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(workOrdersTable)
+    .where(sql`
+      (${workOrdersTable.firstResponseDate} is not null and ${workOrdersTable.createdDate} is not null and ${workOrdersTable.firstResponseDate} < ${workOrdersTable.createdDate})
+      or (${workOrdersTable.completedDate} is not null and ${workOrdersTable.createdDate} is not null and ${workOrdersTable.completedDate} < ${workOrdersTable.createdDate})
+    `);
+
+  const reversedDates = reversedDatesRow?.count ?? 0;
+  if (reversedDates > 0) {
+    issues.push({
+      issueId: randomUUID(),
+      severity: "warning",
+      category: "work_orders",
+      title: "Work orders with dates out of order",
+      detail: `${reversedDates} work order${reversedDates > 1 ? "s show" : " shows"} a response or completion date earlier than the creation date — almost always a date format mismatch in the source file, not a real record. These are excluded from SLA compliance until corrected.`,
+      count: reversedDates,
+      resolution: "Check the date columns in your source export for a format mismatch (e.g. day/month swapped) and re-upload, or correct the dates on the Work Orders page.",
+    });
+  }
+
   // ── Assets with no property linked ────────────────────────────────────────
   const [unlinkedAssetsRow] = await db
     .select({ count: sql<number>`count(*)::int` })

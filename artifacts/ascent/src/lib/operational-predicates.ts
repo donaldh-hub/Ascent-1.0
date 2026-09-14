@@ -20,14 +20,14 @@ function expiringSoonStr(): string {
 }
 
 export function isAssetWarrantyExpired(a: {
-  warrantyExpiration: string | null;
+  warrantyExpiration?: string | null;
 }): boolean {
   if (!a.warrantyExpiration) return false;
   return a.warrantyExpiration < todayStr();
 }
 
 export function isAssetWarrantyExpiringSoon(a: {
-  warrantyExpiration: string | null;
+  warrantyExpiration?: string | null;
 }): boolean {
   if (!a.warrantyExpiration) return false;
   const today = todayStr();
@@ -37,7 +37,7 @@ export function isAssetWarrantyExpiringSoon(a: {
 
 export type AssetSignal = "expired_warranty" | "expiring_soon";
 
-export function applyAssetSignal<T extends { warrantyExpiration: string | null }>(
+export function applyAssetSignal<T extends { warrantyExpiration?: string | null }>(
   rows: T[],
   signal: string | null,
 ): T[] {

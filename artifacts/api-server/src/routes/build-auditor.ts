@@ -68,10 +68,11 @@ router.get("/build-auditor/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: "invalid id" });
+      res.status(400).json({ error: "invalid id" });
+      return;
     }
     const row = await getAuditById(id);
-    if (!row) return res.status(404).json({ error: "not found" });
+    if (!row) { res.status(404).json({ error: "not found" }); return; }
     res.json(row);
   } catch (err) {
     req.log.error({ err }, "build-auditor get failed");

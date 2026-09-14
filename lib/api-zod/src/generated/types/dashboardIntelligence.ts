@@ -10,7 +10,9 @@ import type { ExecutiveSnapshot } from "./executiveSnapshot";
 import type { IntelligenceAction } from "./intelligenceAction";
 import type { StageDistributionRow } from "./stageDistributionRow";
 import type { TrendSignal } from "./trendSignal";
+import type { TurnStats } from "./turnStats";
 import type { WorkflowSpotlightEntry } from "./workflowSpotlightEntry";
+import type { WorkOrderStats } from "./workOrderStats";
 
 export interface DashboardIntelligence {
   executiveSnapshot: ExecutiveSnapshot;
@@ -20,4 +22,6 @@ export interface DashboardIntelligence {
   workflowSpotlight: WorkflowSpotlightEntry[];
   trends: TrendSignal[];
   generatedAt: string;
+  turnStats?: TurnStats | null;
+  workOrderStats?: WorkOrderStats | null;
 }
