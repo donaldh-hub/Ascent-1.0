@@ -153,7 +153,7 @@ export default function Workflows() {
               createStageMutation.mutate(
                 {
                   id: workflow.id,
-                  data: { name: validStages[i].name, order: i + 1, status: "pending" },
+                  data: { name: validStages[i].name, order: i + 1 },
                 },
                 { onSettled: () => resolve() }
               );

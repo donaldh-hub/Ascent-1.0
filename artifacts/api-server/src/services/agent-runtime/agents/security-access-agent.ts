@@ -56,16 +56,20 @@ async function handleGrantReview(job: AgentJob): Promise<AgentHandlerResult> {
   const granterAccessCache = new Map<number, number[]>();
 
   for (const grant of grants) {
-    if (!granterAccessCache.has(grant.grantedByUserId)) {
-      granterAccessCache.set(grant.grantedByUserId, await getAccessibleSiteIds(grant.grantedByUserId));
+    // No recorded granter (legacy/system-seeded grant) — nothing to audit.
+    if (grant.grantedByUserId === null) continue;
+    const granterUserId = grant.grantedByUserId;
+
+    if (!granterAccessCache.has(granterUserId)) {
+      granterAccessCache.set(granterUserId, await getAccessibleSiteIds(granterUserId));
     }
-    const granterSites = granterAccessCache.get(grant.grantedByUserId)!;
+    const granterSites = granterAccessCache.get(granterUserId)!;
     if (!granterSites.includes(grant.siteId)) {
       findings.push({
         grantId: grant.id,
         userId: grant.userId,
         siteId: grant.siteId,
-        granterUserId: grant.grantedByUserId,
+        granterUserId,
         issue: "granter no longer has access to the site they granted",
       });
     }

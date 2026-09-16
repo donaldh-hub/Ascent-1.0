@@ -116,6 +116,58 @@ export const GetDashboardIntelligenceResponse = zod.object({
     }),
   ),
   generatedAt: zod.string(),
+  turnStats: zod
+    .object({
+      totalTurns: zod.number(),
+      activeTurns: zod.number(),
+      completedTurns: zod.number(),
+      blockedTurns: zod.number(),
+      reworkTurns: zod.number(),
+      notRentReadyCount: zod.number(),
+      avgCompletionPct: zod.number(),
+      primaryBottleneckStage: zod.string().nullable(),
+      bottleneckSeverity: zod.number(),
+      bottleneckExplanation: zod.string().nullable(),
+      propertyCount: zod.number(),
+      hasData: zod.boolean(),
+      dataQuality: zod.string(),
+    })
+    .nullish(),
+  workOrderStats: zod
+    .object({
+      total: zod.number(),
+      open: zod.number(),
+      completed: zod.number(),
+      slaMetCount: zod.number(),
+      slaMissedCount: zod.number(),
+      slaPendingCount: zod.number(),
+      slaComplianceRate: zod.number(),
+      agingCount: zod.number(),
+      blockedCount: zod.number(),
+      blockedTurnCount: zod.number(),
+      topCategory: zod.string().nullable(),
+      topBottleneckStage: zod.string().nullable(),
+      topBottleneckType: zod.string().nullable(),
+      categories: zod.array(
+        zod.object({
+          category: zod.string(),
+          count: zod.number(),
+          slaViolations: zod.number(),
+          avgResponseHours: zod.number().nullable(),
+          topUnit: zod.string().nullable(),
+          blockedCount: zod.number(),
+        }),
+      ),
+      stageCongestion: zod.array(
+        zod.object({
+          stage: zod.string(),
+          blockedCount: zod.number(),
+          avgDaysInStage: zod.number(),
+          properties: zod.array(zod.string()),
+        }),
+      ),
+    })
+    .nullish(),
 });
 
 /**
@@ -719,12 +771,12 @@ export const GetWorkflowBottleneckResponse = zod.object({
   insights: zod.array(zod.string()),
   stageSummary: zod.array(
     zod.object({
-      stageId: zod.number().optional(),
-      stageName: zod.string().optional(),
-      stageOrder: zod.number().optional(),
-      itemCount: zod.number().optional(),
-      avgDaysInStage: zod.number().optional(),
-      oldestItemDays: zod.number().optional(),
+      stageId: zod.number(),
+      stageName: zod.string(),
+      stageOrder: zod.number(),
+      itemCount: zod.number(),
+      avgDaysInStage: zod.number(),
+      oldestItemDays: zod.number(),
     }),
   ),
 });
@@ -745,12 +797,16 @@ export const ListAssetsResponseItem = zod.object({
   installDate: zod.string().nullish(),
   warrantyStart: zod.string().nullish(),
   warrantyExpiration: zod.string().nullish(),
-  warrantyDaysRemaining: zod.number().nullish(),
+  warrantyDaysRemaining: zod.number().nullable(),
   lifeExpectancyYears: zod.number().nullish(),
   maintenanceSchedule: zod.string().nullish(),
   healthScore: zod.number(),
   stoplight: zod.enum(["red", "yellow", "green"]),
   location: zod.string().nullish(),
+  unitId: zod.number().nullable(),
+  propertyId: zod.number().nullable(),
+  assetType: zod.string().nullable(),
+  linkageStatus: zod.string(),
   createdAt: zod.string(),
 });
 export const ListAssetsResponse = zod.array(ListAssetsResponseItem);
@@ -787,12 +843,16 @@ export const GetAssetResponse = zod.object({
   installDate: zod.string().nullish(),
   warrantyStart: zod.string().nullish(),
   warrantyExpiration: zod.string().nullish(),
-  warrantyDaysRemaining: zod.number().nullish(),
+  warrantyDaysRemaining: zod.number().nullable(),
   lifeExpectancyYears: zod.number().nullish(),
   maintenanceSchedule: zod.string().nullish(),
   healthScore: zod.number(),
   stoplight: zod.enum(["red", "yellow", "green"]),
   location: zod.string().nullish(),
+  unitId: zod.number().nullable(),
+  propertyId: zod.number().nullable(),
+  assetType: zod.string().nullable(),
+  linkageStatus: zod.string(),
   createdAt: zod.string(),
 });
 
@@ -825,12 +885,16 @@ export const UpdateAssetResponse = zod.object({
   installDate: zod.string().nullish(),
   warrantyStart: zod.string().nullish(),
   warrantyExpiration: zod.string().nullish(),
-  warrantyDaysRemaining: zod.number().nullish(),
+  warrantyDaysRemaining: zod.number().nullable(),
   lifeExpectancyYears: zod.number().nullish(),
   maintenanceSchedule: zod.string().nullish(),
   healthScore: zod.number(),
   stoplight: zod.enum(["red", "yellow", "green"]),
   location: zod.string().nullish(),
+  unitId: zod.number().nullable(),
+  propertyId: zod.number().nullable(),
+  assetType: zod.string().nullable(),
+  linkageStatus: zod.string(),
   createdAt: zod.string(),
 });
 

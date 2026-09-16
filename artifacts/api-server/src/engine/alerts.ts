@@ -667,7 +667,7 @@ export async function evaluateAlerts(): Promise<AlertEvaluationResult> {
     resolved++;
   }
 
-  return { created, updated, resolved, total: uniqueCandidates.size };
+  return { created, updated, resolved, total: uniqueCandidates.length };
 }
 
 // ─────────────────────────────────────────────

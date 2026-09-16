@@ -11,7 +11,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   // Ascent 1.12.6 — Control Tower is the single landing page.
   // Overview is intentionally NOT in the sidebar (route /overview is kept
   // for admin-only debugging of the legacy dashboard).
-  const navItems = [
+  const navItems: { href: string; label: string; icon: typeof Radar; badge?: number }[] = [
     { href: "/control-tower", label: "Control Tower", icon: Radar },
     { href: "/properties", label: "Property", icon: MapPin },
     { href: "/work-orders", label: "Work Orders", icon: Wrench },

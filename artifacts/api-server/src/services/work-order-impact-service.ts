@@ -321,7 +321,7 @@ export async function buildImpactAnalysis(): Promise<WorkOrderImpactAnalysis> {
 
   const propGroupMap = new Map<string, WorkOrderImpactRow[]>();
   for (const r of scored) {
-    const key = r.propertyName;
+    const key = r.propertyName ?? "Unknown Property";
     if (!propGroupMap.has(key)) propGroupMap.set(key, []);
     propGroupMap.get(key)!.push(r);
   }

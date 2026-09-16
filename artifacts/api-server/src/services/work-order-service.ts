@@ -183,6 +183,16 @@ export function computeSla(
     return { status: "pending", delayHours: null };
   }
   const responseHours = (firstResponseDate.getTime() - createdDate.getTime()) / 3_600_000;
+  // A response time before the reported creation time is impossible, not a
+  // fast response — almost always a date parsing/format mismatch (swapped
+  // day/month, or a wrong column mapped to created_date/first_response_date).
+  // Without this guard, the negative duration reads as well under the SLA
+  // deadline and gets reported as "met" — a wrong answer that looks clean.
+  // Treat it the same as "no response recorded yet" rather than claim
+  // compliance on a duration that can't have actually happened.
+  if (responseHours < 0) {
+    return { status: "pending", delayHours: null };
+  }
   if (responseHours <= deadlineHours) {
     return { status: "met", delayHours: null };
   }
@@ -220,10 +230,6 @@ export async function resolveProperty(
   const [created] = await db.insert(propertiesTable).values({
     name: propertyNameRaw.trim(),
     address: "",
-    city: "",
-    state: "",
-    zip: "",
-    propertyType: "multifamily",
   }).returning();
 
   return { propertyId: created.id, confidence: "created" };

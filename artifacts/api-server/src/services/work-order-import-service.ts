@@ -20,7 +20,7 @@
 import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
 import { workOrdersTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { isWoSlaViolation } from "./operational-selectors";
 import {
   extractField,
@@ -62,7 +62,7 @@ export interface ImportWorkOrderRowsOptions {
 
 export interface ImportRowResult {
   row: number;
-  status: "imported" | "error";
+  status: "imported" | "duplicate" | "error";
   workOrderId?: number;
   workflowItemId?: number;
   unitMatched: boolean;
@@ -78,6 +78,7 @@ export interface ImportRowResult {
 export interface ImportWorkOrderRowsResult {
   batchId: string;
   imported: number;
+  duplicates: number;
   errors: number;
   slaViolations: number;
   blockedCount: number;
@@ -118,6 +119,7 @@ export async function importWorkOrderRows({
   const results: ImportRowResult[] = [];
 
   let importedCount = 0;
+  let duplicateCount = 0;
   let errorCount = 0;
 
   for (let i = 0; i < rows.length; i++) {
@@ -200,6 +202,42 @@ export async function importWorkOrderRows({
       if (gov.resolutionStatus === "fully_resolved") fullyResolvedCount++;
       else if (gov.resolutionStatus === "partially_resolved") partiallyResolvedCount++;
       else unresolvedCount++;
+
+      // ── Duplicate detection ──────────────────────────────────────────────
+      // A row is a duplicate when it carries the same external work-order id
+      // as one already on file for this property — whether from an earlier
+      // row in this same upload or a previous one (re-uploading the same
+      // report used to double every work order it contained). Rows with no
+      // external id have no stable identity to dedupe on, so they still
+      // import — there's no reliable way to tell a repeat from a second,
+      // genuinely distinct request.
+      if (externalId && propertyId !== null) {
+        const [existing] = await db
+          .select({ id: workOrdersTable.id })
+          .from(workOrdersTable)
+          .where(and(
+            eq(workOrdersTable.externalId, externalId),
+            eq(workOrdersTable.propertyId, propertyId),
+          ))
+          .limit(1);
+
+        if (existing) {
+          duplicateCount++;
+          results.push({
+            row: i,
+            status: "duplicate",
+            workOrderId: existing.id,
+            unitMatched: unitId !== null,
+            propertyMatched: propertyId !== null,
+            propertyConfidence,
+            slaStatus: "pending",
+            isBlocked: false,
+            resolutionStatus: gov.resolutionStatus,
+            assignmentConfidence: gov.assignmentConfidence,
+          });
+          continue;
+        }
+      }
 
       const sla = computeSla(createdDate, firstResponseDate, slaDeadlineHours);
 
@@ -318,11 +356,11 @@ export async function importWorkOrderRows({
     partiallyResolvedCount,
     unresolvedCount,
     errorCount,
-    summaryData: { slaViolations, blockedCount },
+    summaryData: { slaViolations, blockedCount, duplicateCount },
   });
 
   log.info(
-    { importedCount, errorCount, batchId, blockedCount, fullyResolvedCount, partiallyResolvedCount, unresolvedCount },
+    { importedCount, duplicateCount, errorCount, batchId, blockedCount, fullyResolvedCount, partiallyResolvedCount, unresolvedCount },
     "Work orders imported with governance classification"
   );
 
@@ -355,6 +393,7 @@ export async function importWorkOrderRows({
   return {
     batchId,
     imported: importedCount,
+    duplicates: duplicateCount,
     errors: errorCount,
     slaViolations,
     blockedCount,

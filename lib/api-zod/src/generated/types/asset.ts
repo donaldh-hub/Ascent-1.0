@@ -17,11 +17,15 @@ export interface Asset {
   installDate?: string | null;
   warrantyStart?: string | null;
   warrantyExpiration?: string | null;
-  warrantyDaysRemaining?: number | null;
+  warrantyDaysRemaining: number | null;
   lifeExpectancyYears?: number | null;
   maintenanceSchedule?: string | null;
   healthScore: number;
   stoplight: Stoplight;
   location?: string | null;
+  unitId: number | null;
+  propertyId: number | null;
+  assetType: string | null;
+  linkageStatus: string;
   createdAt: string;
 }

@@ -612,7 +612,7 @@ export default function WorkflowDetail() {
   const { data: health } = useGetWorkflowHealth(workflowId, {
     query: { enabled: !!workflowId, queryKey: ["workflowHealth", workflowId] },
   });
-  const { data: items, isLoading: isLoadingItems } = useListWorkflowItems(workflowId, {
+  const { data: items, isLoading: isLoadingItems } = useListWorkflowItems(workflowId, {}, {
     query: { enabled: !!workflowId, queryKey: ["items", workflowId] },
   });
   const { data: bottleneck } = useGetWorkflowBottleneck(workflowId, {

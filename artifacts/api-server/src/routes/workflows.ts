@@ -19,7 +19,7 @@ import {
   ListWorkflowsQueryParams,
 } from "@workspace/api-zod";
 import { loadWorkflowInput } from "../engine/loader";
-import { calcWorkflowHealth, calcStoplight } from "../engine/scoring";
+import { calcWorkflowHealth } from "../engine/scoring";
 
 const router: IRouter = Router();
 
@@ -119,7 +119,7 @@ router.get("/workflows/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const [workflow] = await db.select().from(workflowsTable).where(eq(workflowsTable.id, id));
-    if (!workflow) return res.status(404).json({ error: "Not found" });
+    if (!workflow) { res.status(404).json({ error: "Not found" }); return; }
 
     const stages = await db.select().from(stagesTable).where(eq(stagesTable.workflowId, id));
     const documents = await db.select().from(documentsTable).where(eq(documentsTable.linkedWorkflowId, id));
@@ -138,7 +138,7 @@ router.get("/workflows/:id", async (req, res) => {
         completedAt: s.completedAt?.toISOString() ?? null,
         createdAt: s.createdAt.toISOString(),
       })),
-      documents: documents.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() })),
+      documents: documents.map((d) => ({ ...d, createdAt: d.uploadedAt.toISOString() })),
       alerts: alerts.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() })),
       impactEvents: impactEvents.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
     });
@@ -158,7 +158,7 @@ router.put("/workflows/:id", async (req, res) => {
       .where(eq(workflowsTable.id, id))
       .returning();
 
-    if (!workflow) return res.status(404).json({ error: "Not found" });
+    if (!workflow) { res.status(404).json({ error: "Not found" }); return; }
 
     const stages = await db.select().from(stagesTable).where(eq(stagesTable.workflowId, id));
     res.json({
@@ -189,7 +189,7 @@ router.get("/workflows/:id/health", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const wfInput = await loadWorkflowInput(id);
-    if (!wfInput) return res.status(404).json({ error: "Not found" });
+    if (!wfInput) { res.status(404).json({ error: "Not found" }); return; }
 
     const health = calcWorkflowHealth(wfInput);
 
@@ -312,15 +312,25 @@ router.put("/workflows/:id/stages/:stageId", async (req, res) => {
       .where(eq(stagesTable.id, stageId))
       .returning();
 
-    if (!stage) return res.status(404).json({ error: "Not found" });
+    if (!stage) { res.status(404).json({ error: "Not found" }); return; }
 
     const workflowId = parseInt(req.params.id);
-    const stages = await db.select().from(stagesTable).where(eq(stagesTable.workflowId, workflowId));
-    const scores = calcWorkflowScores(stages);
-    await db
-      .update(workflowsTable)
-      .set({ ...scores, stoplight: calcStoplight(scores.healthScore), updatedAt: new Date() })
-      .where(eq(workflowsTable.id, workflowId));
+    const wfInput = await loadWorkflowInput(workflowId);
+    if (wfInput) {
+      const health = calcWorkflowHealth(wfInput);
+      await db
+        .update(workflowsTable)
+        .set({
+          healthScore: health.healthScore,
+          stoplight: health.stoplight,
+          flowScore: health.flow.score,
+          riskScore: health.risk.score,
+          improvementScore: health.improvement.score,
+          executionScore: health.execution.score,
+          updatedAt: new Date(),
+        })
+        .where(eq(workflowsTable.id, workflowId));
+    }
 
     res.json({
       ...enrichStage(stage),

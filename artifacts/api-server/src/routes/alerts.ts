@@ -87,7 +87,7 @@ router.patch("/alerts/:id/read", async (req, res) => {
       .set({ isRead: true })
       .where(eq(alertsTable.id, id))
       .returning();
-    if (!alert) return res.status(404).json({ error: "Not found" });
+    if (!alert) { res.status(404).json({ error: "Not found" }); return; }
     res.json(serializeAlert(alert));
   } catch (err) {
     req.log.error({ err }, "Failed to mark alert read");
@@ -109,7 +109,7 @@ router.patch("/alerts/:id/acknowledge", async (req, res) => {
       })
       .where(eq(alertsTable.id, id))
       .returning();
-    if (!alert) return res.status(404).json({ error: "Not found" });
+    if (!alert) { res.status(404).json({ error: "Not found" }); return; }
     res.json(serializeAlert(alert));
   } catch (err) {
     req.log.error({ err }, "Failed to acknowledge alert");
@@ -132,7 +132,7 @@ router.patch("/alerts/:id/resolve", async (req, res) => {
       })
       .where(eq(alertsTable.id, id))
       .returning();
-    if (!alert) return res.status(404).json({ error: "Not found" });
+    if (!alert) { res.status(404).json({ error: "Not found" }); return; }
     res.json(serializeAlert(alert));
   } catch (err) {
     req.log.error({ err }, "Failed to resolve alert");

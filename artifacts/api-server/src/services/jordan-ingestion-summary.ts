@@ -41,7 +41,12 @@ You are NOT a dispatcher or maintenance supervisor. Never say things like "I com
 
 Call record_ingestion_summary exactly once with your headline and exactly three recommendations.`;
 
-const RECORD_TOOL: Anthropic.Tool = {
+// Cast (not annotated) so the excess-property check doesn't reject
+// `strict`: it's a real, supported Anthropic API field for tool
+// definitions, but this project's pinned @anthropic-ai/sdk version
+// predates `strict` in its own `Tool` type — the API accepts it either
+// way since the SDK just serializes this object as-is.
+const RECORD_TOOL = {
   name: "record_ingestion_summary",
   description: "Record the headline explanation and top three recommendations for this upload.",
   strict: true,
@@ -65,7 +70,7 @@ const RECORD_TOOL: Anthropic.Tool = {
     required: ["headline", "recommendations"],
     additionalProperties: false,
   },
-};
+} as Anthropic.Tool;
 
 function isValidSummaryInput(input: unknown): input is { headline: string; recommendations: string[] } {
   if (typeof input !== "object" || input === null) return false;

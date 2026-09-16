@@ -55,7 +55,7 @@ interface PriorityAction {
   id: string;
   label: string;
   context: string;
-  count: number;
+  count?: number;
   signal?: SignalType;
   href?: string;
   severity: "critical" | "warning" | "info";

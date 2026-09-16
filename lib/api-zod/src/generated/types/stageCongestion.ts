@@ -6,11 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type WorkflowBottleneckAnalysisStageSummaryItem = {
-  stageId: number;
-  stageName: string;
-  stageOrder: number;
-  itemCount: number;
+export interface StageCongestion {
+  stage: string;
+  blockedCount: number;
   avgDaysInStage: number;
-  oldestItemDays: number;
-};
+  properties: string[];
+}

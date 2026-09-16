@@ -75,7 +75,7 @@ router.post("/sales/leads/:id/convert", requireUser, async (req, res) => {
       res.status(403).json({ error: "You do not have permission to convert leads." });
       return;
     }
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
       res.status(400).json({ error: "Invalid lead id" });
       return;

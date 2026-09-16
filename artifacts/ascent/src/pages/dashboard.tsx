@@ -125,7 +125,7 @@ function HealthGaugeSkeleton() {
 
 type DrillState = { signal: SignalType; workflowId?: number; stageId?: number } | null;
 
-function computeOrgTurnScores(ts: NonNullable<ReturnType<typeof useGetDashboardIntelligence>["data"]>["turnStats"]) {
+function computeOrgTurnScores(ts: TurnStats | null | undefined) {
   if (!ts || !ts.hasData || ts.totalTurns === 0) return null;
   const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
   const blockedRate = ts.blockedTurns / ts.totalTurns;
@@ -877,11 +877,8 @@ function MetricRevealSection({
       recommendedAction = "Review stage assignments and unblock turns stalled beyond 7 days";
     }
   } else if (metric === "risk") {
-    const missingCount = actions.filter((a) => a.missingDocs).length;
     if (turnStats?.hasData && turnStats.blockedTurns + turnStats.reworkTurns > 0) {
       recommendedAction = `Resolve ${turnStats.blockedTurns} blocked and ${turnStats.reworkTurns} rework turns — ${turnStats.notRentReadyCount} units remain unleasable until cleared`;
-    } else if (missingCount > 0) {
-      recommendedAction = `Address ${snap?.criticalItemsCount ?? 0} critical turns immediately — prioritize the ${missingCount} missing documentation case${missingCount !== 1 ? "s" : ""} first`;
     } else {
       recommendedAction = `Address ${snap?.criticalItemsCount ?? 0} critical turns immediately, starting with the highest-priority overdue cases`;
     }
@@ -1156,7 +1153,6 @@ function RiskReveal({
   onDrill: (signal: SignalType, opts?: { workflowId?: number; stageId?: number }) => void;
 }) {
   const criticalActions = actions.filter((a) => a.urgency === "critical");
-  const missingDocActions = actions.filter((a) => a.missingDocs);
   const redWorkflows = spotlight.filter((w) => w.concernLevel === "critical");
   const riskNarrative = generateRiskNarrative(turnStats);
 
@@ -1294,11 +1290,6 @@ function RiskReveal({
               </p>
             </ClickableSignal>
             <p className="text-xs text-muted-foreground mt-1">units not yet rent-ready</p>
-            {missingDocActions.length > 0 && (
-              <p className="text-xs text-status-yellow/80 mt-2 leading-snug">
-                {missingDocActions.length} turn{missingDocActions.length !== 1 ? "s" : ""} with documentation issues
-              </p>
-            )}
           </RevealCard>
 
           <RevealCard label="At-Risk Properties" icon={AlertTriangle}>
@@ -1924,7 +1915,8 @@ function OperationalPrioritiesPanel({
     if (action.category === "bottleneck" && action.workflowId)
       return () => onDrill("at_risk_workflows", { workflowId: action.workflowId! });
     if (action.category === "aging") return () => onDrill("aging_work_orders");
-    if (action.category === "unassigned") return () => onDrill("unassigned_items");
+    // "unassigned" actions have no drill-down signal on the backend yet —
+    // no-op rather than requesting a signal the API can't serve.
     return () => {};
   }
 

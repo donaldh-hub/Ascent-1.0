@@ -9,7 +9,12 @@
  * This is the single source of truth for gate decisions.
  */
 
-import { useListProperties, useListUnits } from "@workspace/api-client-react";
+import {
+  useListProperties,
+  useListUnits,
+  getListPropertiesQueryKey,
+  getListUnitsQueryKey,
+} from "@workspace/api-client-react";
 
 export interface SetupStatus {
   isComplete: boolean;
@@ -22,11 +27,11 @@ export interface SetupStatus {
 
 export function useSetupStatus(): SetupStatus {
   const { data: properties, isLoading: propLoading } = useListProperties({
-    query: { staleTime: 30_000 },
+    query: { queryKey: getListPropertiesQueryKey(), staleTime: 30_000 },
   });
   const { data: units, isLoading: unitsLoading } = useListUnits(
     {},
-    { query: { staleTime: 30_000 } }
+    { query: { queryKey: getListUnitsQueryKey(), staleTime: 30_000 } }
   );
 
   const isLoading = propLoading || unitsLoading;
