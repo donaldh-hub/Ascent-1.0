@@ -120,3 +120,23 @@ Open questions before any spend:
   support, and marketing). Decide sequencing: Ascent Path A first, resident
   app later, is the lower-cost order.
 - Cross-product idea → also belongs in the Drive Bridge folder (core.md §4).
+
+## Direction update 2026-10-01 — business-only, office side
+
+User's direction: sell to property management companies only. Staff (not
+residents) take the photos; Ascent does the move-in vs move-out
+comparison and explains what changed. This is Path A plus a staff photo
+upload channel — an intelligence layer on top of what sites already do.
+Resident app stays parked as a possible later separate product.
+
+Guardrails that keep it in bounds (flag if a design crosses them):
+- Photo capture is an *upload channel* (like CSV/email ingestion), not a
+  scheduling or inspection-task manager. No assigning inspections, due
+  dates per tech, or dispatch.
+- Output is findings + evidence ("possible damage, kitchen counter, 0.82,
+  photos attached"). No deposit charges or billing line items — the
+  office takes findings into its PMS to charge.
+- No auto-created work orders. Ascent can say "this looks like repair
+  work"; the site creates the work order in its own system.
+- Repair cost *estimates* as context for turn-cost intelligence are a
+  gray area — decide explicitly before building.
