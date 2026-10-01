@@ -96,3 +96,27 @@ shown as anything stronger than an observation.
 - Sites already capture inspection photos somewhere (PMS or app).
 - Turns can be linked to inspections by property + unit + date window.
 - No resident ever logs into Ascent.
+
+## Combined idea logged 2026-10-01 — resident app as a separate product
+
+Status: **combined / parked**. Came from Path B above + the user's
+thinking out loud the same night: a resident-facing photo app could be
+its own product and its own revenue line (residents, and possibly
+insurance companies), separate from Ascent.
+
+How it stays clean with the positioning boundary: the resident app is a
+different product that does the capture. Ascent stays the intelligence
+layer and only receives inspection data a property is authorized to see,
+the same way it receives Yardi/RealPage exports. Ascent's identity does
+not change.
+
+Open questions before any spend:
+- Who pays: resident, property, or insurer? Unverified — no market
+  research done yet. Validate by talking to 2–3 renters-insurance agents
+  and a few residents before building.
+- Resident photos are personal data. Sharing them with insurers or a
+  property needs explicit resident consent and a privacy policy.
+- Tension with the earlier "no fourth product" call (limited money,
+  support, and marketing). Decide sequencing: Ascent Path A first, resident
+  app later, is the lower-cost order.
+- Cross-product idea → also belongs in the Drive Bridge folder (core.md §4).
