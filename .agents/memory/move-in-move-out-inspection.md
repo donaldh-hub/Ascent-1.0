@@ -195,3 +195,34 @@ Design implications (not built):
   bulk upload from a phone.
 - Storage: photos kept for years -> retention policy and storage cost to
   decide before launch.
+
+## Additions 2026-10-01 — semi-annual inspections + pull photos from the PMS
+
+**Semi-annual unit inspections as mid-tenancy data points.** Sites do
+internal unit-by-unit inspections about twice a year, with photos. Each
+set can be compared to the unit's baseline (make-ready) set. Value:
+catch problems *during* the tenancy (leaks, water damage, unreported
+repairs, condition decline) instead of only at move-out, and show a
+condition timeline per unit: baseline -> inspection -> inspection ->
+move-out. Fits "see problems earlier" in the mission.
+
+**Integration over double upload (user's rule: staff should never upload
+the same photos in two places).** User's company runs Yardi; photos are
+already collected at move-out inspections inside a Yardi module the user
+called "my IQ" (exact Yardi product name, export options, and API access
+are **unverified**). This is an `ingestion-connection-ladder.md` problem,
+not a new pipeline:
+- Rung 1/2 (no partnership needed): if the PMS can export or email an
+  inspection report (likely PDF with embedded photos), Ascent ingests it
+  through the same upload/inbound-email path (`inbound_emails` table now
+  exists) and extracts photos + room/item labels.
+- Rung 4 (API): vendor approval/certification is the real bottleneck,
+  not code. Don't make it a launch dependency.
+- Cheapest next step (free, user can do at work): open a completed
+  move-out inspection in Yardi and check what can be exported, printed
+  to PDF, or scheduled by email — and whether photos come with it.
+  Bring back a de-identified sample.
+
+Jordan role: coach on the photo-derived signals ("3 units in Building C
+show new ceiling staining since the spring inspection; 2 have no plumbing
+work order on file"). Coaching, not task management.
