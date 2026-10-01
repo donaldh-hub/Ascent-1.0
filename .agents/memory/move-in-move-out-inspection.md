@@ -140,3 +140,26 @@ Guardrails that keep it in bounds (flag if a design crosses them):
   work"; the site creates the work order in its own system.
 - Repair cost *estimates* as context for turn-cost intelligence are a
   gray area — decide explicitly before building.
+
+## Combined idea 2026-10-01 — one photo engine, three markets
+
+Status: **combined / parked**. User's "same process, different outcome"
+framing: build the photo-comparison engine once, sell it three ways.
+1. Property management companies — inside Ascent (direction above).
+2. Renters-insurance companies — white-label/add-on for a modest fee.
+3. Public/residents — "get your security deposit back" consumer app.
+
+Strategic flags (unresolved, user decides):
+- **Sides conflict.** Markets 1 and 3 are opposite sides of a deposit
+  dispute. A PM client may not trust Ascent if the same company sells
+  tenants a tool to contest its deductions. If 3 happens, use a separate
+  brand/company name and keep data fully separate (no tenant photos
+  flowing into a landlord's Ascent, or the reverse, without consent).
+- **Shared code, separate products.** Share only the comparison engine
+  (photo pair -> change label + confidence + explanation). Each market
+  gets its own app shell, data store, and terms.
+- **Insurance** = long sales cycles, compliance and security review.
+  Consumer = marketing spend and support. Both unverified — no market
+  research done.
+- Sequencing (cheapest first): photo test -> Ascent Path A -> one
+  insurance conversation -> consumer app only if Ascent is earning.
