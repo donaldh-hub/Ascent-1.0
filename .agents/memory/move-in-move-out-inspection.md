@@ -163,3 +163,35 @@ Strategic flags (unresolved, user decides):
   research done.
 - Sequencing (cheapest first): photo test -> Ascent Path A -> one
   insurance conversation -> consumer app only if Ascent is earning.
+
+## Decisions 2026-10-01 — focus locked to property management side
+
+- **Resident/consumer version: parked.** Kept in memory (sections above),
+  revisit later. Not in scope now.
+- **Focus: property management companies, office side only.**
+- **Charges and costs are the organization's call.** Ascent does not
+  estimate repair costs or charges. Resolves the gray area above: Ascent
+  reports what changed + evidence; the org decides what to charge in its
+  own system.
+- **Baseline = make-ready completion photos.** Sites are starting (not
+  yet standard) to photograph units when the turn is finished, before
+  move-in. That set is the baseline — it ties naturally to turn
+  completion (`turnsTable`, stage `Completed`).
+- **Tenancy length varies (1–4+ years).** The baseline must be stored
+  durably and still be comparable years later.
+
+Design implications (not built):
+- Baseline set links to unit + the turn that produced it + tenancy start.
+  Move-out set compares against the most recent baseline for that unit.
+- Wear expectation should scale with time in unit — 4 years of normal
+  wear looks different from 1 year. Show tenancy length beside every
+  finding.
+- **Differentiator:** work orders during the tenancy explain changes.
+  If carpet was replaced in year 2 via a work order, a different carpet
+  at move-out is the property's own repair, not damage. Ascent already
+  holds work-order history; no inspection app without it can do this.
+- Friction targets: room-by-room capture with the baseline photo shown
+  as a guide for angle, photos auto-attached to unit (no file naming),
+  bulk upload from a phone.
+- Storage: photos kept for years -> retention policy and storage cost to
+  decide before launch.
