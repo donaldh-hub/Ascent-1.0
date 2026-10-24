@@ -115,3 +115,40 @@ underlying signals improved. Do not design an open-ended discussion/
 ticketing thread that lets Ascent become a second place to manage the
 work itself — a lighter acknowledgment/response mechanism is fine, an
 execution-tracking system is not.
+
+### Pricing — decided, locked per core.md Section 3
+
+Decided (not a draft, not one of several options under consideration):
+**$40/month base subscription plus a data fee, banded by the property's
+unit count** — unit-band pricing, not true per-unit pricing (a 125-unit
+property pays the same as a 200-unit property in the same band).
+
+| Site size | Base | Data fee | Monthly total |
+|---|---|---|---|
+| 0–100 units | $40 | $10 | $50 |
+| 101–200 units | $40 | $20 | $60 |
+| 201–300 units | $40 | $30 | $70 |
+| 301–400 units | $40 | $40 | $80 |
+| 401–500 units | $40 | $50 | $90 |
+| each additional 100 units | $40 | +$10 | +$10 |
+
+**Customer-facing language (use this, don't paraphrase it looser):**
+"Ascent starts at $40 per month, plus a site data fee. Your data fee is
+based on your property's 100-unit range and is established during your
+First Snapshot."
+
+**Mechanism**: the first uploaded report estimates the site's unit-count
+band; the customer then confirms the property's actual total unit count
+before the price is finalized. This is a real feature to build (count
+units from the uploaded report, show the estimated tier, get the
+customer's confirmation), not just page copy — and as of this decision,
+no real billing/payment processor is wired up anywhere in either repo
+(see `.agents/memory/`'s earlier "simple bridge first, real billing
+later" call), so implementing this today means showing the correct
+price and capturing the confirmed tier, not collecting payment.
+
+**This supersedes what's currently live.** `donaldh-hub/Ascent-Website`'s
+`pricing.tsx` still shows a different structure (Free / "Starting at
+$50/mo" / "Add properties as needed" / custom regional) as of this
+decision — that page needs to be rebuilt to this table, not left as a
+second, conflicting pricing surface.
