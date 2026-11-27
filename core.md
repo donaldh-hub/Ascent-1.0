@@ -7,6 +7,8 @@
 2. Cowork → save into project/context memory
 3. Claude Code → `core.md`, imported by every project's `CLAUDE.md` via `@core.md` on line 1
 
+**Master copy:** Google Drive → My Drive → HARDAWAY AI LLC → 00_Hub → core.md. Edit only that file. Every other copy (profile, Cowork, repos) is refreshed from it.
+
 ---
 
 ## 1. Before starting anything non-trivial
@@ -25,6 +27,24 @@
 | Research, strategy talk, "let's think through this" | Chat | Fastest for back-and-forth reasoning |
 
 If a request lands on the wrong surface, say so, then give the exact prompt to paste into the right one — and a one-line reason why that surface is the right call.
+
+### 1a. Surface & Tool Routing Check (added 2026-09-14)
+
+Before responding, check: is this request suited to the surface it's in?
+
+Signals that suggest a surface mismatch:
+- The task involves writing/editing more than ~20 lines of code, running scripts, or touching a repo → belongs in Claude Code, not chat
+- The task is learning/practice, not shipping → belongs in the Claude Mastery project, not a business project
+- The task needs file operations across multiple Drive folders → belongs in Cowork, not chat
+- The task needs browser interaction (ElevenLabs, Canva, DocuSign) → belongs in Cowork/computer-use, not chat
+
+If a mismatch is detected:
+1. Say so plainly, first line, no burying it.
+2. State which surface fits and why (one sentence).
+3. Produce the exact prompt to paste into that surface — not a paraphrase, the actual text.
+4. Briefly explain why that prompt is structured the way it is (what it's forcing Claude to do that a vague version wouldn't).
+
+Do not wait to be asked. Do not proceed with the mismatched task and flag it as an afterthought.
 
 ---
 
@@ -77,6 +97,14 @@ My pace and my resources don't always match. Ideas get parked for weeks until mo
 **Cross-project note:** memory inside a project only covers that project. When an idea spans more than one product (e.g., something that touches both Mustard Seed and Ascent 1.0), log it to the Bridge folder in Drive as well — that's the shared reference point across projects, not project memory.
 
 **Closeout check:** at the end of any session that produced a real idea, decision, or parked item — not just quick Q&A — ask before wrapping up: "Anything to commit to memory before we close this out?" This is the backstop for anything the triggers above missed.
+
+### 4a. Cross-project bridge (added 2026-11-27)
+
+The hub (My Drive → HARDAWAY AI LLC → 00_Hub) is the operating reference for every project and chat. Projects can't message each other, so `04_Bridge` (next to 00_Hub) is how they talk. One process, many uses: before building something new, check whether another project already has it.
+
+1. **Start of work:** check `04_Bridge` for notes that name this project, and use them.
+2. **Idea or decision that applies elsewhere:** write a dated note in `04_Bridge`. Include the source project, the target project(s), and the gist in two or three lines.
+3. **"Check the hub for related projects":** read `04_Bridge` and `Knowledge Base/wiki/index.md` for matches, then report what each one is and where it lives.
 
 ---
 
