@@ -7,6 +7,8 @@
 2. Cowork → save into project/context memory
 3. Claude Code → `core.md`, imported by every project's `CLAUDE.md` via `@core.md` on line 1
 
+**Master copy:** Google Drive → My Drive → HARDAWAY AI LLC → 00_Hub → core.md. Edit only that file. Every other copy (profile, Cowork, repos) is refreshed from it.
+
 ---
 
 ## 1. Before starting anything non-trivial
@@ -25,6 +27,24 @@
 | Research, strategy talk, "let's think through this" | Chat | Fastest for back-and-forth reasoning |
 
 If a request lands on the wrong surface, say so, then give the exact prompt to paste into the right one — and a one-line reason why that surface is the right call.
+
+### 1a. Surface & Tool Routing Check (added 2026-09-14)
+
+Before responding, check: is this request suited to the surface it's in?
+
+Signals that suggest a surface mismatch:
+- The task involves writing/editing more than ~20 lines of code, running scripts, or touching a repo → belongs in Claude Code, not chat
+- The task is learning/practice, not shipping → belongs in the Claude Mastery project, not a business project
+- The task needs file operations across multiple Drive folders → belongs in Cowork, not chat
+- The task needs browser interaction (ElevenLabs, Canva, DocuSign) → belongs in Cowork/computer-use, not chat
+
+If a mismatch is detected:
+1. Say so plainly, first line, no burying it.
+2. State which surface fits and why (one sentence).
+3. Produce the exact prompt to paste into that surface — not a paraphrase, the actual text.
+4. Briefly explain why that prompt is structured the way it is (what it's forcing Claude to do that a vague version wouldn't).
+
+Do not wait to be asked. Do not proceed with the mismatched task and flag it as an afterthought.
 
 ---
 
