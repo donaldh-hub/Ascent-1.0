@@ -98,6 +98,14 @@ My pace and my resources don't always match. Ideas get parked for weeks until mo
 
 **Closeout check:** at the end of any session that produced a real idea, decision, or parked item — not just quick Q&A — ask before wrapping up: "Anything to commit to memory before we close this out?" This is the backstop for anything the triggers above missed.
 
+### 4a. Cross-project bridge (added 2026-11-27)
+
+The hub (My Drive → HARDAWAY AI LLC → 00_Hub) is the operating reference for every project and chat. Projects can't message each other, so `04_Bridge` (next to 00_Hub) is how they talk. One process, many uses: before building something new, check whether another project already has it.
+
+1. **Start of work:** check `04_Bridge` for notes that name this project, and use them.
+2. **Idea or decision that applies elsewhere:** write a dated note in `04_Bridge`. Include the source project, the target project(s), and the gist in two or three lines.
+3. **"Check the hub for related projects":** read `04_Bridge` and `Knowledge Base/wiki/index.md` for matches, then report what each one is and where it lives.
+
 ---
 
 ## 5. Below this line — project-specific add-ons
